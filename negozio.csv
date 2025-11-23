@@ -1,0 +1,424 @@
+Inventario,Descrizione,Ingombro,Disponibilità,Costo,Tipo
+"Candela, Cera",,5,Media,6s,Illuminazione
+"Candela, Sego",,5,Diffusa,3s,Illuminazione
+Carbone,,10,Comune,1s,Illuminazione
+Fiammifero,,0,Media,1p,Illuminazione
+Lampada,,20,Diffusa,5s,Illuminazione
+Lanterna,,20,Media,5CO,Illuminazione
+"Lanterna, Schermata",,30,Scarsa,12CO,Illuminazione
+Legna da Ardere,,5,Diffusa,2s,Illuminazione
+Olio da Lampada,,5,Diffusa,5s,Illuminazione
+Torcia Grezza,,5,Diffusa,5p,Illuminazione
+Torcia Trattata,,5,Comune,10p,Illuminazione
+Acqua di Colonia,,0,Comune,1CO,Personale
+Profumo,,0,Comune,1CO,Personale
+Armadio,,800,Comune,50CO,Personale
+Biglie,,0,Comune,1s,Personale
+Campanello,,2,Comune,25s,Personale
+Completo per Rasatura,,2,Comune,3CO,Personale
+Coperta,,10,Diffusa,25s,Personale
+"Corda, 1 Metro",,3,Comune,1s,Personale
+Cosmetici,,1,Comune,10s,Personale
+Dado appesantito,,0,Scarsa,12s,Personale
+Dado d'Osso,,0,Diffusa,6s,Personale
+Incerata,,20,Comune,5s,Personale
+Lettiera,,1600,Comune,8CO,Personale
+Libreria,,650,Scarsa,75CO,Personale
+Lucchetto di Qualità,,5,Scarsa,30CO,Personale
+Luccetto Medio,,5,Comune,1CO,Personale
+Materasso di Bioccoli,,400,Comune,8CO,Personale
+Materasso di Piume,,350,Scarsa,12CO,Personale
+Mazzo di carte,,1,Diffusa,1CO,Personale
+Mollette per stendere il bucato (12),,2,Comune,1s,Personale
+"Pertica, 1 Metro",,10,Diffusa,1s,Personale
+Pettine o Spazzola,,1,Diffusa,15p,Personale
+Posate d'argento,,3,Scarsa,15CO,Personale
+Posate di legno,,2,Diffusa,5s,Personale
+Posate di Metallo,,4,Comune,3CO,Personale
+Rampino,,20,Comune,4CO,Personale
+Sacco a pelo,,20,Diffusa,15CO,Personale
+Sapone,,3,Comune,2p,Personale
+Scala di corda,,20,Comune,3CO,Personale
+Scala,,50,Comune,10s,Personale
+Scatola dell'acciarino,,5,Diffusa,30s,Personale
+Scrivania,,1000,Scarsa,50CO,Personale
+Sedia,,300,Comune,3CO,Personale
+Sgabello,,50,Comune,1CO,Personale
+Sofa,,1200,Scarsa,30CO,Personale
+Specchio Grande di Metallo,,10,Rara,10CO,Personale
+Specchio piccolo d'argento,,2,Molto Rara,20CO,Personale
+Stendardo,,50,Comune,10CO,Personale
+Tabacchiera,,1,Comune,2CO,Personale
+Tavolo,,1500,Comune,8CO,Personale
+Tenda Grande,,50,Comune,2CO,Personale
+Tenda Piccola,,20,Comune,15s,Personale
+Tendone,,800,Comune,10CO,Personale
+Armonica a bocca,,1,Media,8s,"Strumenti Musicali"
+Arpa piccola,,10,Rara,20CO,"Strumenti Musicali"
+Arpicordo,,1200,Rara,250CO,"Strumenti Musicali"
+Corno,,30,Media,10CO,"Strumenti Musicali"
+Fischietto,,0,Comune,6s,"Strumenti Musicali"
+Flauto Dolce,,5,Media,3CO,"Strumenti Musicali"
+Liuto,,30,Scarsa,80CO,"Strumenti Musicali"
+Mandolino,,15,Scarsa,23CO,"Strumenti Musicali"
+Tamburello,,5,Media,1CO,"Strumenti Musicali"
+Tamburo,,50,Media,30s,"Strumenti Musicali"
+Viola,,30,Media,25CO,"Strumenti Musicali"
+Carboncino,,0,Comune,1s,Leggere e Scrivere
+"Carta, 1 Foglio",,0,Molto Rara,5s,Leggere e Scrivere
+"Cartapecora, 1 Foglio",,0,Rara,1s,Leggere e Scrivere
+Completo da Cartografo,,20,Rara,50CO,Leggere e Scrivere
+Completo da Scrivano,,5,Media,10CO,Leggere e Scrivere
+"Gesso, 1 stecca",,0,Comune,2s,Leggere e Scrivere
+"Inchiostro, Colorato",,1,Scarsa,10CO,Leggere e Scrivere
+"Inchiostro, Nero",,1,Media,5CO,Leggere e Scrivere
+"Inchiostro, Porpora",,1,Molto Rara,50CO,Leggere e Scrivere
+"Libro, Cucito, Stampato",,35,Molto Rara,100CO,Leggere e Scrivere
+"Libro, Incollato, Stampato",,35,Molto Rara,75CO,Leggere e Scrivere
+"Libro, Miniato",,50,Molto Rara,350CO,Leggere e Scrivere
+Lucchetto per libri,,1,Molto Rara,45CO,Leggere e Scrivere
+Penna,,0,Scarsa,1CO,Leggere e Scrivere
+Pennello,,0,Media,2CO,Leggere e Scrivere
+Abaco,,5,Rara,10CO,Attrezzi
+Ago da cucito,,0,Diffusa,8s,Attrezzi
+Amo e Lenza,,2,Comune,3s,Attrezzi
+Aratro,,150,Comune,10CO,Attrezzi
+Bilancia,,75,Comune,20CO,Attrezzi
+Candela Segnatempo,,2,Media,12s,Attrezzi
+Carriola,,70,Comune,10CO,Attrezzi
+Cartine eografiche,,5,Rara,25CO,Attrezzi
+"Catena, 1 Metro",,5,Rara,30s,Attrezzi
+Ceralacca,,1,Comune,1CO,Attrezzi
+"Ceselli da Legno, Completo",,5,Comune,8CO,Attrezzi
+Chiodi (10),,0,Diffusa,1p,Attrezzi
+Clessidra,,5,Rara,5CO,Attrezzi
+Colla,,1,Comune,1CO,Attrezzi
+Cote,,1,Comune,1CO,Attrezzi
+Falce,,20,Comune,5CO,Attrezzi
+Forcone,,10,Diffusa,1CO,Attrezzi
+Forgia,,5000,Media,1200CO,Attrezzi
+Grimaldelli,,20,Media,10CO,Attrezzi
+Incudine,,300,Rara,65CO,Attrezzi
+Laccio,,5,Comune,1CO,Attrezzi
+Lente d'ingrandimento,,5,Rara,75CO,Attrezzi
+Lesina,,2,Comune,2s,Attrezzi
+"Lime, Assortimento",,5,Media,6CO,Attrezzi
+Lingotto di Metallo,,20,Media,25s,Attrezzi
+Maglio da Fabbro,,40,Comune,1CO,Attrezzi
+Manette,,20,Media,5CO,Attrezzi
+Mantice,,10,Comune,6CO,Attrezzi
+Marchio,,10,Comune,5CO,Attrezzi
+Martello,,5,Comune,2CO,Attrezzi
+Matrice per Monete,,5,Rara,10CO,Attrezzi
+Miccia,,0,Scarsa,1s,Attrezzi
+Pestello e Mortaio,,50,Comune,4CO,Attrezzi
+Piccone da Minatore,,20,Media,25s,Attrezzi
+Piccone da Scalata,,10,Scarsa,2CO,Attrezzi
+Piede di Porco,,10,Comune,10s,Attrezzi
+Punteruolo,,5,Comune,5s,Attrezzi
+Rete da Pesca,,30,Diffusa,18s,Attrezzi
+Richiamo per Animali,,0,Comune,25s,Attrezzi
+Sega,,10,Comune,7CO,Attrezzi
+Seghetto,,5,Comune,5CO,Attrezzi
+"Spago, Rotolo",,0,Abbondante,8p,Attrezzi
+"Strumenti di Lavoro, Altro",,50,Media,50CO,Attrezzi
+"Strumenti di Lavoro, Artigiano",,40,Rara,50CO,Attrezzi
+"Strumenti di Lavoro, Cesellatore",,20,Rara,50CO,Attrezzi
+"Strumenti di Lavoro, Fabbro",,300,Rara,50CO,Attrezzi
+"Strumenti di Lavoro, Medico",,50,Rara,50CO,Attrezzi
+"Strumenti di Lavoro, Navigatore",,20,Rara,50CO,Attrezzi
+Tagliola Grande,,40,Media,4CO,Attrezzi
+Tagliola,,20,Comune,2CO,Attrezzi
+Telescopio,,5,Rara,100CO,Attrezzi
+"Trucco, Trousse",,10,Scarsa,5CO,Attrezzi
+Utensili da Macellaio,,20,Comune,13CO,Attrezzi
+Vanga,,20,Comune,25s,Attrezzi
+Zappa,,10,Diffusa,2CO,Attrezzi
+Zeppa di Legno,,2,Diffusa,8p,Attrezzi
+Abito/Vestito,,15,Diffusa,1CO,Indumenti
+Berretto o Cappello,,1,Diffusa,10s,Indumenti
+Brache,,4,Diffusa,15s,Indumenti
+Calze,,0,Comune,26s,Indumenti
+Calzoni,,3,Comune,6CO,Indumenti
+Camicia da Notte,,1,Rara,2CO,Indumenti
+Camicia/Giubba,,4,Diffusa,1CO,Indumenti
+"Cappa, Corta",,5,Comune,5s,Indumenti
+"Cappa, Lunga",,7,Comune,9s,Indumenti
+Cappello a Tesa Larga,,5,Diffusa,1CO,Indumenti
+"Cappotto/Giacca, Leggero",,5,Diffusa,3CO,Indumenti
+"Cappotto/Giacca, Pesante",,10,Diffusa,5CO,Indumenti
+Cappuccio,,2,Comune,5s,Indumenti
+Cinto,,0,Comune,4CO,Indumenti
+Cintura,,1,Diffusa,3s,Indumenti
+Corpetto,,4,Diffusa,10s,Indumenti
+Corsetto,,2,Comune,3CO,Indumenti
+Costume,,10,Comune,5CO,Indumenti
+Farsetto,,2,Diffusa,10s,Indumenti
+Fascia,,1,Diffusa,4CO,Indumenti
+Fazzoletto,,0,Comune,6p,Indumenti
+Fusciacca,,1,Media,30p,Indumenti
+Grembiule,,2,Diffusa,5p,Indumenti
+Guanti,,0,Comune,3CO,Indumenti
+Kilt,,3,Comune,12s,Indumenti
+Mantello,,10,Diffusa,5CO,Indumenti
+Maschera,,2,Comune,10s,Indumenti
+Paramenti Ecclesiastici,,20,Media,13CO,Indumenti
+Perizoma,,1,Abbondante,4s,Indumenti
+Sandali,,2,Comune,2s,Indumenti
+Scarpe,,5,Diffusa,10,Indumenti
+Sciarpa,,0,Diffusa,15p,Indumenti
+Soprabito,,15,Diffusa,10CO,Indumenti
+Stivali al fianco,,15,Media,8CO,Indumenti
+Stivali bassi,,5,Diffusa,18s,Indumenti
+Stivali da Equitazione,,10,Diffusa,3CO,Indumenti
+Stivali Nanici Chiodati,,30,Rara,30CO,Indumenti
+Stracci,,5,Abbondante,1p,Indumenti
+Tunica,,25,Media,15CO,Indumenti
+"Barile, 100 L",,1250,Comune,1CO,Contenitori
+"Barile, 20 L",,200,Comune,8s,Contenitori
+"Barile, 50 L",,500,Comune,12s,Contenitori
+"Baule, Grande",,400,Comune,3CO,Contenitori
+"Baule, Piccolo",,275,Media,16s,Contenitori
+Bicchiere,,1,Media,2s,Contenitori
+Boccale di Legno,,5,Diffusa,10s,Contenitori
+Boccale di Peltro,,5,Diffusa,1CO,Contenitori
+Boccetta,,0,Comune,10p,Contenitori
+Bollitore,,10,Diffusa,30s,Contenitori
+Borraccia,,100,Diffusa,8s,Contenitori
+Borsa a tracolla,,5,Media,2CO,Contenitori
+Borsello,,1,Diffusa,2s,Contenitori
+Bottiglia,,2,Media,3s,Contenitori
+Brocca d'argilla,,10,Abbondante,2s,Contenitori
+Calice,,2,Comune,3s,Contenitori
+"Cassa di Legno, Grande",,300,Abbondante,5CO,Contenitori
+"Cassa di Legno, Piccola",,175,Abbondante,2CO,Contenitori
+Cesta,,8,Media,2s,Contenitori
+Ciotola di legno o argilla,,0,Scarsa,8p,Contenitori
+Fiasca di cuoio,,5,Media,15s,Contenitori
+Fiasca di metallo,,15,Media,2CO,Contenitori
+"Gabbia, Grande",,500,Diffusa,24CO,Contenitori
+"Gabbia, Piccola",,300,Diffusa,6CO,Contenitori
+"Giara d'argilla, 25 L",,20,Abbondante,10s,Contenitori
+"Giara d'argilla, 5 L",,15,Diffusa,4s,Contenitori
+Pentola d'argilla,,60,Abbondante,2s,Contenitori
+Pentola di ferro,,90,Diffusa,1CO,Contenitori
+"Sacchetto, Grande",,1,Diffusa,5s,Contenitori
+"Sacchetto, Piccolo",,0,Diffusa,2s,Contenitori
+"Sacco, Grande",,7,Diffusa,5s,Contenitori
+"Sacco, Piccolo",,4,Diffusa,30p,Contenitori
+"Scatola di Ferro, Grande",,300,Comune,10s,Contenitori
+"Scatola di Ferro, Piccola",,150,Diffusa,1CO,Contenitori
+Secchio di Legno,,20,Abbondante,3s,Contenitori
+Secchio di Metallo,,30,Diffusa,5s,Contenitori
+Tubo per documenti,,2,Scarsa,1CO,Contenitori
+Zaino,,20,Diffusa,30s,Contenitori
+Arma in Asta,,175,Comune,15CO,Armi da mischia
+Arma a una mano,,50,Comune,10CO,Armi da mischia
+Arma Grande,,200,Media,20CO,Armi da mischia
+Bastone,,50,Abbondante,3s,Armi da mischia
+Fioretto,,40,Rara,18CO,Armi da mischia
+Flagello,,95,Scarsa,15CO,Armi da mischia
+Lancia da Cavaliere,,100,Rara,40CO,Armi da mischia
+Lancia,,50,Comune,10CO,Armi da mischia
+Mazzafrusto,,60,Scarsa,15CO,Armi da mischia
+Mezza lancia,,75,Scarsa,20CO,Armi da mischia
+Paramano/Tirapugni,,1,Comune,1CO,Armi da mischia
+Pugnale da parata,,15,Scarsa,4CO,Armi da mischia
+Pugnale,,10,Comune,1CO,Armi da mischia
+Scudino da Parata,,10,Media,2CO,Armi da mischia
+Scudo,,50,Comune,10CO,Armi da mischia
+Spezzaspada,,40,Scarsa,5CO,Armi da mischia
+Stocco,,40,Scarsa,18CO,Armi da tiro
+Arco corto,,75,Comune,7CO,Armi da tiro
+Arco elfico,,75,Molto Rara,70CO,Armi da tiro
+Arco lungo,,90,Media,15CO,Armi da tiro
+Arco,,80,Comune,10CO,Armi da tiro
+Ascia/Martello da lancio,,40,Media,5CO,Armi da tiro
+Balestra a ripetizione,,150,Molto Rara,100CO,Armi da tiro
+Balestra Pistola,,25,Rara,35CO,Armi da tiro
+Balestra,,120,Media,25CO,Armi da tiro
+Bolas,,20,Scarsa,7s,Armi da tiro
+Fionda su bastone,,50,Rara,6CO,Armi da tiro
+Fionda,,10,Comune,4CO,Armi da tiro
+Frusta,,40,Media,2CO,Armi da tiro
+Giavellotto,,30,Media,25s,Armi da tiro
+Lancia,,50,Comune,10CO,Armi da tiro
+Lasso,,10,Abbondante,1CO,Armi da tiro
+Pugnale/Stella da lancio,,10,Comune,3CO,Armi da tiro
+Rete,,60,Comune,3CO,Armi da tiro
+Frecce (5),,10,Comune,1s,Munizioni
+Quadrelli (5),,10,Media,2s,Munizioni
+Asino,,0,Diffusa,15CO,Bestiame
+Bovino,,0,Diffusa,10CO,Bestiame
+Bue,,0,Diffusa,30CO,Bestiame
+Capra,,0,Diffusa,2CO,Bestiame
+Cavallo da Soma,,0,Diffusa,40CO,Bestiame
+Cavallo da Tiro,,0,Diffusa,25CO,Bestiame
+Mulo,,0,Diffusa,20CO,Bestiame
+Pecora,,0,Diffusa,2CO,Bestiame
+Pollo,,0,Diffusa,5p,Bestiame
+Porco,,0,Diffusa,3CO,Bestiame
+Cane da Guerra,,0,Rara,30CO,Animali da compagnia
+Cane di Razza,,0,Diffusa,3CO,Animali da compagnia
+Corvo addomesticato,,0,Rara,10CO,Animali da compagnia
+Gatto,,0,Diffusa,1,Animali da compagnia
+Piccione Viaggiatore,,0,Media,1CO,Animali da compagnia
+Scimmia,,0,Rara,40CO,Animali da compagnia
+Uccello da Caccia,,0,Rara,80CO,Animali da compagnia
+Aspensorio,,10,Media,30CO,Equipaggiamento Religioso
+"Braciere, Grande",,50,Media,50CO,Equipaggiamento Religioso
+"Braciere, Medio",,30,Media,20CO,Equipaggiamento Religioso
+"Braciere, Piccolo",,15,Comune,10CO,Equipaggiamento Religioso
+Candelabro,,10,Media,15CO,Equipaggiamento Religioso
+Candeliere,,5,Comune,6s,Equipaggiamento Religioso
+Incensiere,,25,Media,2CO,Equipaggiamento Religioso
+"Incenso, Stecca",,0,Comune,1CO,Equipaggiamento Religioso
+Reliquiario,,10,Media,3CO,Equipaggiamento Religioso
+Rosario,,1,Comune,1CO,Equipaggiamento Religioso
+Acqua benedetta,,0,Scarsa,10CO,Stranezze
+Aglio,,0,Comune,7p,Stranezze
+Amuleti,,0,Comune,2p,Stranezze
+Bezoar,,0,Rara,30CO,Stranezze
+Bufonite o Batrachite,,0,Molto Rara,40CO,Stranezze
+Ciondolo portafortuna,,0,Media,15CO,Stranezze
+Grimorio,,100,Molto Rara,500CO,Stranezze
+Impiastro curativo,,0,Comune,5p,Stranezze
+Pergamena di preghiera,,0,Rara,1CO,Stranezze
+Polvere di smeraldo,,1,Rara,100CO,Stranezze
+Scatola degli antitodi,,0,Scarsa,3CO,Stranezze
+Sigillo di purezza,,0,Media,8CO,Stranezze
+Vetro di Miragliano (bicchiere),,2,Rara,40CO,Stranezze
+Bacio della cortigiana,,0,Comune,5CO,Pozioni
+Birra di bugman,,5,Molto Rara,50CO,Pozioni
+Coraggio liquido,,0,Comune,5CO,Pozioni
+Essenza del caos,,0,Molto Rara,225CO,Pozioni
+Favore di greta,,0,Molto Rara,30CO,Pozioni
+Latte del convivio,,0,Scarsa,50CO,Pozioni
+Nettare rilassante di Esmeralda,,0,Molto Rara,300CO,Pozioni
+Occhiopazzo,,0,Scarsa,25s,Pozioni
+Pozione di cura,,0,Media,5CO,Pozioni
+Rimedio di Mamma melchin,,0,Comune,18s,Pozioni
+Toccasana,,0,Comune,11CO,Pozioni
+Aconito,,0,Scarsa,10CO,Veleni
+Ammazzacuore,,0,Molto Rara,800CO,Veleni
+Ammazzasaggi (Cicuta),,0,Rara,150CO,Veleni
+Amore in bottiglia,,0,Scarsa,10CO,Veleni
+Bacio della vipera,,0,Molto Rara,350CO,Veleni
+Belladonna,,0,Rara,15CO,Veleni
+Cianuro,,0,Molto Rara,30CO,Veleni
+Arsenico,,0,Molto Rara,1200CO,Veleni
+Funghi Cappello del Pazzo,,0,Molto Rara,30CO,Veleni
+Giusquiamo,,0,Scarsa,50CO,Veleni
+Ombra Rossa,,0,Molto Rara,35CO,Veleni
+Armatura completa di piastre,,395,Rara,400CO,Armatura
+Bracciale di piastre,,30,Scarsa,60CO,Armatura
+Elmo,,40,Scarsa,30CO,Armatura
+Gambali di piastre,,40,Scarsa,70CO,Armatura
+Pettorale di piastre,,75,Scarsa,70CO,Armatura
+Barca a remi,,900,Media,90CO,Mezzi di trasporto
+Battello fluviale,,0,Rara,600CO,Mezzi di trasporto
+Carretto,,0,Comune,50CO,Mezzi di trasporto
+Carrozza,,0,Comune,90CO,Mezzi di trasporto
+Chiatta fluviale,,0,Rara,1200CO,Mezzi di trasporto
+Diligenza,,0,Rara,500CO,Mezzi di trasporto
+Nave,,0,Scarsa,12000CO,Mezzi di trasporto
+"Birra Forte, Pinta",,2,Diffusa,2p,Bevanda
+"Birra, Pinta",,2,Abbondante,1p,Bevanda
+Brandy Bretonniano,,2,Media,13s,Bevanda
+"Burro, Mezzo Chilo",,1,Diffusa,30p,Cibo
+"Carne, Taglio",,10,Media,1s,Cibo
+Cibo per Un giorno (buono),,10,Media,18p,Cibo
+Cibo per Un giorno (normale),,10,Comune,10p,Cibo
+Cibo per Un giorno (scadente),,10,Diffusa,5p,Cibo
+"Formaggio, Mezzo Chilo",,1,Diffusa,50p,Cibo
+"Idromele, Pinta",,2,Media,3p,Bevanda
+"Latte di Capra/Mucca, Pinta",,2,Diffusa,2p,Bevanda
+Liquori,,5,Media,1s,Bevanda
+"Pane, Pagnotta",,3,Abbondante,2p,Cibo
+Pasticcio da due soldi,,2,Comune,2p,Cibo
+"Pesce fresco, 1",,2,Comune,2p,Cibo
+"Pesce sottaceto, barilotto",,20,Comune,3p,Cibo
+"Razioni, per 1 settimana",,50,Comune,6s,Cibo
+Specialità,,3,Scarsa,3p,Cibo
+Torcibudella,,2,Diffusa,4p,Bevanda
+"Uova, 12",,1,Diffusa,15p,Cibo
+"Vino annacquato, Pinta",,5,Comune,1s,Bevanda
+"Vino di qualità, Pinta",,5,Media,10s,Bevanda
+"Zuppa, Porzione",,1,Abbondante,1p,Cibo
+"Foraggio, per 1 giorno",,50,Diffusa,5p,Cibo
+"Stoffa Casalinga","A metroquadro",0,Comune,8p,Stoffa
+"Stoffa Lana","A metroquadro",0,Comune,1CO,Stoffa
+"Stoffa Lino","A metroquadro",0,Comune,10s,Stoffa
+"Stoffa Pizzo","A metroquadro",0,Comune,3CO,Stoffa
+"Stoffa Seta del Catai","A metroquadro",0,Comune,5CO,Stoffa
+"Stoffa Tela","A metroquadro",0,Comune,2s,Stoffa
+"Stoffa Velluto","A metroquadro",0,Comune,2CO,Stoffa
+"Pellame Cavallo","A pelle",0,Comune,2CO,Pellame
+"Pellame Cervo","A pelle",0,Comune,50s,Pellame
+"Pellame Cuoio","A pelle",0,Comune,1CO,Pellame
+"Pellame Leone","A pelle",0,Molto Rara,15CO,Pellame
+"Pellame Leopardo","A pelle",0,Molto Rara,14CO,Pellame
+"Pellame Lupo","A pelle",0,Media,5CO,Pellame
+"Pellame Martora","A pelle",0,Media,5CO,Pellame
+"Pellame Orso","A pelle",0,Media,3CO,Pellame
+"Pellame Pecora","A pelle",0,Media,4CO,Pellame
+"Pellame Procione","A pelle",0,Comune,10s,Pellame
+"Pellame Visone","A pelle",0,Comune,6CO,Pellame
+"Pellame Volpe Bianca","A pelle",0,Rara,11CO,Pellame
+"Pellame Volpe Rossa","A pelle",0,Rara,9CO,Pellame
+"Pellame Zibellino Nero","A pelle",0,Scarsa,7CO,Pellame
+"Tinta Blu Oltremare","Per 100g",0,Comune,7s,Tinta
+"Tinta Blu Rame","Per 100g",0,Comune,6s,Tinta
+"Tinta Cartamo","Per 100g",0,Comune,3s,Tinta
+"Tinta Giallo","Per 100g",0,Comune,2s,Tinta
+"Tinta Ocra","Per 100g",0,Comune,9s,Tinta
+"Tinta Porpora","Per 100g",0,Scarsa,24s,Tinta
+"Tinta Rosso Ruggine","Per 100g",0,Comune,4s,Tinta
+"Tinta Verde","Per 100g",0,Comune,6s,Tinta
+"Tinta Vermiglio","Per 100g",0,Comune,12s,Tinta
+"Olio di Cartamo","Per 5l",0,Comune,30p,Olio
+"Olio di Girasole","Per 5l",0,Comune,4s,Olio
+"Olio di Mandorla","Per 5l",0,Rara,6CO,Olio
+"Olio di Nocciola","Per 5l",0,Rara,3CO,Olio
+"Olio di Noce","Per 5l",0,Media,1CO,Olio
+"Olio di Oliva","Per 5l",0,Rara,3CO,Olio
+"Olio di Sesamo","Per 5l",0,Rara,6CO,Olio
+"Miele","Per 0.5l",0,Comune,5s,Dolcificante
+"Zucchero Bianco","Per 0.5l",0,Raro,5s,Dolcificante
+"Zucchero Grezzo","Per 0.5l",0,Comune,5s,Dolcificante
+"Avena","Per 500g",0,Comune,8s,Granaglie
+"Ceci","Per 500g",0,Rara,2CO,Granaglie
+"Frumento in grani","Per 500g",0,Rara,1CO,Granaglie
+"Grano saraceno","Per 500g",0,Comune,8s,Granaglie
+"Lenticchie","Per 500g",0,Scarsa,1CO,Granaglie
+"Miglio","Per 500g",0,Comune,8s,Granaglie
+"Orzo","Per 500g",0,Comune,13s,Granaglie
+"Riso","Per 500g",0,Rara,3CO,Granaglie
+"Segale","Per 500g",0,Comune,8s,Granaglie
+"Cacao","Per 500g",0,Molto Rara,67CO,"Merce esotica"
+"Caffè","Per 500g",0,Molto Rara,33CO,"Merce esotica"
+"Peperoncino","Per 500g",0,Molto Rara,67CO,"Merce esotica"
+"Tabacco","Per 500g",0,Rara,10CO,"Merce esotica"
+"Tè","Per 500g",0,Rara,2CO,"Merce esotica"
+"Alloggio nel Dormitorio Comune",,0,Abbondante,5p,"Locanda di Strada"
+"Bagno",,0,Abbondante,5p,"Locanda di Strada"
+"Pasto sostanzioso",,0,Comune,5p,"Locanda di Strada"
+"Pasto completo",,0,Comune,5p,"Locanda di Strada"
+"Pasto magro",,0,Abbondante,5p,"Locanda di Strada"
+"Pasto ricco",,0,Media,5p,"Locanda di Strada"
+"Stallaggio per Cavallo",,0,Abbondante,5p,"Locanda di Strada"
+"Stanza Privata",,0,Media,5p,"Locanda di Strada"
+"Alloggio nel Dormitorio Comune",,0,Abbondante,3p,"Ostello"
+"Bagno",,0,Abbondante,2s,"Ostello"
+"Pasto sostanzioso",,0,Comune,4p,"Ostello"
+"Pasto completo",,0,Comune,2p,"Ostello"
+"Pasto magro",,0,Abbondante,1p,"Ostello"
+"Pasto ricco",,0,Media,10p,"Ostello"
+"Stallaggio per Cavallo",,0,Abbondante,8p,"Ostello"
+"Stanza Privata",,0,Media,5s,"Ostello"
+"Fabbro",,0,Comune,18p,"Ostello"
+"Medico",,0,Comune,32p,"Ostello"
+"Alloggio nel Dormitorio Comune",,0,Abbondante,3p,"Taverna"
+"Pasto sostanzioso",,0,Comune,3p,"Taverna"
+"Pasto completo",,0,Comune,2p,"Taverna"
+"Pasto magro",,0,Abbondante,1p,"Taverna"

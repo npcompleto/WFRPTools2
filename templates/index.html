@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - RPG Tools{% endblock %}
+
+{% block content %}
+<div class="card text-center">
+    <h1>Benvenuto, Master</h1>
+    <p>Gestisci le tue sessioni di gioco con facilità.</p>
+    <div class="mt-4">
+        <a href="{{ url_for('shop') }}" class="btn">Apri Simulatore Negozio</a>
+    </div>
+</div>
+{% endblock %}

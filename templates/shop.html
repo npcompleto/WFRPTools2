@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block title %}Negozio - RPG Tools{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Simulatore di Negozio</h1>
+    <p>Catalogo oggetti disponibili.</p>
+
+    <div class="filters" style="margin-bottom: 2rem;">
+        <form action="{{ url_for('shop') }}" method="get">
+            <label for="shop-type">Tipo di Negozio:</label>
+            <select name="type" id="shop-type" onchange="this.form.submit()"
+                style="padding: 0.5rem; border-radius: 4px; background: #333; color: #fff; border: 1px solid #555;">
+                <option value="">Tutti</option>
+                {% for type_name in shop_types %}
+                <option value="{{ type_name }}" {% if selected_type==type_name %}selected{% endif %}>{{ type_name }}
+                </option>
+                {% endfor %}
+            </select>
+
+            <label for="city-size" style="margin-left: 1rem;">Dimensione Città:</label>
+            <select name="city_size" id="city-size" onchange="this.form.submit()"
+                style="padding: 0.5rem; border-radius: 4px; background: #333; color: #fff; border: 1px solid #555;">
+                <option value="< 100" {% if selected_city_size=='< 100' %}selected{% endif %}>&lt; 100</option>
+                <option value="< 1000" {% if selected_city_size=='< 1000' %}selected{% endif %}>&lt; 1000</option>
+                <option value="< 10000" {% if selected_city_size=='< 10000' %}selected{% endif %}>&lt; 10000</option>
+                <option value="> 10000" {% if selected_city_size=='> 10000' %}selected{% endif %}>&gt; 10000</option>
+            </select>
+
+            <label for="quality" style="margin-left: 1rem;">Fattura:</label>
+            <select name="quality" id="quality" onchange="this.form.submit()"
+                style="padding: 0.5rem; border-radius: 4px; background: #333; color: #fff; border: 1px solid #555;">
+                <option value="Regale" {% if selected_quality=='Regale' %}selected{% endif %}>Regale</option>
+                <option value="Nobiliare" {% if selected_quality=='Nobiliare' %}selected{% endif %}>Nobiliare</option>
+                <option value="Eccezionale" {% if selected_quality=='Eccezionale' %}selected{% endif %}>Eccezionale
+                </option>
+                <option value="Buona" {% if selected_quality=='Buona' %}selected{% endif %}>Buona</option>
+                <option value="Comune" {% if selected_quality=='Comune' %}selected{% endif %}>Comune</option>
+                <option value="Scadente" {% if selected_quality=='Scadente' %}selected{% endif %}>Scadente</option>
+            </select>
+        </form>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Inventario</th>
+                    <th>Descrizione</th>
+                    <th>Ingombro</th>
+                    <th>Disponibilità</th>
+                    <th>Probabilità</th>
+                    <th>Costo</th>
+                    <th>Tipo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td><strong>{{ item['Inventario'] }}</strong></td>
+                    <td>{{ item['Descrizione'] }}</td>
+                    <td>{{ item['Ingombro'] }}</td>
+                    <td>{{ item['Disponibilità'] }}</td>
+                    <td>{{ item['Percentuale'] }}</td>
+                    <td>{{ item['Costo'] }}</td>
+                    <td>{{ item['Tipo'] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
