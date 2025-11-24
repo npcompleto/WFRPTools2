@@ -183,10 +183,18 @@ def load_diary_data():
                 note_decoded = base64.b64decode(row['note']).decode('utf-8')
             except:
                 note_decoded = "Error decoding note"
-                
+            
+            weather_data = {}
+            try:
+                weather_raw = row.get('weather_json', '{}')
+                if pd.notna(weather_raw) and weather_raw:
+                    weather_data = json.loads(weather_raw)
+            except Exception as e:
+                print(f"Error parsing weather JSON for {row['date_iso']}: {e}")
+
             diary_entries[row['date_iso']] = {
                 'note': note_decoded,
-                'weather': row.get('weather_json', '{}') 
+                'weather': weather_data
             }
         return diary_entries
     except Exception as e:

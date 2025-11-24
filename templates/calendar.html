@@ -307,6 +307,54 @@
     .btn-save:hover {
         background-color: #e6c200;
     }
+
+    /* Weather Widget Styling */
+    .weather-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 10px;
+        margin-bottom: 1rem;
+        background: #333;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #555;
+    }
+
+    .weather-card {
+        background: #222;
+        padding: 10px;
+        border-radius: 4px;
+        text-align: center;
+        border: 1px solid #444;
+    }
+
+    .weather-card h4 {
+        margin: 0 0 5px 0;
+        font-size: 0.9rem;
+        color: #aaa;
+        border-bottom: 1px solid #444;
+        padding-bottom: 2px;
+    }
+
+    .weather-icon {
+        font-size: 1.5rem;
+        margin: 5px 0;
+    }
+
+    .weather-temp {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #ffd700;
+    }
+
+    .weather-details {
+        font-size: 0.7rem;
+        color: #ccc;
+        margin-top: 5px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
 </style>
 
 <!-- Quill CSS -->
@@ -345,7 +393,7 @@
             <!-- Days -->
             {% for day in range(1, month.days + 1) %}
 
-            {% set day_ns = namespace(holiday_name=None, holiday_desc=None, diary_note=None) %}
+            {% set day_ns = namespace(holiday_name=None, holiday_desc=None, diary_note=None, weather=None) %}
 
             <!-- Check Holiday -->
             {% for h in calendar.holidays %}
@@ -360,10 +408,12 @@
             {% set date_iso = "%d-%02d-%02d"|format(calendar.year, month_index, day) %}
             {% if diary and date_iso in diary %}
             {% set day_ns.diary_note = diary[date_iso].note %}
+            {% set day_ns.weather = diary[date_iso].weather %}
             {% endif %}
 
             <div class="day-cell {% if day_ns.holiday_name %}holiday{% endif %} {% if day_ns.diary_note %}diary{% endif %}"
-                onclick="openEditor('{{ date_iso }}', this)" data-note="{{ day_ns.diary_note|default('', true)|e }}">
+                onclick="openEditor('{{ date_iso }}', this)" data-note="{{ day_ns.diary_note|default('', true)|e }}"
+                data-weather='{{ day_ns.weather|tojson|safe if day_ns.weather else "{}" }}'>
                 {{ day }}
 
                 {% if day_ns.holiday_name or day_ns.diary_note %}
@@ -397,6 +447,12 @@
     <div class="modal-content">
         <span class="close" onclick="closeModal()">&times;</span>
         <h2 id="modalDate">Data</h2>
+
+        <!-- Weather Widget -->
+        <div id="weather-widget" class="weather-container" style="display: none;">
+            <!-- Populated by JS -->
+        </div>
+
         <div id="editor-container"></div>
         <button class="btn-save" onclick="saveDiary()">Salva Nota</button>
     </div>
@@ -435,22 +491,83 @@
 
         document.getElementById('modalDate').innerText = 'Diario del ' + dateIso;
 
-        // Get content from data attribute (it might be empty)
-        // Note: We need to be careful about HTML in data attributes. 
-        // Ideally we fetch it or parse it from the tooltip if it exists.
-        // For now, let's try to get it from the data-note attribute which we added.
-
-        // However, data-note is escaped. We need to unescape it or just use the tooltip content if available.
-        // Let's look for .note-content inside the tooltip.
+        // Load Note
         let noteContent = '';
         let tooltipNote = element.querySelector('.note-content');
         if (tooltipNote) {
             noteContent = tooltipNote.innerHTML;
         }
-
         quill.root.innerHTML = noteContent;
 
+        // Load Weather
+        let weatherData = {};
+        try {
+            let weatherAttr = element.getAttribute('data-weather');
+            if (weatherAttr) {
+                weatherData = JSON.parse(weatherAttr);
+            }
+        } catch (e) {
+            console.error("Error parsing weather data", e);
+        }
+
+        renderWeather(weatherData);
+
         document.getElementById('diaryModal').style.display = "block";
+    }
+
+    function renderWeather(data) {
+        const container = document.getElementById('weather-widget');
+        container.innerHTML = '';
+
+        if (!data || Object.keys(data).length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+
+        container.style.display = 'grid';
+
+        const periods = ['Mattino', 'Pomeriggio', 'Sera', 'Notte'];
+
+        periods.forEach(period => {
+            if (data[period]) {
+                const w = data[period];
+                const card = document.createElement('div');
+                card.className = 'weather-card';
+
+                // Determine Icon
+                let icon = '☀️'; // Default Sun
+                let condition = 'Sereno';
+
+                if (w.snow_cm > 0) {
+                    icon = '❄️';
+                    condition = 'Neve';
+                } else if (w.rain_mm > 0) {
+                    icon = '🌧️';
+                    condition = 'Pioggia';
+                } else if (w.cloudiness_pct > 70) {
+                    icon = '☁️';
+                    condition = 'Nuvoloso';
+                } else if (w.cloudiness_pct > 30) {
+                    icon = '⛅';
+                    condition = 'Parz. Nuvoloso';
+                } else if (period === 'Notte' || period === 'Sera') {
+                    icon = '🌙'; // Moon for clear night
+                }
+
+                card.innerHTML = `
+                    <h4>${period}</h4>
+                    <div class="weather-icon" title="${condition}">${icon}</div>
+                    <div class="weather-temp">${w.temperature_c}°C</div>
+                    <div class="weather-details">
+                        <span>💨 ${w.wind_kmh} km/h</span>
+                        <span>☁️ ${w.cloudiness_pct}%</span>
+                        ${w.rain_mm > 0 ? `<span>💧 ${w.rain_mm} mm</span>` : ''}
+                        ${w.snow_cm > 0 ? `<span>❄️ ${w.snow_cm} cm</span>` : ''}
+                    </div>
+                `;
+                container.appendChild(card);
+            }
+        });
     }
 
     function closeModal() {
@@ -473,7 +590,6 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Reload page to reflect changes properly (simplest way to update UI/tooltips/indicators)
                     location.reload();
                 } else {
                     alert('Errore nel salvataggio: ' + data.error);
@@ -485,7 +601,6 @@
             });
     }
 
-    // Close modal when clicking outside
     window.onclick = function (event) {
         var modal = document.getElementById('diaryModal');
         if (event.target == modal) {
