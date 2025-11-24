@@ -153,5 +153,23 @@ def shop():
         
     return render_template('shop.html', items=items, shop_types=shop_types.keys(), selected_type=selected_type, selected_city_size=selected_city_size, selected_quality=selected_quality)
 
+def load_calendar_data():
+    """Reads the calendar configuration."""
+    json_path = os.path.join(os.path.dirname(__file__), 'calendar.json')
+    if not os.path.exists(json_path):
+        return {}
+    
+    try:
+        with open(json_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Error reading Calendar JSON: {e}")
+        return {}
+
+@app.route('/calendar')
+def calendar():
+    calendar_data = load_calendar_data()
+    return render_template('calendar.html', calendar=calendar_data)
+
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

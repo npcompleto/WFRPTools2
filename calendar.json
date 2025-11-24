@@ -1,0 +1,190 @@
+{
+    "year": 2523,
+    "weekdays": [
+        "Angestag",
+        "Festag",
+        "Wellentag",
+        "Aubentag",
+        "Marktag",
+        "Backertag",
+        "Bezahltag",
+        "Konistag"
+    ],
+    "holidays": [
+        {
+            "date": "01-01",
+            "name": "Notte delle Streghe",
+            "description": "Quasi tutti nell'Impero guardano alla notte prima del Capodanno, nota come Notte delle Streghe (o, in tempi antichi, chiamata Hexensnacht), con particolare timore. Questa notte è sacra per Morr, i cui sacerdoti sono gli unici abbastanza coraggiosi da lasciare la sicurezza delle loro case per celebrare i loro riti nei cimiteri. Il confine tra il mondo dei vivi e quello dei morti è particolarmente sfocato in questa notte, e gli spiriti di coloro che se ne sono andati prima a volte tornano. I vili Non-morti sono apparentemente energizzati dalla luce pallida e flebile delle lune nella Notte delle Streghe, e barcollano per la campagna, terrorizzando i vivi. Poiché le regioni della morte e del sonno sono così vicine, i sogni vividi di questa notte forniscono indizi del destino di una persona per l'anno a venire."
+        },
+        {
+            "date": "01-02",
+            "name": "Capodanno",
+            "description": "Il giorno dopo la temuta Notte delle streghe è noto come \"Benedizione dell'anno\". Le persone escono dalla sicurezza delle loro case per celebrare sia il fatto di essere sopravvissute sia per chiedere alla dea Verena di benedire l'anno a venire con atti di giustizia e lampi di saggezza e conoscenza. Questo è un momento solenne, con la lettura di passaggi e offerte di incenso, vino e pergamene incise con detti sacri bruciati nel fuoco. Vecchie lamentele tra vicini vengono portate davanti ai sacerdoti di Verena, nella speranza di risolverle per l'anno successivo. Tuttavia, poiché i rancori sono radicati nell'Impero, molte di queste faide vengono lasciate a cuocere per anni, senza una prevedibilerisoluzione"
+        },
+        {
+            "date": "01-04",
+            "name": "Equinozio di primavera",
+            "description": "Noto alla gente comune come Start Growth, l'equinozio di primavera è un momento di grande gioia. Start Growth è dedicato a Manann, poiché indica l'inizio del cambiamento delle maree e rappresenta la fine dell'inverno, che è il periodo del governo di Ulric. Questo è anche il momento in cui la forza di Taal inizia a crescere sotto forma di linfa che sale, alberi che germogliano e l'eccitazione dell'accoppiamento tra gli animali. La tradizione impone che un vitello, un maialino o un altro giovane animale venga sacrificato a Manann o a Taal per portare fortuna e abbondanza per l'anno successivo. Questo animale viene gettato in mare, annegato in un grande fiume o seppellito nei boschi, a seconda della posizione della persona. Si pensa che i bambini nati durante Start Growth siano irascibili e volubili, inclini alla voglia di viaggiare e all'avventura più avanti nella vita."
+        },
+        {
+            "date": "01-05",
+            "name": "Primo Sorso",
+            "description": "La festa dei Nani del Primo Sorso è quando i primi barili di birra nuova vengono spillati per una degustazione iniziale. Sebbene questo sia un momento di grande festa, assume un tono piuttosto inquietante, poiché la qualità della birra è vista come una forma di presagio per le fortune della roccaforte dei Nani per l'anno successivo. Se il primo barile ha un sapore o un colore scadenti, indica sfortuna per chi lo assaggia. Tuttavia, una buona birra indica tempi buoni e gloriosi a venire. Un intero sistema di divinazione è stato sviluppato per questa degustazione e, quindi, il signore delle rune e il re della roccaforte sono sempre i primi ad assaggiare il raccolto dell'anno."
+        },
+        {
+            "date": "18-06",
+            "name": "Sigmar Divino",
+            "description": "Il primo giorno d'estate è una festa enorme e popolare, celebrata in tutto l'Impero. Si pensa che questo sia il giorno in cui Sigmar è asceso alla divinità. La festa è un periodo di grandifeste, banchetti e canti e, in teoria, tutti i lavori dovrebbero cessare durante questo periodo, anche se i contadini e gli altri che dipendono da questa lunga giornata a volte vanno nei loro campi per lavorare alla luce del giorno aggiuntiva. I racconti delle gesta di Sigmar sono un comune intrattenimento, insieme a opere teatrali che descrivono alcuni dei suoi momenti migliori. Le leggendarie \"Salsicce di Sigmar\" sono il cibo preferito durante questa festa, con ogni provincia che vanta le proprie ricette uniche."
+        },
+        {
+            "date": "10-07",
+            "name": "Giorno della Follia",
+            "description": "Una delle poche festività riconosciute in nome di Ranald, sia i popolani che i nobili amano il Giorno della Follia, sebbene sia seriamente disapprovato dai severi e dagli asceti. In questo giorno, le convenzioni sociali vengono capovolte e i responsabili agiscono come servi, mentre i servi sono trattati come signori del maniero. Nelle strade si svolgono feste, poiché le persone indossano abiti colorati e maschere stravaganti per nascondere la propria identità (spesso in modo piuttosto scadente). Bere, cantare e fare scherzi innocui sono la norma. Sebbene questa sia un'opportunità per le figure autorità di provare un po' del dolore che spesso infliggono agli altri, pochi accettano molti abusi da parte dei loro inferiori, che devono stare attenti a ciò che dicono o fanno. Come spesso dicono i cultisti di Sigmar: \"non è il Giorno della Follia che conta, è il giorno dopo\""
+        },
+        {
+            "date": "01-08",
+            "name": "Solstizio d'estate",
+            "description": "Sun Still è il nome comune del solstizio d'estate, così chiamato perché il sole sembra stare fermo all'orizzonte in questo, il giorno più lungo dell'anno. È una data importante per contadini, marinai, maghi e pellegrini; in breve, per chiunque dipenda dai cicli del sole e per coloro che tengono traccia dei giorni rimanenti dell'anno. I riti della fertilità sono estremamente comuni in questo giorno, con giovani coppie che si adornano di fiori nei capelli e ballano e bevono al ritmo di canzoni dedicate a Taal e Rhya. A volte si vedono i misteriosi Elfi ringraziare e onorare i propri Dei in questo giorno. I bambini nati in Sun Still sono considerati benedetti e si pensa che diventino adulti brillanti ed energici destinati a grandi cose."
+        },
+        {
+            "date": "33-09",
+            "name": "Saga",
+            "description": "Saga è una festa importante e tetra dei Nani. Canti sulle prove e le battaglie epiche degli uccisori di troll, dei barbuti lunghi e degli spaccaferro riempiono le Sale dei Nani. Gli Antenati sono venerati durante questa festa mentre le loro gesta vengono raccontate tra numerosi boccali di birra. Gli umani, in particolare quelli che vivono in aree con grandi popolazioni di Nani o vicino alle Montagne dei Confini del Mondo, spesso prendono parte a questa celebrazione"
+        },
+        {
+            "date": "01-12",
+            "name": "Giorno della Torta",
+            "description": "Questa celebrazione degli Halfling sta rapidamente diventando una festa secolare in tutto l'Impero, poiché tutti vengono travolti dall'idea di mangiare deliziose torte. Gli Halfling stessi non attribuiscono alcuna particolare riverenza all'occasione, cosa che non è stata trascurata da quegli Umani che credono che gli Halfling non siano altro che inutili e voraci fannulloni. Le città umane hanno iniziato a includere gare di mangiatori di torte, premi per le torte migliori o più insolite e altre festività. Le attività commerciali, a parte quelle dedicate alla preparazione di torte o alla vendita di alcolici per mandarle giù, spesso si bloccano durante la Settimana delle torte."
+        },
+        {
+            "date": "01-13",
+            "name": "Equinozio d'autunno",
+            "description": "L'equinozio d'autunno è più comunemente noto con il nome di Meno Crescita. Ovviamente, con il clima che diventa più freddo e le foglie che cadono dagli alberi, i cittadini dell'Impero sentono l'inverno imminente. Il tempo di Taal e Rhya viene affidato a Ulric, che governa i bui mesi invernali. Enormi falò sono dedicati a Rhya, la madre del raccolto autunnale, e porzioni dei raccolti migliori vengono gettate come sacrificio. Un'altra porzione di questo raccolto, insieme a un sacrificio animale di qualche tipo, viene data silenziosamente a Ulric, per assicurarsi che i suoi lupi siano a bada durante il freddo pungente dell'inverno. Si pensa che i bambini nati durante il periodo di Meno Crescita diventino adulti cupi e fatalisti, con una propensione a guardare alla gloria del passato piuttosto che alla promessa del futuro."
+        },
+        {
+            "date": "33-14",
+            "name": "Second Breech",
+            "description": "La terza festività principale del calendario dei Nani, Second Breech, è il momento in cui i barili di birra di famiglia vengono aperti e testati di nuovo. Come prima, canzoni e racconti di Antenati e battaglie eroiche sono la norma durante questo periodo. Pochi Umani celebrano Second Breech, a meno che non appartengano a famiglie di birrai o distillatori."
+        },
+        {
+            "date": "01-17",
+            "name": "Solstizio d'Inverno",
+            "description": "Il Solstizio d'Inverno è noto come Quiete Mondiale. È il culmine del periodo di Ulric nel Vecchio Mondo, quando i suoi lupi affamati iniziano a girare attorno a fattorie e villaggi in cerca di facili pasti di bestiame e di qualche vittima umana. È un periodo di disperazione, perché i mesi invernali sono estremamente duri e il cibo scarseggia, ma anche un periodo di gioia, perché dopo questo giorno la ruota gira di nuovo verso l'eventuale ritorno di Taal e Rhya. Vengono accesi dei falò nella speranza di guidare Taal e Rhya di nuovo nel mondo. Nei punti più remoti dell'Impero, le pellicce di lupo vengono sollevate su bastoni fuori dai perimetri dei villaggi, sia come segno di rispetto per Ulric sia come avvertimento per i suoi \"figli\" di stare lontani. I bambini nati durante la Quiete Mondiale sono noti per il loro comportamento laconico e sommesso."
+        },
+        {
+            "date": "33-18",
+            "name": "Keg End",
+            "description": "Keg End (La fine del barile) è la conclusione del calendario dei Nani. È un momento in cui le famiglie dei Nani devono svuotare l'ultimo dei loro barili in attesa dell'anno a venire. Durante questa celebrazione vengono consumate grandi quantità di birra e vengono cantate canzoni che descrivono l'anno precedente. Anche gli Umani dell'Impero hanno adottato questa tradizione, anche se non con lo stesso fervore dei loro fratelli Nani. Le leggi che riguardano l'ubriachezza in pubblico vengono ignorate durante questo periodo nelle aree liberali o inasprite a livelli strazianti in luoghi più conservatori. Spesso si dà birra in eccesso a chi ne ha bisogno, anche se versarne anche solo una goccia durante questa festa assicura sfortuna per l'anno a venire."
+        }
+    ],
+    "months": [
+        {
+            "name": "Hexenstag",
+            "days": 1,
+            "description": "Capodanno",
+            "season": "Invernale"
+        },
+        {
+            "name": "Nachhexen",
+            "days": 32,
+            "description": "Dopo la Stregoneria",
+            "season": "Invernale"
+        },
+        {
+            "name": "Jahrdrung",
+            "days": 33,
+            "description": "Cambio dell'Anno",
+            "season": "Invernale"
+        },
+        {
+            "name": "Mitterfruhl",
+            "days": 1,
+            "description": "Spring Equinox",
+            "season": "Primaverile"
+        },
+        {
+            "name": "Pflugzeit",
+            "days": 33,
+            "description": "Tempo dell'Aratura",
+            "season": "Primaverile"
+        },
+        {
+            "name": "Sigmarzeit",
+            "days": 33,
+            "description": "Tempo di Sigmar",
+            "season": "Primaverile"
+        },
+        {
+            "name": "Sommerzeit",
+            "days": 33,
+            "description": "Tempo d'Estate",
+            "season": "Primaverile"
+        },
+        {
+            "name": "Sonnstill",
+            "days": 1,
+            "description": "Solstizio d'estate",
+            "season": "Estivo"
+        },
+        {
+            "name": "Vorgeheim",
+            "days": 33,
+            "description": "Prima del Mistero",
+            "season": "Estivo"
+        },
+        {
+            "name": "Geheimnistag",
+            "days": 1,
+            "description": "Giorno del Mistero",
+            "season": "Estivo"
+        },
+        {
+            "name": "Nachgeheim",
+            "days": 32,
+            "description": "Dopo il Mistero",
+            "season": "Estivo"
+        },
+        {
+            "name": "Erntezeit",
+            "days": 33,
+            "description": "Tempo del Raccolto",
+            "season": "Estivo"
+        },
+        {
+            "name": "Mittherbst",
+            "days": 1,
+            "description": "Autumn Equinox",
+            "season": "Autunnale"
+        },
+        {
+            "name": "Brauzeit",
+            "days": 33,
+            "description": "Tempo della Birrificazione",
+            "season": "Autunnale"
+        },
+        {
+            "name": "Kaldezeit",
+            "days": 33,
+            "description": "Tempo del freddo",
+            "season": "Autunnale"
+        },
+        {
+            "name": "Ulriczeit",
+            "days": 33,
+            "description": "Tempo di Ulric",
+            "season": "Autunnale"
+        },
+        {
+            "name": "Mondstille",
+            "days": 1,
+            "description": "Solstizio d'inverno",
+            "season": "Invernale"
+        },
+        {
+            "name": "Vorhexen",
+            "days": 33,
+            "description": "Prima della Stregoneria",
+            "season": "Invernale"
+        }
+    ]
+}

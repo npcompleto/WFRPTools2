@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+
+{% block title %}Calendario Imperiale - {{ calendar.year }}{% endblock %}
+
+{% block content %}
+<style>
+    .calendar-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 2rem;
+        padding: 1rem;
+    }
+
+    .month-card {
+        background: #2a2a2a;
+        border: 1px solid #444;
+        border-radius: 8px;
+        overflow: hidden;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .month-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        border-color: #ffd700;
+    }
+
+    .month-header {
+        background: #333;
+        padding: 1rem;
+        text-align: center;
+        border-bottom: 1px solid #444;
+    }
+
+    .month-name {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #ffd700;
+        margin: 0;
+    }
+
+    .month-season {
+        font-size: 0.9rem;
+        color: #aaa;
+        margin-top: 0.25rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .month-desc {
+        font-size: 0.8rem;
+        color: #888;
+        font-style: italic;
+        margin-top: 0.5rem;
+    }
+
+    .days-grid {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        /* 8 days in WFRP week */
+        padding: 0.5rem;
+        gap: 2px;
+    }
+
+    .weekday-header {
+        text-align: center;
+        font-size: 0.7rem;
+        color: #aaa;
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #444;
+    }
+
+    .day-cell {
+        aspect-ratio: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        border-radius: 4px;
+        cursor: default;
+        position: relative;
+    }
+
+    .day-cell:hover {
+        background: #444;
+    }
+
+    .day-cell.holiday {
+        background: rgba(255, 215, 0, 0.2);
+        color: #ffd700;
+        font-weight: bold;
+        border: 1px solid rgba(255, 215, 0, 0.3);
+        cursor: help;
+    }
+
+    /* Tooltip for holidays */
+    .day-cell.holiday:hover::after {
+        content: attr(data-holiday);
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #000;
+        color: #fff;
+        padding: 0.5rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        white-space: nowrap;
+        z-index: 10;
+        border: 1px solid #ffd700;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    }
+
+    .year-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .year-title {
+        font-size: 3rem;
+        color: #ffd700;
+        text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+    }
+
+    .day-cell.empty {
+        background: transparent;
+        cursor: default;
+    }
+
+    .day-cell.empty:hover {
+        background: transparent;
+    }
+</style>
+
+<div class="year-header">
+    <h1 class="year-title">Anno {{ calendar.year }}</h1>
+    <p>Calendario Imperiale</p>
+</div>
+
+<div class="calendar-container">
+    {% set ns = namespace(total_days=0) %}
+    {% for month in calendar.months %}
+    {% set month_index = loop.index %}
+    <div class="month-card">
+        <div class="month-header">
+            <h2 class="month-name">{{ month.name }}</h2>
+            <div class="month-season">{{ month.season }}</div>
+            <div class="month-desc">{{ month.description }}</div>
+        </div>
+
+        <div class="days-grid">
+            <!-- Weekday Headers -->
+            {% for day_name in calendar.weekdays %}
+            <div class="weekday-header">{{ day_name[:3] }}</div>
+            {% endfor %}
+
+            <!-- Calculate starting weekday offset for this month -->
+            {% set start_offset = ns.total_days % 8 %}
+
+            <!-- Empty cells for offset -->
+            {% for _ in range(start_offset) %}
+            <div class="day-cell empty"></div>
+            {% endfor %}
+
+            <!-- Days -->
+            {% for day in range(1, month.days + 1) %}
+
+            {% set holiday_ns = namespace(name=None, desc=None) %}
+            {% for h in calendar.holidays %}
+            {% set current_date = "%02d-%02d"|format(day, month_index) %}
+            {% if h.date == current_date %}
+            {% set holiday_ns.name = h.name %}
+            {% set holiday_ns.desc = h.description %}
+            {% endif %}
+            {% endfor %}
+
+            <div class="day-cell {% if holiday_ns.name %}holiday{% endif %}" {% if holiday_ns.name
+                %}data-holiday="{{ holiday_ns.name }}: {{ holiday_ns.desc }}" {% endif %}>
+                {{ day }}
+            </div>
+            {% endfor %}
+
+            <!-- Update total days for next month -->
+            {% set ns.total_days = ns.total_days + month.days %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

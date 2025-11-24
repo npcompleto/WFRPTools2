@@ -1,20 +1,24 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}RPG Tools{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@400;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
+
 <body>
     <nav class="navbar">
         <a href="{{ url_for('index') }}" class="navbar-brand">Master's RPG Tools</a>
         <div class="nav-links">
             <a href="{{ url_for('index') }}" class="nav-link">Home</a>
             <a href="{{ url_for('shop') }}" class="nav-link">Negozio</a>
+            <a href="{{ url_for('calendar') }}" class="nav-link">Calendario</a>
         </div>
     </nav>
 
@@ -22,4 +26,5 @@
         {% block content %}{% endblock %}
     </div>
 </body>
+
 </html>
