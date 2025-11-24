@@ -15,14 +15,18 @@
         background: #2a2a2a;
         border: 1px solid #444;
         border-radius: 8px;
-        overflow: hidden;
+        /* overflow: hidden; Removed to allow tooltips to show */
         transition: transform 0.2s, box-shadow 0.2s;
+        position: relative;
+        /* Ensure z-index works if needed */
     }
 
     .month-card:hover {
         transform: translateY(-5px);
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
         border-color: #ffd700;
+        z-index: 5;
+        /* Bring hovered card to front */
     }
 
     .month-header {
@@ -30,6 +34,8 @@
         padding: 1rem;
         text-align: center;
         border-bottom: 1px solid #444;
+        border-radius: 8px 8px 0 0;
+        /* Round top corners */
     }
 
     .month-name {
@@ -93,22 +99,88 @@
         cursor: help;
     }
 
-    /* Tooltip for holidays */
-    .day-cell.holiday:hover::after {
-        content: attr(data-holiday);
+    /* Diary Indicator */
+    .day-cell.diary {
+        border: 1px solid #00bfff;
+        box-shadow: inset 0 0 5px rgba(0, 191, 255, 0.3);
+        cursor: help;
+    }
+
+    .day-cell.diary::before {
+        content: '';
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        width: 4px;
+        height: 4px;
+        background: #00bfff;
+        border-radius: 50%;
+    }
+
+    /* Tooltip Container */
+    .day-cell {
+        position: relative;
+    }
+
+    /* Tooltip Styling (using child element instead of pseudo-element for HTML support) */
+    .day-tooltip {
+        visibility: hidden;
         position: absolute;
         bottom: 100%;
         left: 50%;
         transform: translateX(-50%);
-        background: #000;
+        background: #001f3f;
         color: #fff;
         padding: 0.5rem;
         border-radius: 4px;
         font-size: 0.8rem;
-        white-space: nowrap;
-        z-index: 10;
-        border: 1px solid #ffd700;
+        white-space: normal;
+        width: max-content;
+        max-width: 300px;
+        z-index: 100;
+        border: 1px solid #00bfff;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        opacity: 0;
+        transition: opacity 0.2s;
+        pointer-events: none;
+        /* Prevent interaction blocking */
+        text-align: left;
+    }
+
+    .day-cell:hover .day-tooltip {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    .day-tooltip h4 {
+        margin: 0 0 0.25rem 0;
+        color: #ffd700;
+        font-size: 0.9rem;
+        border-bottom: 1px solid #444;
+        padding-bottom: 0.2rem;
+    }
+
+    .day-tooltip p {
+        margin: 0;
+    }
+
+    /* Holiday specific style override */
+    .day-cell.holiday .day-tooltip {
+        border-color: #ffd700;
+        background: #000;
+    }
+
+    /* Combined style */
+    .day-cell.holiday.diary .day-tooltip {
+        background: #111;
+        border-color: #ffd700;
+    }
+
+    /* Combined Holiday + Diary */
+    .day-cell.holiday.diary {
+        border-color: #ffd700;
+        /* Holiday takes precedence for border */
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(0, 191, 255, 0.1) 100%);
     }
 
     .year-header {
@@ -130,7 +202,115 @@
     .day-cell.empty:hover {
         background: transparent;
     }
+
+    /* Single Day Month Styling */
+    .month-card.single-day {
+        border-radius: 50%;
+        aspect-ratio: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        border: 3px double #ffd700;
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
+        background: #222;
+    }
+
+    .month-card.single-day .month-header {
+        border-bottom: none;
+        background: transparent;
+        padding: 0.5rem;
+    }
+
+    .month-card.single-day .days-grid {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        padding: 0;
+    }
+
+    .month-card.single-day .weekday-header {
+        display: none;
+    }
+
+    .month-card.single-day .day-cell.empty {
+        display: none;
+    }
+
+    .month-card.single-day .day-cell {
+        width: 3rem;
+        height: 3rem;
+        font-size: 1.2rem;
+        border: 1px solid #ffd700;
+        border-radius: 50%;
+        background: rgba(255, 215, 0, 0.1);
+        color: #ffd700;
+        font-weight: bold;
+    }
+
+    /* Modal Styling */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+    }
+
+    .modal-content {
+        background-color: #2a2a2a;
+        margin: 10% auto;
+        padding: 20px;
+        border: 1px solid #ffd700;
+        width: 80%;
+        max-width: 800px;
+        border-radius: 8px;
+        color: #fff;
+    }
+
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: #ffd700;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    #editor-container {
+        height: 300px;
+        background: #fff;
+        color: #000;
+        margin-bottom: 1rem;
+    }
+
+    .btn-save {
+        background-color: #ffd700;
+        color: #000;
+        border: none;
+        padding: 10px 20px;
+        font-size: 1rem;
+        cursor: pointer;
+        border-radius: 4px;
+        font-weight: bold;
+    }
+
+    .btn-save:hover {
+        background-color: #e6c200;
+    }
 </style>
+
+<!-- Quill CSS -->
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
 
 <div class="year-header">
     <h1 class="year-title">Anno {{ calendar.year }}</h1>
@@ -141,7 +321,7 @@
     {% set ns = namespace(total_days=0) %}
     {% for month in calendar.months %}
     {% set month_index = loop.index %}
-    <div class="month-card">
+    <div class="month-card {% if month.days == 1 %}single-day{% endif %}">
         <div class="month-header">
             <h2 class="month-name">{{ month.name }}</h2>
             <div class="month-season">{{ month.season }}</div>
@@ -165,18 +345,43 @@
             <!-- Days -->
             {% for day in range(1, month.days + 1) %}
 
-            {% set holiday_ns = namespace(name=None, desc=None) %}
+            {% set day_ns = namespace(holiday_name=None, holiday_desc=None, diary_note=None) %}
+
+            <!-- Check Holiday -->
             {% for h in calendar.holidays %}
             {% set current_date = "%02d-%02d"|format(day, month_index) %}
             {% if h.date == current_date %}
-            {% set holiday_ns.name = h.name %}
-            {% set holiday_ns.desc = h.description %}
+            {% set day_ns.holiday_name = h.name %}
+            {% set day_ns.holiday_desc = h.description %}
             {% endif %}
             {% endfor %}
 
-            <div class="day-cell {% if holiday_ns.name %}holiday{% endif %}" {% if holiday_ns.name
-                %}data-holiday="{{ holiday_ns.name }}: {{ holiday_ns.desc }}" {% endif %}>
+            <!-- Check Diary -->
+            {% set date_iso = "%d-%02d-%02d"|format(calendar.year, month_index, day) %}
+            {% if diary and date_iso in diary %}
+            {% set day_ns.diary_note = diary[date_iso].note %}
+            {% endif %}
+
+            <div class="day-cell {% if day_ns.holiday_name %}holiday{% endif %} {% if day_ns.diary_note %}diary{% endif %}"
+                onclick="openEditor('{{ date_iso }}', this)" data-note="{{ day_ns.diary_note|default('', true)|e }}">
                 {{ day }}
+
+                {% if day_ns.holiday_name or day_ns.diary_note %}
+                <div class="day-tooltip">
+                    {% if day_ns.holiday_name %}
+                    <h4>{{ day_ns.holiday_name }}</h4>
+                    <p>{{ day_ns.holiday_desc }}</p>
+                    {% endif %}
+
+                    {% if day_ns.holiday_name and day_ns.diary_note %}
+                    <hr style="border: 0; border-top: 1px solid #444; margin: 0.5rem 0;">
+                    {% endif %}
+
+                    {% if day_ns.diary_note %}
+                    <div class="note-content">{{ day_ns.diary_note|safe }}</div>
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
             {% endfor %}
 
@@ -186,4 +391,106 @@
     </div>
     {% endfor %}
 </div>
+
+<!-- Editor Modal -->
+<div id="diaryModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h2 id="modalDate">Data</h2>
+        <div id="editor-container"></div>
+        <button class="btn-save" onclick="saveDiary()">Salva Nota</button>
+    </div>
+</div>
+
+<!-- Quill JS -->
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+<script>
+    var quill = new Quill('#editor-container', {
+        theme: 'snow',
+        modules: {
+            toolbar: [
+                ['bold', 'italic', 'underline', 'strike'],        // toggled buttons
+                ['blockquote', 'code-block'],
+                [{ 'header': 1 }, { 'header': 2 }],               // custom button values
+                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                [{ 'script': 'sub' }, { 'script': 'super' }],      // superscript/subscript
+                [{ 'indent': '-1' }, { 'indent': '+1' }],          // outdent/indent
+                [{ 'direction': 'rtl' }],                         // text direction
+                [{ 'size': ['small', false, 'large', 'huge'] }],  // custom dropdown
+                [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                [{ 'color': [] }, { 'background': [] }],          // dropdown with defaults from theme
+                [{ 'font': [] }],
+                [{ 'align': [] }],
+                ['clean']                                         // remove formatting button
+            ]
+        }
+    });
+
+    let currentEditingDate = null;
+    let currentCellElement = null;
+
+    function openEditor(dateIso, element) {
+        currentEditingDate = dateIso;
+        currentCellElement = element;
+
+        document.getElementById('modalDate').innerText = 'Diario del ' + dateIso;
+
+        // Get content from data attribute (it might be empty)
+        // Note: We need to be careful about HTML in data attributes. 
+        // Ideally we fetch it or parse it from the tooltip if it exists.
+        // For now, let's try to get it from the data-note attribute which we added.
+
+        // However, data-note is escaped. We need to unescape it or just use the tooltip content if available.
+        // Let's look for .note-content inside the tooltip.
+        let noteContent = '';
+        let tooltipNote = element.querySelector('.note-content');
+        if (tooltipNote) {
+            noteContent = tooltipNote.innerHTML;
+        }
+
+        quill.root.innerHTML = noteContent;
+
+        document.getElementById('diaryModal').style.display = "block";
+    }
+
+    function closeModal() {
+        document.getElementById('diaryModal').style.display = "none";
+    }
+
+    function saveDiary() {
+        const noteHtml = quill.root.innerHTML;
+
+        fetch('/save_diary', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                date: currentEditingDate,
+                note: noteHtml
+            }),
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Reload page to reflect changes properly (simplest way to update UI/tooltips/indicators)
+                    location.reload();
+                } else {
+                    alert('Errore nel salvataggio: ' + data.error);
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                alert('Errore nel salvataggio');
+            });
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function (event) {
+        var modal = document.getElementById('diaryModal');
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
+</script>
 {% endblock %}

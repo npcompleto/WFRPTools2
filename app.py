@@ -166,10 +166,101 @@ def load_calendar_data():
         print(f"Error reading Calendar JSON: {e}")
         return {}
 
+import base64
+
+def load_diary_data():
+    """Reads the diary data from the CSV file."""
+    csv_path = os.path.join(os.path.dirname(__file__), 'diario.csv')
+    if not os.path.exists(csv_path):
+        return {}
+    
+    try:
+        df = pd.read_csv(csv_path, encoding='utf-8')
+        # Create a dictionary keyed by date_iso for easy lookup
+        diary_entries = {}
+        for _, row in df.iterrows():
+            try:
+                note_decoded = base64.b64decode(row['note']).decode('utf-8')
+            except:
+                note_decoded = "Error decoding note"
+                
+            diary_entries[row['date_iso']] = {
+                'note': note_decoded,
+                'weather': row.get('weather_json', '{}') 
+            }
+        return diary_entries
+    except Exception as e:
+        print(f"Error reading Diary CSV: {e}")
+        return {}
+
+from datetime import datetime
+
+@app.route('/save_diary', methods=['POST'])
+def save_diary():
+    data = request.json
+    date_iso = data.get('date')
+    note_html = data.get('note')
+    
+    if not date_iso:
+        return {'success': False, 'error': 'No date provided'}, 400
+
+    try:
+        # Load existing data
+        csv_path = os.path.join(os.path.dirname(__file__), 'diario.csv')
+        if os.path.exists(csv_path):
+            df = pd.read_csv(csv_path, encoding='utf-8')
+        else:
+            df = pd.DataFrame(columns=['date_iso', 'year', 'month_index', 'month_name', 'day', 'note', 'weather_json', 'updated_at'])
+
+        # Encode note to base64
+        note_b64 = base64.b64encode(note_html.encode('utf-8')).decode('utf-8')
+        
+        # Check if entry exists
+        if date_iso in df['date_iso'].values:
+            # Update existing
+            idx = df.index[df['date_iso'] == date_iso].tolist()[0]
+            df.at[idx, 'note'] = note_b64
+            df.at[idx, 'updated_at'] = datetime.now().isoformat()
+        else:
+            # Create new entry
+            # Parse date to get components
+            # date_iso format is YYYY-MM-DD (Imperial)
+            # We need to look up month name from calendar.json to be consistent, or just pass it from frontend
+            # For simplicity, let's load calendar data to get month name
+            calendar_data = load_calendar_data()
+            parts = date_iso.split('-')
+            year = int(parts[0])
+            month_idx = int(parts[1])
+            day = int(parts[2])
+            
+            month_name = "Unknown"
+            if 1 <= month_idx <= len(calendar_data.get('months', [])):
+                month_name = calendar_data['months'][month_idx-1]['name']
+
+            new_row = {
+                'date_iso': date_iso,
+                'year': year,
+                'month_index': month_idx,
+                'month_name': month_name,
+                'day': day,
+                'note': note_b64,
+                'weather_json': '{}',
+                'updated_at': datetime.now().isoformat()
+            }
+            df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+
+        df.to_csv(csv_path, index=False, encoding='utf-8')
+        return {'success': True}
+        
+    except Exception as e:
+        print(f"Error saving diary: {e}")
+        return {'success': False, 'error': str(e)}, 500
+
 @app.route('/calendar')
 def calendar():
     calendar_data = load_calendar_data()
-    return render_template('calendar.html', calendar=calendar_data)
+    diary_data = load_diary_data()
+    return render_template('calendar.html', calendar=calendar_data, diary=diary_data)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
