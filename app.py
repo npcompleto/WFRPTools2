@@ -202,12 +202,115 @@ def load_diary_data():
         return {}
 
 from datetime import datetime
+import random
+
+def generate_random_weather(date_iso=None):
+    """Generates random weather data for all 4 periods of the day, based on season."""
+    periods = ['Mattino', 'Pomeriggio', 'Sera', 'Notte']
+    weather_data = {}
+    
+    # Determine season from date
+    season = 'Estivo'  # Default
+    if date_iso:
+        try:
+            calendar_data = load_calendar_data()
+            parts = date_iso.split('-')
+            month_idx = int(parts[1])
+            
+            if 1 <= month_idx <= len(calendar_data.get('months', [])):
+                season = calendar_data['months'][month_idx-1].get('season', 'Estivo')
+        except:
+            pass
+    
+    # Season-based weather parameters
+    season_params = {
+        'Invernale': {
+            'temp_base': (-5, 8),      # Very cold
+            'temp_variation': 5,
+            'rain_prob': 0.4,          # 40% chance of rain
+            'snow_prob': 0.5,          # 50% chance of snow if cold enough
+            'snow_temp_threshold': 3,
+            'cloudiness_bias': 70,     # More cloudy
+        },
+        'Primaverile': {
+            'temp_base': (8, 18),      # Mild
+            'temp_variation': 8,
+            'rain_prob': 0.5,          # 50% chance of rain (rainy season)
+            'snow_prob': 0.1,          # Rare snow
+            'snow_temp_threshold': 2,
+            'cloudiness_bias': 50,     # Variable
+        },
+        'Estivo': {
+            'temp_base': (18, 32),     # Hot
+            'temp_variation': 10,
+            'rain_prob': 0.3,          # 30% chance of rain
+            'snow_prob': 0.0,          # No snow
+            'snow_temp_threshold': -10,
+            'cloudiness_bias': 30,     # Less cloudy
+        },
+        'Autunnale': {
+            'temp_base': (5, 15),      # Cool
+            'temp_variation': 8,
+            'rain_prob': 0.6,          # 60% chance of rain (rainy season)
+            'snow_prob': 0.2,          # Some snow possible
+            'snow_temp_threshold': 3,
+            'cloudiness_bias': 60,     # More cloudy
+        }
+    }
+    
+    params = season_params.get(season, season_params['Estivo'])
+    
+    for period in periods:
+        # Temperature range based on period and season
+        temp_min, temp_max = params['temp_base']
+        
+        if period == 'Mattino':
+            temp = round(random.uniform(temp_min, temp_min + params['temp_variation']), 1)
+        elif period == 'Pomeriggio':
+            temp = round(random.uniform(temp_max - params['temp_variation'], temp_max), 1)
+        elif period == 'Sera':
+            temp = round(random.uniform(temp_min + 2, temp_max - 2), 1)
+        else:  # Notte
+            temp = round(random.uniform(temp_min - 2, temp_min + params['temp_variation'] - 2), 1)
+        
+        # Wind speed (km/h) - more wind in autumn/winter
+        if season in ['Autunnale', 'Invernale']:
+            wind = round(random.uniform(5, 30), 1)
+        else:
+            wind = round(random.uniform(0, 20), 1)
+        
+        # Cloudiness percentage - biased by season
+        cloudiness = min(100, max(0, int(random.gauss(params['cloudiness_bias'], 30))))
+        
+        # Rain probability and amount
+        rain_chance = random.random()
+        if rain_chance < (1 - params['rain_prob']):
+            rain = 0.0
+        else:
+            rain = round(random.uniform(0.5, 20), 1)
+        
+        # Snow (based on season and temperature)
+        snow = 0.0
+        if temp < params['snow_temp_threshold'] and random.random() < params['snow_prob']:
+            snow = round(random.uniform(0.5, 15), 1)
+            rain = 0.0  # If it snows, no rain
+        
+        weather_data[period] = {
+            'temperature_c': temp,
+            'wind_kmh': wind,
+            'cloudiness_pct': cloudiness,
+            'rain_mm': rain,
+            'snow_cm': snow
+        }
+    
+    return weather_data
 
 @app.route('/save_diary', methods=['POST'])
 def save_diary():
     data = request.json
     date_iso = data.get('date')
     note_html = data.get('note')
+    weather_json = data.get('weather')  # Get weather data from request
     
     if not date_iso:
         return {'success': False, 'error': 'No date provided'}, 400
@@ -223,12 +326,18 @@ def save_diary():
         # Encode note to base64
         note_b64 = base64.b64encode(note_html.encode('utf-8')).decode('utf-8')
         
+        # Prepare weather JSON string
+        weather_str = json.dumps(weather_json) if weather_json else '{}'
+        
         # Check if entry exists
         if date_iso in df['date_iso'].values:
             # Update existing
             idx = df.index[df['date_iso'] == date_iso].tolist()[0]
             df.at[idx, 'note'] = note_b64
             df.at[idx, 'updated_at'] = datetime.now().isoformat()
+            # Only update weather if provided and not already set
+            if weather_json and (pd.isna(df.at[idx, 'weather_json']) or df.at[idx, 'weather_json'] == '{}'):
+                df.at[idx, 'weather_json'] = weather_str
         else:
             # Create new entry
             # Parse date to get components
@@ -252,7 +361,7 @@ def save_diary():
                 'month_name': month_name,
                 'day': day,
                 'note': note_b64,
-                'weather_json': '{}',
+                'weather_json': weather_str,
                 'updated_at': datetime.now().isoformat()
             }
             df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
@@ -263,6 +372,13 @@ def save_diary():
     except Exception as e:
         print(f"Error saving diary: {e}")
         return {'success': False, 'error': str(e)}, 500
+
+@app.route('/generate_weather', methods=['GET'])
+def generate_weather():
+    """API endpoint to generate random weather data based on date/season."""
+    date_iso = request.args.get('date')
+    weather_data = generate_random_weather(date_iso)
+    return {'success': True, 'weather': weather_data}
 
 @app.route('/calendar')
 def calendar():

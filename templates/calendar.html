@@ -484,8 +484,9 @@
 
     let currentEditingDate = null;
     let currentCellElement = null;
+    let currentWeatherData = {};
 
-    function openEditor(dateIso, element) {
+    async function openEditor(dateIso, element) {
         currentEditingDate = dateIso;
         currentCellElement = element;
 
@@ -508,6 +509,24 @@
             }
         } catch (e) {
             console.error("Error parsing weather data", e);
+        }
+
+        // If no weather data exists and note is empty, generate new weather
+        if ((!weatherData || Object.keys(weatherData).length === 0) && !noteContent.trim()) {
+            try {
+                const response = await fetch(`/generate_weather?date=${dateIso}`);
+                const data = await response.json();
+                if (data.success) {
+                    weatherData = data.weather;
+                    currentWeatherData = weatherData;
+                    // Update the element's data attribute
+                    element.setAttribute('data-weather', JSON.stringify(weatherData));
+                }
+            } catch (e) {
+                console.error("Error generating weather", e);
+            }
+        } else {
+            currentWeatherData = weatherData;
         }
 
         renderWeather(weatherData);
@@ -584,7 +603,8 @@
             },
             body: JSON.stringify({
                 date: currentEditingDate,
-                note: noteHtml
+                note: noteHtml,
+                weather: currentWeatherData
             }),
         })
             .then(response => response.json())
