@@ -43,6 +43,15 @@ def create_table():
             talents TEXT, skills TEXT, armor TEXT, weapons TEXT, equipment TEXT
         )
     ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS chaos_mutations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            min_dice INTEGER,
+            max_dice INTEGER,
+            mutation TEXT,
+            effect TEXT
+        )
+    ''')
     conn.commit()
     conn.close()
 
@@ -485,6 +494,13 @@ def delete_npc(id):
     db.execute('DELETE FROM npcs WHERE id = ?', (id,))
     db.commit()
     return {'success': True}
+
+@app.route('/api/chaos_mutations', methods=['GET'])
+def get_chaos_mutations():
+    db = get_db()
+    cursor = db.execute('SELECT * FROM chaos_mutations')
+    mutations = [dict(row) for row in cursor.fetchall()]
+    return {'success': True, 'mutations': mutations}
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

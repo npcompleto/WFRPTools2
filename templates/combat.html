@@ -271,6 +271,21 @@
             <div class="form-group">
                 <label>Descrizione</label>
                 <textarea id="description" rows="3"></textarea>
+
+                <!-- Mutation Controls (Visible only for Combatants) -->
+                <div id="mutationControls"
+                    style="display:none; margin-top: 5px; padding: 10px; background: #333; border-radius: 4px;">
+                    <label style="color: #ffd700; margin-bottom: 5px; display: block;">Aggiungi Mutazione del
+                        Caos</label>
+                    <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-add" onclick="addRandomMutation()">Casuale (d100)</button>
+                        <select id="mutationSelect"
+                            style="flex-grow: 1; padding: 5px; background: #222; color: #fff; border: 1px solid #555;">
+                            <option value="">-- Seleziona Mutazione --</option>
+                        </select>
+                        <button type="button" class="btn btn-primary" onclick="addSelectedMutation()">Aggiungi</button>
+                    </div>
+                </div>
             </div>
 
             <h3>Caratteristiche Principali</h3>
@@ -340,8 +355,69 @@
 <script>
     let npcs = [];
     let combatants = [];
+    let chaosMutations = [];
 
-    document.addEventListener('DOMContentLoaded', loadNPCs);
+    document.addEventListener('DOMContentLoaded', () => {
+        loadNPCs();
+        loadMutations();
+    });
+
+    async function loadMutations() {
+        try {
+            const response = await fetch('/api/chaos_mutations');
+            const data = await response.json();
+            if (data.success) {
+                chaosMutations = data.mutations;
+                populateMutationSelect();
+            }
+        } catch (e) {
+            console.error('Error loading mutations:', e);
+        }
+    }
+
+    function populateMutationSelect() {
+        const select = document.getElementById('mutationSelect');
+        // Sort alphabetically
+        const sorted = [...chaosMutations].sort((a, b) => a.mutation.localeCompare(b.mutation));
+
+        sorted.forEach(m => {
+            const option = document.createElement('option');
+            option.value = m.id;
+            option.textContent = m.mutation;
+            select.appendChild(option);
+        });
+    }
+
+    function addRandomMutation() {
+        if (chaosMutations.length === 0) return;
+
+        const roll = Math.floor(Math.random() * 100) + 1;
+        const mutation = chaosMutations.find(m => roll >= parseInt(m.min_dice) && roll <= parseInt(m.max_dice));
+
+        if (mutation) {
+            appendMutation(mutation);
+            alert(`Tiro d100: ${roll} - Aggiunta mutazione: ${mutation.mutation}`);
+        } else {
+            alert(`Tiro d100: ${roll} - Nessuna mutazione trovata (o errore nei dati)`);
+        }
+    }
+
+    function addSelectedMutation() {
+        const select = document.getElementById('mutationSelect');
+        const id = select.value;
+        if (!id) return;
+
+        const mutation = chaosMutations.find(m => m.id == id);
+        if (mutation) {
+            appendMutation(mutation);
+        }
+    }
+
+    function appendMutation(mutation) {
+        const textarea = document.getElementById('description');
+        const text = `\n[Mutazione] ${mutation.mutation}: ${mutation.effect}`;
+        textarea.value += textarea.value ? text : text.trim();
+    }
 
     async function loadNPCs() {
         try {
@@ -522,6 +598,7 @@
         // Clear combatant instance ID if not explicitly set (handled by editCombatant)
         if (!npc || !npc.instanceId) {
             document.getElementById('combatantInstanceId').value = '';
+            document.getElementById('mutationControls').style.display = 'none';
         }
 
         modal.style.display = 'block';
@@ -533,6 +610,7 @@
             openModal(combatant);
             document.getElementById('modalTitle').innerText = 'Modifica Combattente (Temporaneo)';
             document.getElementById('combatantInstanceId').value = instanceId;
+            document.getElementById('mutationControls').style.display = 'block';
         }
     }
 
