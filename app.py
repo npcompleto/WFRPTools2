@@ -1,9 +1,54 @@
 import json
 import os
 import pandas as pd
-from flask import Flask, render_template, request
+import sqlite3
+from flask import Flask, render_template, request, g
 
 app = Flask(__name__)
+DATABASE = 'wfrp.db'
+
+def get_db():
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = g._database = sqlite3.connect(DATABASE)
+        db.row_factory = sqlite3.Row
+    return db
+
+@app.teardown_appcontext
+def close_connection(exception):
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.close()
+
+def init_db():
+    with app.app_context():
+        db = get_db()
+        with app.open_resource('schema.sql', mode='r') as f:
+            db.cursor().executescript(f.read())
+        db.commit()
+
+def create_table():
+    """Creates the npcs table if it doesn't exist."""
+    conn = sqlite3.connect(DATABASE)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS npcs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            traits TEXT,
+            ws INTEGER, bs INTEGER, s INTEGER, t INTEGER, ag INTEGER, int INTEGER, wp INTEGER, fel INTEGER,
+            a INTEGER, w INTEGER, m INTEGER, mag INTEGER, ip INTEGER, fp INTEGER,
+            armor_head INTEGER, armor_arms INTEGER, armor_body INTEGER, armor_legs INTEGER,
+            description TEXT, special_rules TEXT,
+            talents TEXT, skills TEXT, armor TEXT, weapons TEXT, equipment TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+# Create table on startup
+create_table()
+
 
 def load_shop_data():
     """Reads the shop data from the CSV file."""
@@ -385,6 +430,61 @@ def calendar():
     calendar_data = load_calendar_data()
     diary_data = load_diary_data()
     return render_template('calendar.html', calendar=calendar_data, diary=diary_data)
+
+@app.route('/combat')
+def combat():
+    return render_template('combat.html')
+
+@app.route('/api/npcs', methods=['GET'])
+def get_npcs():
+    db = get_db()
+    cursor = db.execute('SELECT * FROM npcs')
+    npcs = [dict(row) for row in cursor.fetchall()]
+    return {'success': True, 'npcs': npcs}
+
+@app.route('/api/npcs', methods=['POST'])
+def add_npc():
+    data = request.json
+    db = get_db()
+    sql = '''INSERT INTO npcs (name, traits, ws, bs, s, t, ag, int, wp, fel, a, w, m, mag, ip, fp, armor_head, armor_arms, armor_body, armor_legs, description, special_rules, talents, skills, armor, weapons, equipment)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''
+    values = (
+        data.get('name'), data.get('traits'),
+        data.get('ws'), data.get('bs'), data.get('s'), data.get('t'), data.get('ag'), data.get('int'), data.get('wp'), data.get('fel'),
+        data.get('a'), data.get('w'), data.get('m'), data.get('mag'), data.get('ip'), data.get('fp'),
+        data.get('armor_head'), data.get('armor_arms'), data.get('armor_body'), data.get('armor_legs'),
+        data.get('description'), data.get('special_rules'),
+        data.get('talents'), data.get('skills'), data.get('armor'), data.get('weapons'), data.get('equipment')
+    )
+    cursor = db.execute(sql, values)
+    db.commit()
+    return {'success': True, 'id': cursor.lastrowid}
+
+@app.route('/api/npcs/<int:id>', methods=['PUT'])
+def update_npc(id):
+    data = request.json
+    db = get_db()
+    sql = '''UPDATE npcs SET name=?, traits=?, ws=?, bs=?, s=?, t=?, ag=?, int=?, wp=?, fel=?, a=?, w=?, m=?, mag=?, ip=?, fp=?, armor_head=?, armor_arms=?, armor_body=?, armor_legs=?, description=?, special_rules=?, talents=?, skills=?, armor=?, weapons=?, equipment=?
+             WHERE id=?'''
+    values = (
+        data.get('name'), data.get('traits'),
+        data.get('ws'), data.get('bs'), data.get('s'), data.get('t'), data.get('ag'), data.get('int'), data.get('wp'), data.get('fel'),
+        data.get('a'), data.get('w'), data.get('m'), data.get('mag'), data.get('ip'), data.get('fp'),
+        data.get('armor_head'), data.get('armor_arms'), data.get('armor_body'), data.get('armor_legs'),
+        data.get('description'), data.get('special_rules'),
+        data.get('talents'), data.get('skills'), data.get('armor'), data.get('weapons'), data.get('equipment'),
+        id
+    )
+    db.execute(sql, values)
+    db.commit()
+    return {'success': True}
+
+@app.route('/api/npcs/<int:id>', methods=['DELETE'])
+def delete_npc(id):
+    db = get_db()
+    db.execute('DELETE FROM npcs WHERE id = ?', (id,))
+    db.commit()
+    return {'success': True}
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
