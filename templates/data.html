@@ -1,0 +1,520 @@
+{% extends 'base.html' %}
+
+{% block title %}Gestione Dati - RPG Tools{% endblock %}
+
+{% block content %}
+<style>
+    .data-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .tabs {
+        display: flex;
+        border-bottom: 2px solid #444;
+        margin-bottom: 1rem;
+    }
+
+    .tab-button {
+        background: none;
+        border: none;
+        color: #aaa;
+        padding: 10px 20px;
+        cursor: pointer;
+        font-size: 1.1rem;
+        font-weight: bold;
+        transition: color 0.2s, border-bottom 0.2s;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+    }
+
+    .tab-button:hover {
+        color: #fff;
+    }
+
+    .tab-button.active {
+        color: #ffd700;
+        border-bottom: 2px solid #ffd700;
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        border-bottom: 1px solid #444;
+        padding-bottom: 0.5rem;
+    }
+
+    .section-title {
+        color: #ffd700;
+        margin: 0;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #2a2a2a;
+        border: 1px solid #444;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid #444;
+    }
+
+    .data-table th {
+        background: #333;
+        color: #ffd700;
+        font-weight: bold;
+    }
+
+    .data-table tr:hover {
+        background: #333;
+    }
+
+    .data-table td {
+        color: #ccc;
+    }
+
+    .btn {
+        padding: 5px 10px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 0.8rem;
+    }
+
+    .btn-primary {
+        background: #ffd700;
+        color: #000;
+    }
+
+    .btn-danger {
+        background: #dc3545;
+        color: #fff;
+    }
+
+    /* Modal Styling */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        overflow-y: auto;
+    }
+
+    .modal-content {
+        background-color: #2a2a2a;
+        margin: 10% auto;
+        padding: 20px;
+        border: 1px solid #ffd700;
+        width: 90%;
+        max-width: 500px;
+        border-radius: 8px;
+        color: #fff;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        color: #aaa;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        width: 100%;
+        padding: 8px;
+        background: #333;
+        border: 1px solid #555;
+        color: #fff;
+        border-radius: 4px;
+    }
+
+    .dice-range {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+</style>
+
+<div class="data-container">
+    <div class="tabs">
+        <button class="tab-button active" onclick="openTab('skills')">Abilità</button>
+        <button class="tab-button" onclick="openTab('mutations')">Mutazioni del Caos</button>
+    </div>
+
+    <!-- SKILLS TAB -->
+    <div id="skills" class="tab-content active">
+        <div class="section-header">
+            <h2 class="section-title">Lista Abilità</h2>
+            <button class="btn btn-primary" onclick="openSkillModal()">+ Nuova Abilità</button>
+        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Abilità</th>
+                    <th>Caratteristica</th>
+                    <th>Tipo</th>
+                    <th>Descrizione</th>
+                    <th>Azioni</th>
+                </tr>
+            </thead>
+            <tbody id="skillsList">
+                <!-- Skills will be loaded here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- MUTATIONS TAB -->
+    <div id="mutations" class="tab-content">
+        <div class="section-header">
+            <h2 class="section-title">Lista Mutazioni del Caos</h2>
+            <button class="btn btn-primary" onclick="openMutationModal()">+ Nuova Mutazione</button>
+        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 100px;">d100</th>
+                    <th>Mutazione</th>
+                    <th>Effetto</th>
+                    <th>Azioni</th>
+                </tr>
+            </thead>
+            <tbody id="mutationsList">
+                <!-- Mutations will be loaded here -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Skill Modal -->
+<div id="skillModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeSkillModal()"
+            style="float:right; cursor:pointer; font-size:28px;">&times;</span>
+        <h2 id="skillModalTitle">Nuova Abilità</h2>
+        <form id="skillForm" onsubmit="saveSkill(event)">
+            <input type="hidden" id="skillId">
+            <div class="form-group">
+                <label>Abilità</label>
+                <input type="text" id="skillName" required>
+            </div>
+            <div class="form-group">
+                <label>Caratteristica</label>
+                <input type="text" id="skillCharacteristic">
+            </div>
+            <div class="form-group">
+                <label>Tipo</label>
+                <select id="skillType">
+                    <option value="Base">Base</option>
+                    <option value="Avanzata">Avanzata</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Descrizione</label>
+                <textarea id="skillDescription" rows="3"></textarea>
+            </div>
+            <div style="text-align: right; margin-top: 1rem;">
+                <button type="button" class="btn" onclick="closeSkillModal()"
+                    style="background:#555; color:#fff; margin-right:10px;">Annulla</button>
+                <button type="submit" class="btn btn-primary">Salva</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Mutation Modal -->
+<div id="mutationModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeMutationModal()"
+            style="float:right; cursor:pointer; font-size:28px;">&times;</span>
+        <h2 id="mutationModalTitle">Nuova Mutazione</h2>
+        <form id="mutationForm" onsubmit="saveMutation(event)">
+            <input type="hidden" id="mutationId">
+            <div class="form-group">
+                <label>Range d100 (Min - Max)</label>
+                <div class="dice-range">
+                    <input type="number" id="mutMin" placeholder="Min" required style="width: 80px;">
+                    <span>-</span>
+                    <input type="number" id="mutMax" placeholder="Max" required style="width: 80px;">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Mutazione</label>
+                <input type="text" id="mutName" required>
+            </div>
+            <div class="form-group">
+                <label>Effetto</label>
+                <textarea id="mutEffect" rows="3" required></textarea>
+            </div>
+            <div style="text-align: right; margin-top: 1rem;">
+                <button type="button" class="btn" onclick="closeMutationModal()"
+                    style="background:#555; color:#fff; margin-right:10px;">Annulla</button>
+                <button type="submit" class="btn btn-primary">Salva</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        loadSkills();
+        loadMutations();
+    });
+
+    function openTab(tabName) {
+        // Hide all tab content
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        // Deactivate all buttons
+        document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+
+        // Show specific tab content
+        document.getElementById(tabName).classList.add('active');
+        // Activate specific button
+        const buttons = document.querySelectorAll('.tab-button');
+        buttons.forEach(btn => {
+            if (btn.getAttribute('onclick').includes(tabName)) {
+                btn.classList.add('active');
+            }
+        });
+    }
+
+    // --- SKILLS ---
+
+    let skillsData = [];
+    let mutationsData = [];
+
+    async function loadSkills() {
+        try {
+            const response = await fetch('/api/skills');
+            const data = await response.json();
+            if (data.success) {
+                skillsData = data.skills;
+                renderSkills(skillsData);
+            }
+        } catch (e) {
+            console.error('Error loading skills:', e);
+        }
+    }
+
+    function renderSkills(skills) {
+        const tbody = document.getElementById('skillsList');
+        tbody.innerHTML = '';
+        skills.forEach(skill => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${skill.name}</td>
+                <td>${skill.characteristic || '-'}</td>
+                <td>${skill.type || '-'}</td>
+                <td>${skill.description || '-'}</td>
+                <td>
+                    <button class="btn btn-edit" onclick="editSkill(${skill.id})" style="background: #007bff; color: #fff; margin-right: 5px;">Modifica</button>
+                    <button class="btn btn-danger" onclick="deleteSkill(${skill.id})">Elimina</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function openSkillModal() {
+        document.getElementById('skillForm').reset();
+        document.getElementById('skillId').value = '';
+        document.getElementById('skillModalTitle').innerText = 'Nuova Abilità';
+        document.getElementById('skillModal').style.display = 'block';
+    }
+
+    function editSkill(id) {
+        const skill = skillsData.find(s => s.id === id);
+        if (skill) {
+            document.getElementById('skillId').value = skill.id;
+            document.getElementById('skillName').value = skill.name;
+            document.getElementById('skillCharacteristic').value = skill.characteristic || '';
+            document.getElementById('skillType').value = skill.type || 'Base';
+            document.getElementById('skillDescription').value = skill.description || '';
+
+            document.getElementById('skillModalTitle').innerText = 'Modifica Abilità';
+            document.getElementById('skillModal').style.display = 'block';
+        }
+    }
+
+    function closeSkillModal() {
+        document.getElementById('skillModal').style.display = 'none';
+    }
+
+    async function saveSkill(event) {
+        event.preventDefault();
+        const id = document.getElementById('skillId').value;
+        const formData = {
+            name: document.getElementById('skillName').value,
+            characteristic: document.getElementById('skillCharacteristic').value,
+            type: document.getElementById('skillType').value,
+            description: document.getElementById('skillDescription').value
+        };
+
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `/api/skills/${id}` : '/api/skills';
+
+        try {
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+            const data = await response.json();
+            if (data.success) {
+                closeSkillModal();
+                loadSkills();
+            }
+        } catch (e) {
+            console.error('Error saving skill:', e);
+        }
+    }
+
+    async function deleteSkill(id) {
+        if (!confirm('Sei sicuro di voler eliminare questa abilità?')) return;
+        try {
+            const response = await fetch(`/api/skills/${id}`, { method: 'DELETE' });
+            if ((await response.json()).success) {
+                loadSkills();
+            }
+        } catch (e) {
+            console.error('Error deleting skill:', e);
+        }
+    }
+
+    // --- MUTATIONS ---
+
+    async function loadMutations() {
+        try {
+            const response = await fetch('/api/chaos_mutations');
+            const data = await response.json();
+            if (data.success) {
+                mutationsData = data.mutations;
+                renderMutations(mutationsData);
+            }
+        } catch (e) {
+            console.error('Error loading mutations:', e);
+        }
+    }
+
+    function renderMutations(mutations) {
+        const tbody = document.getElementById('mutationsList');
+        tbody.innerHTML = '';
+        // Sort by min_dice
+        mutations.sort((a, b) => a.min_dice - b.min_dice);
+
+        mutations.forEach(mut => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${mut.min_dice} - ${mut.max_dice}</td>
+                <td>${mut.mutation}</td>
+                <td>${mut.effect || '-'}</td>
+                <td>
+                    <button class="btn btn-edit" onclick="editMutation(${mut.id})" style="background: #007bff; color: #fff; margin-right: 5px;">Modifica</button>
+                    <button class="btn btn-danger" onclick="deleteMutation(${mut.id})">Elimina</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function openMutationModal() {
+        document.getElementById('mutationForm').reset();
+        document.getElementById('mutationId').value = '';
+        document.getElementById('mutationModalTitle').innerText = 'Nuova Mutazione';
+        document.getElementById('mutationModal').style.display = 'block';
+    }
+
+    function editMutation(id) {
+        const mut = mutationsData.find(m => m.id === id);
+        if (mut) {
+            document.getElementById('mutationId').value = mut.id;
+            document.getElementById('mutMin').value = mut.min_dice;
+            document.getElementById('mutMax').value = mut.max_dice;
+            document.getElementById('mutName').value = mut.mutation;
+            document.getElementById('mutEffect').value = mut.effect || '';
+
+            document.getElementById('mutationModalTitle').innerText = 'Modifica Mutazione';
+            document.getElementById('mutationModal').style.display = 'block';
+        }
+    }
+
+    function closeMutationModal() {
+        document.getElementById('mutationModal').style.display = 'none';
+    }
+
+    async function saveMutation(event) {
+        event.preventDefault();
+        const id = document.getElementById('mutationId').value;
+        const formData = {
+            min_dice: parseInt(document.getElementById('mutMin').value),
+            max_dice: parseInt(document.getElementById('mutMax').value),
+            mutation: document.getElementById('mutName').value,
+            effect: document.getElementById('mutEffect').value
+        };
+
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `/api/chaos_mutations/${id}` : '/api/chaos_mutations';
+
+        try {
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+            const data = await response.json();
+            if (data.success) {
+                closeMutationModal();
+                loadMutations();
+            }
+        } catch (e) {
+            console.error('Error saving mutation:', e);
+        }
+    }
+
+    async function deleteMutation(id) {
+        if (!confirm('Sei sicuro di voler eliminare questa mutazione?')) return;
+        try {
+            const response = await fetch(`/api/chaos_mutations/${id}`, { method: 'DELETE' });
+            if ((await response.json()).success) {
+                loadMutations();
+            }
+        } catch (e) {
+            console.error('Error deleting mutation:', e);
+        }
+    }
+
+    window.onclick = function (event) {
+        if (event.target == document.getElementById('skillModal')) {
+            closeSkillModal();
+        }
+        if (event.target == document.getElementById('mutationModal')) {
+            closeMutationModal();
+        }
+    }
+</script>
+{% endblock %}

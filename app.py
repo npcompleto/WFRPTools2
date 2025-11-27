@@ -52,6 +52,15 @@ def create_table():
             effect TEXT
         )
     ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS skills (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            characteristic TEXT,
+            type TEXT,
+            description TEXT
+        )
+    ''')
     conn.commit()
     conn.close()
 
@@ -501,6 +510,71 @@ def get_chaos_mutations():
     cursor = db.execute('SELECT * FROM chaos_mutations')
     mutations = [dict(row) for row in cursor.fetchall()]
     return {'success': True, 'mutations': mutations}
+
+@app.route('/data')
+def data_page():
+    return render_template('data.html')
+
+@app.route('/api/skills', methods=['GET'])
+def get_skills():
+    db = get_db()
+    cursor = db.execute('SELECT * FROM skills')
+    skills = [dict(row) for row in cursor.fetchall()]
+    return {'success': True, 'skills': skills}
+
+@app.route('/api/skills', methods=['POST'])
+def add_skill():
+    data = request.json
+    db = get_db()
+    sql = 'INSERT INTO skills (name, characteristic, type, description) VALUES (?, ?, ?, ?)'
+    values = (data.get('name'), data.get('characteristic'), data.get('type'), data.get('description'))
+    cursor = db.execute(sql, values)
+    db.commit()
+    return {'success': True, 'id': cursor.lastrowid}
+
+@app.route('/api/skills/<int:id>', methods=['PUT'])
+def update_skill(id):
+    data = request.json
+    db = get_db()
+    sql = 'UPDATE skills SET name=?, characteristic=?, type=?, description=? WHERE id=?'
+    values = (data.get('name'), data.get('characteristic'), data.get('type'), data.get('description'), id)
+    db.execute(sql, values)
+    db.commit()
+    return {'success': True}
+
+@app.route('/api/skills/<int:id>', methods=['DELETE'])
+def delete_skill(id):
+    db = get_db()
+    db.execute('DELETE FROM skills WHERE id = ?', (id,))
+    db.commit()
+    return {'success': True}
+
+@app.route('/api/chaos_mutations', methods=['POST'])
+def add_chaos_mutation():
+    data = request.json
+    db = get_db()
+    sql = 'INSERT INTO chaos_mutations (min_dice, max_dice, mutation, effect) VALUES (?, ?, ?, ?)'
+    values = (data.get('min_dice'), data.get('max_dice'), data.get('mutation'), data.get('effect'))
+    cursor = db.execute(sql, values)
+    db.commit()
+    return {'success': True, 'id': cursor.lastrowid}
+
+@app.route('/api/chaos_mutations/<int:id>', methods=['PUT'])
+def update_chaos_mutation(id):
+    data = request.json
+    db = get_db()
+    sql = 'UPDATE chaos_mutations SET min_dice=?, max_dice=?, mutation=?, effect=? WHERE id=?'
+    values = (data.get('min_dice'), data.get('max_dice'), data.get('mutation'), data.get('effect'), id)
+    db.execute(sql, values)
+    db.commit()
+    return {'success': True}
+
+@app.route('/api/chaos_mutations/<int:id>', methods=['DELETE'])
+def delete_chaos_mutation(id):
+    db = get_db()
+    db.execute('DELETE FROM chaos_mutations WHERE id = ?', (id,))
+    db.commit()
+    return {'success': True}
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
