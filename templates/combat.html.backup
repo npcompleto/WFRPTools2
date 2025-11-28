@@ -219,117 +219,6 @@
         color: #fff;
         border-radius: 4px;
     }
-
-    /* Tag Input Styles */
-    .tag-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 5px;
-        padding: 5px;
-        background: #333;
-        border: 1px solid #555;
-        border-radius: 4px;
-        min-height: 38px;
-    }
-
-    .tag {
-        background: #007bff;
-        color: white;
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 0.85rem;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        position: relative;
-        cursor: help;
-    }
-
-    .tag-remove {
-        cursor: pointer;
-        font-weight: bold;
-        color: #fff;
-    }
-
-    .tag-remove:hover {
-        color: #ffcccc;
-    }
-
-    .suggestions-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        background: #333;
-        border: 1px solid #555;
-        border-top: none;
-        max-height: 150px;
-        overflow-y: auto;
-        width: 100%;
-        z-index: 1001;
-        display: none;
-    }
-
-    .suggestions-list li {
-        padding: 8px;
-        cursor: pointer;
-        border-bottom: 1px solid #444;
-    }
-
-    .suggestions-list li:hover {
-        background: #444;
-    }
-
-    /* Tooltip Styles */
-    .tooltip-content {
-        visibility: hidden;
-        width: 250px;
-        background-color: #222;
-        color: #fff;
-        text-align: left;
-        border-radius: 6px;
-        padding: 10px;
-        position: absolute;
-        z-index: 1002;
-        bottom: 125%;
-        left: 50%;
-        margin-left: -125px;
-        opacity: 0;
-        transition: opacity 0.3s;
-        border: 1px solid #ffd700;
-        box-shadow: 0 0 10px rgba(0,0,0,0.5);
-        font-size: 0.8rem;
-        pointer-events: none;
-    }
-
-    .tooltip-content::after {
-        content: "";
-        position: absolute;
-        top: 100%;
-        left: 50%;
-        margin-left: -5px;
-        border-width: 5px;
-        border-style: solid;
-        border-color: #ffd700 transparent transparent transparent;
-    }
-
-    .tag:hover .tooltip-content,
-    .skill-badge:hover .tooltip-content {
-        visibility: visible;
-        opacity: 1;
-    }
-
-    .skill-badge {
-        display: inline-block;
-        background: #444;
-        color: #ddd;
-        padding: 2px 6px;
-        border-radius: 4px;
-        margin: 2px;
-        font-size: 0.75rem;
-        position: relative;
-        cursor: help;
-        border: 1px solid #555;
-    }
 </style>
 
 <div class="combat-container">
@@ -435,11 +324,7 @@
             </div>
             <div class="form-group">
                 <label>Abilità</label>
-                <div id="skillsContainer" class="tag-container"></div>
-                <div style="position: relative; margin-top: 5px;">
-                    <input type="text" id="skillInput" placeholder="Aggiungi abilità..." autocomplete="off">
-                    <ul id="skillSuggestions" class="suggestions-list"></ul>
-                </div>
+                <textarea id="skills" rows="2"></textarea>
             </div>
             <div class="form-group">
                 <label>Regole Speciali</label>
@@ -471,14 +356,10 @@
     let npcs = [];
     let combatants = [];
     let chaosMutations = [];
-    let allSkills = [];
-    let selectedSkills = [];
 
     document.addEventListener('DOMContentLoaded', () => {
         loadNPCs();
         loadMutations();
-        loadSkills();
-        setupSkillInput();
     });
 
     async function loadMutations() {
@@ -536,125 +417,6 @@
         const textarea = document.getElementById('description');
         const text = `\n[Mutazione] ${mutation.mutation}: ${mutation.effect}`;
         textarea.value += textarea.value ? text : text.trim();
-    }
-
-
-    async function loadSkills() {
-        try {
-            const response = await fetch('/api/skills');
-            const data = await response.json();
-            if (data.success) {
-                allSkills = data.skills;
-            }
-        } catch (e) {
-            console.error('Error loading skills:', e);
-        }
-    }
-
-    function setupSkillInput() {
-        const input = document.getElementById('skillInput');
-        const suggestions = document.getElementById('skillSuggestions');
-
-        input.addEventListener('input', (e) => {
-            const value = e.target.value.toLowerCase();
-            if (value.length < 2) {
-                suggestions.style.display = 'none';
-                return;
-            }
-
-            const filtered = allSkills.filter(skill => 
-                skill.name.toLowerCase().includes(value) &&
-                !selectedSkills.includes(skill.name)
-            );
-
-            if (filtered.length > 0) {
-                suggestions.innerHTML = filtered.map(skill => 
-                    `<li data-skill-name="${skill.name}">${skill.name}</li>`
-                ).join('');
-                suggestions.style.display = 'block';
-            } else {
-                suggestions.style.display = 'none';
-            }
-        });
-
-        suggestions.addEventListener('click', (e) => {
-            if (e.target.tagName === 'LI') {
-                const skillName = e.target.dataset.skillName;
-                addSkill(skillName);
-                input.value = '';
-                suggestions.style.display = 'none';
-            }
-        });
-
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const firstSuggestion = suggestions.querySelector('li');
-                if (firstSuggestion) {
-                    addSkill(firstSuggestion.dataset.skillName);
-                    input.value = '';
-                    suggestions.style.display = 'none';
-                }
-            }
-        });
-
-        document.addEventListener('click', (e) => {
-            if (e.target !== input) {
-                suggestions.style.display = 'none';
-            }
-        });
-    }
-
-    function addSkill(skillName) {
-        if (!selectedSkills.includes(skillName)) {
-            selectedSkills.push(skillName);
-            renderSkillTags();
-        }
-    }
-
-    function removeSkill(skillName) {
-        selectedSkills = selectedSkills.filter(s => s !== skillName);
-        renderSkillTags();
-    }
-
-    function renderSkillTags() {
-        const container = document.getElementById('skillsContainer');
-        container.innerHTML = selectedSkills.map(skillName => {
-            const skill = allSkills.find(s => s.name === skillName);
-            const tooltipHtml = skill ? `
-                <div class="tooltip-content">
-                    <strong>${skill.name}</strong><br>
-                    <em>Tipo:</em> ${skill.type || 'N/A'}<br>
-                    <em>Caratteristica:</em> ${skill.characteristic || 'N/A'}<br>
-                    <em>Descrizione:</em> ${skill.description || 'N/A'}
-                </div>
-            ` : '';
-            
-            return `
-                <span class="tag">
-                    ${skillName}
-                    <span class="tag-remove" onclick="removeSkill('${skillName}')">&times;</span>
-                    ${tooltipHtml}
-                </span>
-            `;
-        }).join('');
-    }
-
-    function getSkillBadgeHTML(skillName) {
-        const skill = allSkills.find(s => s.name === skillName);
-        if (!skill) return `<span class="skill-badge">${skillName}</span>`;
-        
-        return `
-            <span class="skill-badge">
-                ${skillName}
-                <div class="tooltip-content">
-                    <strong>${skill.name}</strong><br>
-                    <em>Tipo:</em> ${skill.type || 'N/A'}<br>
-                    <em>Caratteristica:</em> ${skill.characteristic || 'N/A'}<br>
-                    <em>Descrizione:</em> ${skill.description || 'N/A'}
-                </div>
-            </span>
-        `;
     }
 
     async function loadNPCs() {
@@ -756,7 +518,7 @@
                 <div style="font-size:0.8rem; color:#ccc; margin-bottom:0.5rem;">
                     <div><strong>Armatura:</strong> T:${combatant.armor_head || 0} B:${combatant.armor_arms || 0} C:${combatant.armor_body || 0} G:${combatant.armor_legs || 0}</div>
                     <div><strong>Armi:</strong> ${combatant.weapons || '-'}</div>
-                    <div><strong>Abilità:</strong> ${combatant.skills ? combatant.skills.split(',').map(s => getSkillBadgeHTML(s.trim())).join(' ') : '-'}</div>
+                    <div><strong>Abilità:</strong> ${combatant.skills || '-'}</div>
                     <div><strong>Talenti:</strong> ${combatant.talents || '-'}</div>
                 </div>
 
@@ -823,20 +585,14 @@
                 document.getElementById(stat).value = npc[stat] || '';
             });
 
-            // Text areas (except skills)
-            ['talents', 'special_rules', 'armor', 'weapons', 'equipment'].forEach(field => {
+            // Text areas
+            ['talents', 'skills', 'special_rules', 'armor', 'weapons', 'equipment'].forEach(field => {
                 document.getElementById(field).value = npc[field] || '';
             });
-
-            // Load skills as tags
-            selectedSkills = npc.skills ? npc.skills.split(',').map(s => s.trim()).filter(s => s) : [];
-            renderSkillTags();
         } else {
             title.innerText = 'Nuovo PNG';
             form.reset();
             document.getElementById('npcId').value = '';
-            selectedSkills = [];
-            renderSkillTags();
         }
 
         // Clear combatant instance ID if not explicitly set (handled by editCombatant)
@@ -901,13 +657,10 @@
             formData[stat] = val ? parseInt(val) : null;
         });
 
-        // Collect text areas (except skills)
-        ['talents', 'special_rules', 'armor', 'weapons', 'equipment'].forEach(field => {
+        // Collect text areas
+        ['talents', 'skills', 'special_rules', 'armor', 'weapons', 'equipment'].forEach(field => {
             formData[field] = document.getElementById(field).value;
         });
-
-        // Serialize skills
-        formData.skills = selectedSkills.join(', ');
 
         // If it's a combatant instance, update local state only
         if (instanceId) {
