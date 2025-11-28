@@ -159,14 +159,115 @@
         gap: 10px;
         align-items: center;
     }
+
+    /* Tag Input Styles */
+    .tag-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        padding: 5px;
+        background: #333;
+        border: 1px solid #555;
+        border-radius: 4px;
+        min-height: 38px;
+    }
+
+    .tag {
+        background: #007bff;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        position: relative;
+        cursor: help;
+    }
+
+    .tag-remove {
+        cursor: pointer;
+        font-weight: bold;
+        margin-left: 5px;
+    }
+
+    .tag-remove:hover {
+        color: #ffcccc;
+    }
+
+    .suggestions-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        background: #333;
+        border: 1px solid #555;
+        border-top: none;
+        max-height: 150px;
+        overflow-y: auto;
+        width: 100%;
+        z-index: 1001;
+        display: none;
+        position: absolute;
+    }
+
+    .suggestions-list li {
+        padding: 8px;
+        cursor: pointer;
+        border-bottom: 1px solid #444;
+    }
+
+    .suggestions-list li:hover {
+        background: #444;
+    }
+
+    /* Tooltip Styles */
+    .tooltip-content {
+        visibility: hidden;
+        width: 250px;
+        background-color: #222;
+        color: #fff;
+        text-align: left;
+        border-radius: 6px;
+        padding: 10px;
+        position: absolute;
+        z-index: 1002;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -125px;
+        opacity: 0;
+        transition: opacity 0.3s;
+        border: 1px solid #ffd700;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        font-size: 0.8rem;
+        pointer-events: none;
+    }
+
+    .tooltip-content::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: #ffd700 transparent transparent transparent;
+    }
+
+    .tag:hover .tooltip-content {
+        visibility: visible;
+        opacity: 1;
+    }
 </style>
 
 <div class="data-container">
+
     <div class="tabs">
         <button class="tab-button active" onclick="openTab('skills')">Abilità</button>
         <button class="tab-button" onclick="openTab('talents')">Talenti</button>
         <button class="tab-button" onclick="openTab('mutations')">Mutazioni del Caos</button>
+        <button class="tab-button" onclick="openTab('careers')">Carriere</button>
     </div>
+
 
     <!-- SKILLS TAB -->
     <div id="skills" class="tab-content active">
@@ -229,6 +330,103 @@
                 <!-- Mutations will be loaded here -->
             </tbody>
         </table>
+    </div>
+
+    <!-- CAREERS TAB -->
+    <div id="careers" class="tab-content">
+        <div class="section-header">
+            <h2 class="section-title">Lista Carriere</h2>
+            <button class="btn btn-primary" onclick="openCareerModal()">+ Nuova Carriera</button>
+        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Carriera</th>
+                    <th>Descrizione</th>
+                    <th>Azioni</th>
+                </tr>
+            </thead>
+            <tbody id="careersList">
+                <!-- Careers will be loaded here -->
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+
+<!-- Career Modal -->
+<div id="careerModal" class="modal">
+    <div class="modal-content" style="max-width: 800px;">
+        <span class="close" onclick="closeCareerModal()"
+            style="float:right; cursor:pointer; font-size:28px;">&times;</span>
+        <h2 id="careerModalTitle">Nuova Carriera</h2>
+        <form id="careerForm" onsubmit="saveCareer(event)">
+            <input type="hidden" id="careerId">
+
+            <div class="form-group">
+                <label>Nome Carriera</label>
+                <input type="text" id="careerName" required>
+            </div>
+
+            <div class="form-group">
+                <label>Descrizione</label>
+                <textarea id="careerDescription" rows="2"></textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; margin-bottom: 1rem;">
+                <div class="stat-box"><label>AC</label><input type="number" id="c_ws" class="stat-input"></div>
+                <div class="stat-box"><label>AB</label><input type="number" id="c_bs" class="stat-input"></div>
+                <div class="stat-box"><label>F</label><input type="number" id="c_s" class="stat-input"></div>
+                <div class="stat-box"><label>R</label><input type="number" id="c_t" class="stat-input"></div>
+                <div class="stat-box"><label>Ag</label><input type="number" id="c_ag" class="stat-input"></div>
+                <div class="stat-box"><label>Int</label><input type="number" id="c_int" class="stat-input"></div>
+                <div class="stat-box"><label>Vol</label><input type="number" id="c_wp" class="stat-input"></div>
+                <div class="stat-box"><label>Sim</label><input type="number" id="c_fel" class="stat-input"></div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin-bottom: 1rem;">
+                <div class="stat-box"><label>A</label><input type="number" id="c_a" class="stat-input"></div>
+                <div class="stat-box"><label>Fe</label><input type="number" id="c_w" class="stat-input"></div>
+                <div class="stat-box"><label>M</label><input type="number" id="c_m" class="stat-input"></div>
+                <div class="stat-box"><label>Mag</label><input type="number" id="c_mag" class="stat-input"></div>
+                <div class="stat-box"><label>Fol</label><input type="number" id="c_ip" class="stat-input"></div>
+                <div class="stat-box"><label>PF</label><input type="number" id="c_fp" class="stat-input"></div>
+            </div>
+
+            <div class="form-group">
+                <label>Abilità</label>
+                <div id="careerSkillsContainer" class="tag-container"></div>
+                <div style="position: relative; margin-top: 5px;">
+                    <input type="text" id="careerSkillInput" placeholder="Aggiungi abilità..." autocomplete="off">
+                    <ul id="careerSkillSuggestions" class="suggestions-list"></ul>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Talenti</label>
+                <div id="careerTalentsContainer" class="tag-container"></div>
+                <div style="position: relative; margin-top: 5px;">
+                    <input type="text" id="careerTalentInput" placeholder="Aggiungi talento..." autocomplete="off">
+                    <ul id="careerTalentSuggestions" class="suggestions-list"></ul>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Ferri del mestiere</label>
+                <textarea id="careerTrappings" rows="2"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Uscite di carriera</label>
+                <textarea id="careerExits" rows="2"></textarea>
+            </div>
+
+            <div style="text-align: right; margin-top: 1rem;">
+                <button type="button" class="btn" onclick="closeCareerModal()"
+                    style="background:#555; color:#fff; margin-right:10px;">Annulla</button>
+                <button type="submit" class="btn btn-primary">Salva</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -350,11 +548,242 @@
         });
     }
 
-    // --- SKILLS ---
 
-    let skillsData = [];
-    let talentsData = [];
-    let mutationsData = [];
+    // --- CAREERS ---
+
+    async function loadCareers() {
+        try {
+            const response = await fetch('/api/careers');
+            const data = await response.json();
+            if (data.success) {
+                careersData = data.careers;
+                renderCareers(careersData);
+            }
+        } catch (e) {
+            console.error('Error loading careers:', e);
+        }
+    }
+
+    function renderCareers(careers) {
+        const tbody = document.getElementById('careersList');
+        tbody.innerHTML = '';
+        careers.forEach(career => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${career.name}</td>
+                <td>${career.description || '-'}</td>
+                <td>
+                    <button class="btn btn-edit" onclick="editCareer(${career.id})" style="background: #007bff; color: #fff; margin-right: 5px;">Modifica</button>
+                    <button class="btn btn-danger" onclick="deleteCareer(${career.id})">Elimina</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function openCareerModal() {
+        document.getElementById('careerForm').reset();
+        document.getElementById('careerId').value = '';
+        document.getElementById('careerModalTitle').innerText = 'Nuova Carriera';
+
+        careerSelectedSkills = [];
+        careerSelectedTalents = [];
+        renderCareerSkillTags();
+        renderCareerTalentTags();
+
+        document.getElementById('careerModal').style.display = 'block';
+    }
+
+    function editCareer(id) {
+        const career = careersData.find(c => c.id === id);
+        if (career) {
+            document.getElementById('careerId').value = career.id;
+            document.getElementById('careerName').value = career.name;
+            document.getElementById('careerDescription').value = career.description || '';
+
+            ['ws', 'bs', 's', 't', 'ag', 'int', 'wp', 'fel', 'a', 'w', 'm', 'mag', 'ip', 'fp'].forEach(stat => {
+                document.getElementById('c_' + stat).value = career[stat] || '';
+            });
+
+            document.getElementById('careerTrappings').value = career.trappings || '';
+            document.getElementById('careerExits').value = career.career_exits || '';
+
+            careerSelectedSkills = career.skills ? career.skills.split(',').map(s => s.trim()).filter(s => s) : [];
+            careerSelectedTalents = career.talents ? career.talents.split(',').map(s => s.trim()).filter(s => s) : [];
+
+            renderCareerSkillTags();
+            renderCareerTalentTags();
+
+            document.getElementById('careerModalTitle').innerText = 'Modifica Carriera';
+            document.getElementById('careerModal').style.display = 'block';
+        }
+    }
+
+    function closeCareerModal() {
+        document.getElementById('careerModal').style.display = 'none';
+    }
+
+    async function saveCareer(event) {
+        event.preventDefault();
+        const id = document.getElementById('careerId').value;
+        const formData = {
+            name: document.getElementById('careerName').value,
+            description: document.getElementById('careerDescription').value,
+            trappings: document.getElementById('careerTrappings').value,
+            career_exits: document.getElementById('careerExits').value,
+            skills: careerSelectedSkills.join(', '),
+            talents: careerSelectedTalents.join(', ')
+        };
+
+        ['ws', 'bs', 's', 't', 'ag', 'int', 'wp', 'fel', 'a', 'w', 'm', 'mag', 'ip', 'fp'].forEach(stat => {
+            const val = document.getElementById('c_' + stat).value;
+            formData[stat] = val ? parseInt(val) : null;
+        });
+
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `/api/careers/${id}` : '/api/careers';
+
+        try {
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+            const data = await response.json();
+            if (data.success) {
+                closeCareerModal();
+                loadCareers();
+            }
+        } catch (e) {
+            console.error('Error saving career:', e);
+        }
+    }
+
+    async function deleteCareer(id) {
+        if (!confirm('Sei sicuro di voler eliminare questa carriera?')) return;
+        try {
+            const response = await fetch(`/api/careers/${id}`, { method: 'DELETE' });
+            if ((await response.json()).success) {
+                loadCareers();
+            }
+        } catch (e) {
+            console.error('Error deleting career:', e);
+        }
+    }
+
+    // --- TAG INPUT LOGIC FOR CAREERS ---
+
+    function setupCareerTagInputs() {
+        // Skills
+        const skillInput = document.getElementById('careerSkillInput');
+        const skillSuggestions = document.getElementById('careerSkillSuggestions');
+
+        skillInput.addEventListener('input', (e) => {
+            const value = e.target.value.toLowerCase();
+            if (value.length < 2) {
+                skillSuggestions.style.display = 'none';
+                return;
+            }
+            const filtered = skillsData.filter(s => s.name.toLowerCase().includes(value) && !careerSelectedSkills.includes(s.name));
+            if (filtered.length > 0) {
+                skillSuggestions.innerHTML = filtered.map(s => `<li data-name="${s.name}" onclick="addCareerSkill('${s.name}')">${s.name}</li>`).join('');
+                skillSuggestions.style.display = 'block';
+            } else {
+                skillSuggestions.style.display = 'none';
+            }
+        });
+
+        // Talents
+        const talentInput = document.getElementById('careerTalentInput');
+        const talentSuggestions = document.getElementById('careerTalentSuggestions');
+
+        talentInput.addEventListener('input', (e) => {
+            const value = e.target.value.toLowerCase();
+            if (value.length < 2) {
+                talentSuggestions.style.display = 'none';
+                return;
+            }
+            const filtered = talentsData.filter(t => t.name.toLowerCase().includes(value) && !careerSelectedTalents.includes(t.name));
+            if (filtered.length > 0) {
+                talentSuggestions.innerHTML = filtered.map(t => `<li data-name="${t.name}" onclick="addCareerTalent('${t.name}')">${t.name}</li>`).join('');
+                talentSuggestions.style.display = 'block';
+            } else {
+                talentSuggestions.style.display = 'none';
+            }
+        });
+
+        // Hide suggestions on click outside
+        document.addEventListener('click', (e) => {
+            if (e.target !== skillInput) skillSuggestions.style.display = 'none';
+            if (e.target !== talentInput) talentSuggestions.style.display = 'none';
+        });
+    }
+
+    function addCareerSkill(name) {
+        if (name.includes('(varie)')) {
+            const replacement = prompt('Questa abilità contiene "(varie)". Inserisci il testo da sostituire a "varie":', '');
+            if (replacement === null || replacement.trim() === '') return;
+            name = name.replace('(varie)', `(${replacement.trim()})`);
+        }
+        if (!careerSelectedSkills.includes(name)) {
+            careerSelectedSkills.push(name);
+            renderCareerSkillTags();
+        }
+        document.getElementById('careerSkillInput').value = '';
+        document.getElementById('careerSkillSuggestions').style.display = 'none';
+    }
+
+    function removeCareerSkill(name) {
+        careerSelectedSkills = careerSelectedSkills.filter(s => s !== name);
+        renderCareerSkillTags();
+    }
+
+    function renderCareerSkillTags() {
+        const container = document.getElementById('careerSkillsContainer');
+        container.innerHTML = careerSelectedSkills.map(name => {
+            let skill = skillsData.find(s => s.name === name);
+            if (!skill && name.includes('(') && name.includes(')')) {
+                const baseName = name.replace(/\([^)]+\)/, '(varie)');
+                skill = skillsData.find(s => s.name === baseName);
+            }
+            const tooltip = skill ? `<div class="tooltip-content"><strong>${skill.name}</strong><br>${skill.description || ''}</div>` : '';
+            return `<span class="tag">${name}<span class="tag-remove" onclick="removeCareerSkill('${name}')">&times;</span>${tooltip}</span>`;
+        }).join('');
+    }
+
+    function addCareerTalent(name) {
+        if (name.includes('(varie)')) {
+            const replacement = prompt('Questo talento contiene "(varie)". Inserisci il testo da sostituire a "varie":', '');
+            if (replacement === null || replacement.trim() === '') return;
+            name = name.replace('(varie)', `(${replacement.trim()})`);
+        }
+        if (!careerSelectedTalents.includes(name)) {
+            careerSelectedTalents.push(name);
+            renderCareerTalentTags();
+        }
+        document.getElementById('careerTalentInput').value = '';
+        document.getElementById('careerTalentSuggestions').style.display = 'none';
+    }
+
+    function removeCareerTalent(name) {
+        careerSelectedTalents = careerSelectedTalents.filter(t => t !== name);
+        renderCareerTalentTags();
+    }
+
+    function renderCareerTalentTags() {
+        const container = document.getElementById('careerTalentsContainer');
+        container.innerHTML = careerSelectedTalents.map(name => {
+            let talent = talentsData.find(t => t.name === name);
+            if (!talent && name.includes('(') && name.includes(')')) {
+                const baseName = name.replace(/\([^)]+\)/, '(varie)');
+                talent = talentsData.find(t => t.name === baseName);
+            }
+            const tooltip = talent ? `<div class="tooltip-content"><strong>${talent.name}</strong><br>${talent.description || ''}</div>` : '';
+            return `<span class="tag">${name}<span class="tag-remove" onclick="removeCareerTalent('${name}')">&times;</span>${tooltip}</span>`;
+        }).join('');
+    }
+
+    // --- SKILLS ---
 
     async function loadSkills() {
         try {
@@ -456,7 +885,6 @@
 
 
     // --- TALENTS ---
-
     async function loadTalents() {
         try {
             const response = await fetch('/api/talents');
@@ -657,6 +1085,9 @@
         }
         if (event.target == document.getElementById('talentModal')) {
             closeTalentModal();
+        }
+        if (event.target == document.getElementById('careerModal')) {
+            closeCareerModal();
         }
         if (event.target == document.getElementById('mutationModal')) {
             closeMutationModal();

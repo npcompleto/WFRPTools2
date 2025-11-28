@@ -81,6 +81,19 @@ def create_table():
             talents TEXT, skills TEXT, armor TEXT, weapons TEXT, equipment TEXT
         )
     ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS careers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            description TEXT,
+            ws INTEGER, bs INTEGER, s INTEGER, t INTEGER, ag INTEGER, int INTEGER, wp INTEGER, fel INTEGER,
+            a INTEGER, w INTEGER, m INTEGER, mag INTEGER, ip INTEGER, fp INTEGER,
+            skills TEXT,
+            talents TEXT,
+            trappings TEXT,
+            career_exits TEXT
+        )
+    ''')
     conn.commit()
     conn.close()
 
@@ -690,6 +703,62 @@ def delete_modified_npc(id):
     db.execute('DELETE FROM modified_npcs WHERE id = ?', (id,))
     db.commit()
     return {'success': True}
+
+# --- Careers API Endpoints ---
+
+@app.route('/api/careers', methods=['GET'])
+def get_careers():
+    db = get_db()
+    cursor = db.execute('SELECT * FROM careers')
+    careers = [dict(row) for row in cursor.fetchall()]
+    return {'success': True, 'careers': careers}
+
+@app.route('/api/careers', methods=['POST'])
+def add_career():
+    data = request.json
+    db = get_db()
+    sql = '''INSERT INTO careers (name, description, ws, bs, s, t, ag, int, wp, fel,
+             a, w, m, mag, ip, fp, skills, talents, trappings, career_exits)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''
+    values = (
+        data.get('name'), data.get('description'),
+        data.get('ws'), data.get('bs'), data.get('s'), data.get('t'),
+        data.get('ag'), data.get('int'), data.get('wp'), data.get('fel'),
+        data.get('a'), data.get('w'), data.get('m'), data.get('mag'),
+        data.get('ip'), data.get('fp'),
+        data.get('skills'), data.get('talents'),
+        data.get('trappings'), data.get('career_exits')
+    )
+    cursor = db.execute(sql, values)
+    db.commit()
+    return {'success': True, 'id': cursor.lastrowid}
+
+@app.route('/api/careers/<int:id>', methods=['PUT'])
+def update_career(id):
+    data = request.json
+    db = get_db()
+    sql = '''UPDATE careers SET name=?, description=?, ws=?, bs=?, s=?, t=?, ag=?, int=?, wp=?, fel=?,
+             a=?, w=?, m=?, mag=?, ip=?, fp=?, skills=?, talents=?, trappings=?, career_exits=? WHERE id=?'''
+    values = (
+        data.get('name'), data.get('description'),
+        data.get('ws'), data.get('bs'), data.get('s'), data.get('t'),
+        data.get('ag'), data.get('int'), data.get('wp'), data.get('fel'),
+        data.get('a'), data.get('w'), data.get('m'), data.get('mag'),
+        data.get('ip'), data.get('fp'),
+        data.get('skills'), data.get('talents'),
+        data.get('trappings'), data.get('career_exits'), id
+    )
+    db.execute(sql, values)
+    db.commit()
+    return {'success': True}
+
+@app.route('/api/careers/<int:id>', methods=['DELETE'])
+def delete_career(id):
+    db = get_db()
+    db.execute('DELETE FROM careers WHERE id = ?', (id,))
+    db.commit()
+    return {'success': True}
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
