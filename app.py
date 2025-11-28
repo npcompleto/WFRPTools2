@@ -61,6 +61,26 @@ def create_table():
             description TEXT
         )
     ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS talents (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            description TEXT
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS modified_npcs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            base_npc_id INTEGER,
+            name TEXT NOT NULL,
+            traits TEXT,
+            ws INTEGER, bs INTEGER, s INTEGER, t INTEGER, ag INTEGER, int INTEGER, wp INTEGER, fel INTEGER,
+            a INTEGER, w INTEGER, m INTEGER, mag INTEGER, ip INTEGER, fp INTEGER,
+            armor_head INTEGER, armor_arms INTEGER, armor_body INTEGER, armor_legs INTEGER,
+            description TEXT, special_rules TEXT,
+            talents TEXT, skills TEXT, armor TEXT, weapons TEXT, equipment TEXT
+        )
+    ''')
     conn.commit()
     conn.close()
 
@@ -573,6 +593,101 @@ def update_chaos_mutation(id):
 def delete_chaos_mutation(id):
     db = get_db()
     db.execute('DELETE FROM chaos_mutations WHERE id = ?', (id,))
+    db.commit()
+    return {'success': True}
+
+@app.route('/api/talents', methods=['GET'])
+def get_talents():
+    db = get_db()
+    cursor = db.execute('SELECT * FROM talents ORDER BY name')
+    talents = [dict(row) for row in cursor.fetchall()]
+    return {'success': True, 'talents': talents}
+
+@app.route('/api/talents', methods=['POST'])
+def add_talent():
+    data = request.json
+    db = get_db()
+    sql = 'INSERT INTO talents (name, description) VALUES (?, ?)'
+    values = (data.get('name'), data.get('description'))
+    cursor = db.execute(sql, values)
+    db.commit()
+    return {'success': True, 'id': cursor.lastrowid}
+
+@app.route('/api/talents/<int:id>', methods=['PUT'])
+def update_talent(id):
+    data = request.json
+    db = get_db()
+    sql = 'UPDATE talents SET name=?, description=? WHERE id=?'
+    values = (data.get('name'), data.get('description'), id)
+    db.execute(sql, values)
+    db.commit()
+    return {'success': True}
+
+@app.route('/api/talents/<int:id>', methods=['DELETE'])
+def delete_talent(id):
+    db = get_db()
+    db.execute('DELETE FROM talents WHERE id = ?', (id,))
+    db.commit()
+    return {'success': True}
+
+@app.route('/api/modified_npcs', methods=['GET'])
+def get_modified_npcs():
+    db = get_db()
+    cursor = db.execute('SELECT * FROM modified_npcs')
+    modified_npcs = [dict(row) for row in cursor.fetchall()]
+    return {'success': True, 'modified_npcs': modified_npcs}
+
+@app.route('/api/modified_npcs', methods=['POST'])
+def add_modified_npc():
+    data = request.json
+    db = get_db()
+    sql = '''INSERT INTO modified_npcs (base_npc_id, name, traits, ws, bs, s, t, ag, int, wp, fel, 
+             a, w, m, mag, ip, fp, armor_head, armor_arms, armor_body, armor_legs, 
+             description, special_rules, talents, skills, armor, weapons, equipment) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''
+    values = (
+        data.get('base_npc_id'), data.get('name'), data.get('traits'),
+        data.get('ws'), data.get('bs'), data.get('s'), data.get('t'),
+        data.get('ag'), data.get('int'), data.get('wp'), data.get('fel'),
+        data.get('a'), data.get('w'), data.get('m'), data.get('mag'),
+        data.get('ip'), data.get('fp'),
+        data.get('armor_head'), data.get('armor_arms'),
+        data.get('armor_body'), data.get('armor_legs'),
+        data.get('description'), data.get('special_rules'),
+        data.get('talents'), data.get('skills'),
+        data.get('armor'), data.get('weapons'), data.get('equipment')
+    )
+    cursor = db.execute(sql, values)
+    db.commit()
+    return {'success': True, 'id': cursor.lastrowid}
+
+@app.route('/api/modified_npcs/<int:id>', methods=['PUT'])
+def update_modified_npc(id):
+    data = request.json
+    db = get_db()
+    sql = '''UPDATE modified_npcs SET base_npc_id=?, name=?, traits=?, ws=?, bs=?, s=?, t=?, ag=?, int=?, wp=?, fel=?,
+             a=?, w=?, m=?, mag=?, ip=?, fp=?, armor_head=?, armor_arms=?, armor_body=?, armor_legs=?,
+             description=?, special_rules=?, talents=?, skills=?, armor=?, weapons=?, equipment=? WHERE id=?'''
+    values = (
+        data.get('base_npc_id'), data.get('name'), data.get('traits'),
+        data.get('ws'), data.get('bs'), data.get('s'), data.get('t'),
+        data.get('ag'), data.get('int'), data.get('wp'), data.get('fel'),
+        data.get('a'), data.get('w'), data.get('m'), data.get('mag'),
+        data.get('ip'), data.get('fp'),
+        data.get('armor_head'), data.get('armor_arms'),
+        data.get('armor_body'), data.get('armor_legs'),
+        data.get('description'), data.get('special_rules'),
+        data.get('talents'), data.get('skills'),
+        data.get('armor'), data.get('weapons'), data.get('equipment'), id
+    )
+    db.execute(sql, values)
+    db.commit()
+    return {'success': True}
+
+@app.route('/api/modified_npcs/<int:id>', methods=['DELETE'])
+def delete_modified_npc(id):
+    db = get_db()
+    db.execute('DELETE FROM modified_npcs WHERE id = ?', (id,))
     db.commit()
     return {'success': True}
 

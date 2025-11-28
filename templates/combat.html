@@ -296,7 +296,119 @@
         opacity: 0;
         transition: opacity 0.3s;
         border: 1px solid #ffd700;
-        box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        font-size: 0.8rem;
+        pointer-events: none;
+    }
+
+    .tooltip-content::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: #ffd700 transparent transparent transparent;
+    }
+
+    .tag:hover .tooltip-content,
+    .skill-badge:hover .tooltip-content {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    .skill-badge {
+        display: inline-block;
+        background: #444;
+        color: #ddd;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin: 2px;
+        font-size: 0.75rem;
+        position: relative;
+        cursor: help;
+        border: 1px solid #555;
+    }
+
+    /* Tag Input Styles */
+    .tag-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        padding: 5px;
+        background: #333;
+        border: 1px solid #555;
+        border-radius: 4px;
+        min-height: 38px;
+    }
+
+    .tag {
+        background: #007bff;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        position: relative;
+        cursor: help;
+    }
+
+    .tag-remove {
+        cursor: pointer;
+        font-weight: bold;
+        margin-left: 5px;
+    }
+
+    .tag-remove:hover {
+        color: #ffcccc;
+    }
+
+    .suggestions-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        background: #333;
+        border: 1px solid #555;
+        border-top: none;
+        max-height: 150px;
+        overflow-y: auto;
+        width: 100%;
+        z-index: 1001;
+        display: none;
+        position: absolute;
+    }
+
+    .suggestions-list li {
+        padding: 8px;
+        cursor: pointer;
+        border-bottom: 1px solid #444;
+    }
+
+    .suggestions-list li:hover {
+        background: #444;
+    }
+
+    /* Tooltip Styles */
+    .tooltip-content {
+        visibility: hidden;
+        width: 250px;
+        background-color: #222;
+        color: #fff;
+        text-align: left;
+        border-radius: 6px;
+        padding: 10px;
+        position: absolute;
+        z-index: 1002;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -125px;
+        opacity: 0;
+        transition: opacity 0.3s;
+        border: 1px solid #ffd700;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
         font-size: 0.8rem;
         pointer-events: none;
     }
@@ -357,6 +469,18 @@
             <!-- Library NPCs will be loaded here -->
         </div>
     </section>
+
+    <!-- Modified NPCs Library Section -->
+    <section>
+        <div class="section-header">
+            <h2 class="section-title">PNG Modificati</h2>
+            <button class="btn btn-primary" onclick="createModifiedNPC()">+ Nuovo PNG Modificato</button>
+        </div>
+        <div id="modifiedNpcList" class="npc-grid">
+            <!-- Modified NPCs will be loaded here -->
+        </div>
+    </section>
+
 </div>
 
 <!-- Add/Edit Modal -->
@@ -468,7 +592,9 @@
 </div>
 
 <script>
+
     let npcs = [];
+    let modifiedNpcs = [];
     let combatants = [];
     let chaosMutations = [];
     let allSkills = [];
@@ -476,10 +602,12 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         loadNPCs();
+        loadModifiedNPCs();
         loadMutations();
         loadSkills();
         setupSkillInput();
     });
+
 
     async function loadMutations() {
         try {
@@ -538,7 +666,6 @@
         textarea.value += textarea.value ? text : text.trim();
     }
 
-
     async function loadSkills() {
         try {
             const response = await fetch('/api/skills');
@@ -562,13 +689,13 @@
                 return;
             }
 
-            const filtered = allSkills.filter(skill => 
+            const filtered = allSkills.filter(skill =>
                 skill.name.toLowerCase().includes(value) &&
                 !selectedSkills.includes(skill.name)
             );
 
             if (filtered.length > 0) {
-                suggestions.innerHTML = filtered.map(skill => 
+                suggestions.innerHTML = filtered.map(skill =>
                     `<li data-skill-name="${skill.name}">${skill.name}</li>`
                 ).join('');
                 suggestions.style.display = 'block';
@@ -606,6 +733,16 @@
     }
 
     function addSkill(skillName) {
+        if (skillName.includes('(varie)')) {
+            const replacement = prompt('Questa abilità contiene "(varie)". Inserisci il testo da sostituire a "varie":', '');
+            if (replacement === null) return;
+            if (replacement.trim() === '') {
+                alert('Devi inserire un valore per sostituire "varie"');
+                return;
+            }
+            skillName = skillName.replace('(varie)', `(${replacement.trim()})`);
+        }
+
         if (!selectedSkills.includes(skillName)) {
             selectedSkills.push(skillName);
             renderSkillTags();
@@ -620,7 +757,12 @@
     function renderSkillTags() {
         const container = document.getElementById('skillsContainer');
         container.innerHTML = selectedSkills.map(skillName => {
-            const skill = allSkills.find(s => s.name === skillName);
+            let skill = allSkills.find(s => s.name === skillName);
+            if (!skill && skillName.includes('(') && skillName.includes(')')) {
+                const baseSkillName = skillName.replace(/\([^)]+\)/, '(varie)');
+                skill = allSkills.find(s => s.name === baseSkillName);
+            }
+
             const tooltipHtml = skill ? `
                 <div class="tooltip-content">
                     <strong>${skill.name}</strong><br>
@@ -629,7 +771,7 @@
                     <em>Descrizione:</em> ${skill.description || 'N/A'}
                 </div>
             ` : '';
-            
+
             return `
                 <span class="tag">
                     ${skillName}
@@ -641,9 +783,14 @@
     }
 
     function getSkillBadgeHTML(skillName) {
-        const skill = allSkills.find(s => s.name === skillName);
+        let skill = allSkills.find(s => s.name === skillName);
+        if (!skill && skillName.includes('(') && skillName.includes(')')) {
+            const baseSkillName = skillName.replace(/\([^)]+\)/, '(varie)');
+            skill = allSkills.find(s => s.name === baseSkillName);
+        }
+
         if (!skill) return `<span class="skill-badge">${skillName}</span>`;
-        
+
         return `
             <span class="skill-badge">
                 ${skillName}
@@ -656,6 +803,8 @@
             </span>
         `;
     }
+
+
 
     async function loadNPCs() {
         try {
@@ -681,6 +830,7 @@
                 <div class="npc-name">
                     ${npc.name}
                     <span style="font-size:0.8rem; color:#aaa; font-weight:normal;">${npc.traits || ''}</span>
+                    <span style="font-size:0.7rem; color:#ffd700; font-weight:bold; margin-left:8px; background:#333; padding:2px 6px; border-radius:3px;">ID: ${npc.id}</span>
                 </div>
                 <div class="npc-stats">
                     <div class="stat-box"><div class="stat-label">AC</div><div class="stat-value">${npc.ws || '-'}</div></div>
@@ -705,6 +855,200 @@
             `;
             container.appendChild(card);
         });
+    }
+
+
+    async function loadModifiedNPCs() {
+        try {
+            const response = await fetch('/api/modified_npcs');
+            const data = await response.json();
+            if (data.success) {
+                modifiedNpcs = data.modified_npcs;
+                renderModifiedNPCs();
+            }
+        } catch (e) {
+            console.error('Error loading modified NPCs:', e);
+        }
+    }
+
+    function renderModifiedNPCs() {
+        const container = document.getElementById('modifiedNpcList');
+        if (!container) return;
+        container.innerHTML = '';
+
+        if (modifiedNpcs.length === 0) {
+            container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #666; padding: 2rem;">Nessun PNG modificato. Crea un nuovo PNG modificato partendo da un PNG base.</div>';
+            return;
+        }
+
+        modifiedNpcs.forEach(npc => {
+            const card = document.createElement('div');
+            card.className = 'npc-card';
+            card.style.borderColor = '#28a745';
+
+            card.innerHTML = `
+                <div class="npc-name">
+                    ${npc.name}
+                    <span style="font-size:0.8rem; color:#aaa; font-weight:normal;">${npc.traits || ''}</span>
+                </div>
+                <div class="npc-stats">
+                    <div class="stat-box"><div class="stat-label">AC</div><div class="stat-value">${npc.ws || '-'}</div></div>
+                    <div class="stat-box"><div class="stat-label">AB</div><div class="stat-value">${npc.bs || '-'}</div></div>
+                    <div class="stat-box"><div class="stat-label">F</div><div class="stat-value">${npc.s || '-'}</div></div>
+                    <div class="stat-box"><div class="stat-label">R</div><div class="stat-value">${npc.t || '-'}</div></div>
+                    <div class="stat-box"><div class="stat-label">Ag</div><div class="stat-value">${npc.ag || '-'}</div></div>
+                    <div class="stat-box"><div class="stat-label">Int</div><div class="stat-value">${npc.int || '-'}</div></div>
+                    <div class="stat-box"><div class="stat-label">Vol</div><div class="stat-value">${npc.wp || '-'}</div></div>
+                    <div class="stat-box"><div class="stat-label">Sim</div><div class="stat-value">${npc.fel || '-'}</div></div>
+                </div>
+                <div class="secondary-stats">
+                    <span><strong>A:</strong> ${npc.a || '-'}</span>
+                    <span><strong>Fe:</strong> ${npc.w || '-'}</span>
+                    <span><strong>M:</strong> ${npc.m || '-'}</span>
+                </div>
+                <div class="npc-actions">
+                    <button class="btn btn-add" onclick="addModifiedToCombat(${npc.id})">Aggiungi al Combattimento</button>
+                    <button class="btn btn-edit" onclick="editModifiedNPC(${npc.id})">Modifica</button>
+                    <button class="btn btn-danger" onclick="deleteModifiedNPC(${npc.id})">Elimina</button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function createModifiedNPC() {
+        const baseNpcId = prompt('Inserisci ID del PNG base (o lascia vuoto per vedere la lista):');
+        if (baseNpcId === null) return;
+
+        if (baseNpcId === '') {
+            let npcList = 'PNG Disponibili:\n\n';
+            npcs.forEach(npc => {
+                npcList += `ID: ${npc.id} - ${npc.name}\n`;
+            });
+            alert(npcList);
+            createModifiedNPC();
+            return;
+        }
+
+        const baseNpc = npcs.find(n => n.id == parseInt(baseNpcId));
+        if (!baseNpc) {
+            alert('PNG non trovato!');
+            return;
+        }
+        openModalForModified(baseNpc);
+    }
+
+    function openModalForModified(baseNpc) {
+        const modal = document.getElementById('npcModal');
+        const form = document.getElementById('npcForm');
+        const title = document.getElementById('modalTitle');
+
+        title.innerText = `Nuovo PNG Modificato (Base: ${baseNpc.name})`;
+        form.reset();
+        document.getElementById('npcId').value = '';
+        document.getElementById('combatantInstanceId').value = '';
+
+        if (!document.getElementById('baseNpcId')) {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.id = 'baseNpcId';
+            form.appendChild(hiddenInput);
+        }
+        document.getElementById('baseNpcId').value = baseNpc.id;
+
+        document.getElementById('name').value = baseNpc.name + ' (Modificato)';
+        document.getElementById('traits').value = baseNpc.traits || '';
+        document.getElementById('description').value = baseNpc.description || '';
+
+        ['ws', 'bs', 's', 't', 'ag', 'int', 'wp', 'fel', 'a', 'w', 'm', 'mag', 'ip', 'fp',
+            'armor_head', 'armor_arms', 'armor_body', 'armor_legs'].forEach(stat => {
+                document.getElementById(stat).value = baseNpc[stat] || '';
+            });
+
+        ['talents', 'special_rules', 'armor', 'weapons', 'equipment'].forEach(field => {
+            document.getElementById(field).value = baseNpc[field] || '';
+        });
+
+        selectedSkills = baseNpc.skills ? baseNpc.skills.split(',').map(s => s.trim()).filter(s => s) : [];
+        renderSkillTags();
+
+        modal.style.display = 'block';
+    }
+
+    function editModifiedNPC(id) {
+        const npc = modifiedNpcs.find(n => n.id === id);
+        if (npc) {
+            const modal = document.getElementById('npcModal');
+            const form = document.getElementById('npcForm');
+            const title = document.getElementById('modalTitle');
+
+            title.innerText = 'Modifica PNG Modificato';
+
+            if (!document.getElementById('modifiedNpcId')) {
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.id = 'modifiedNpcId';
+                form.appendChild(hiddenInput);
+            }
+            document.getElementById('modifiedNpcId').value = npc.id;
+
+            if (!document.getElementById('baseNpcId')) {
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.id = 'baseNpcId';
+                form.appendChild(hiddenInput);
+            }
+            document.getElementById('baseNpcId').value = npc.base_npc_id;
+
+            document.getElementById('npcId').value = '';
+            document.getElementById('combatantInstanceId').value = '';
+
+            document.getElementById('name').value = npc.name;
+            document.getElementById('traits').value = npc.traits || '';
+            document.getElementById('description').value = npc.description || '';
+
+            ['ws', 'bs', 's', 't', 'ag', 'int', 'wp', 'fel', 'a', 'w', 'm', 'mag', 'ip', 'fp',
+                'armor_head', 'armor_arms', 'armor_body', 'armor_legs'].forEach(stat => {
+                    document.getElementById(stat).value = npc[stat] || '';
+                });
+
+            ['talents', 'special_rules', 'armor', 'weapons', 'equipment'].forEach(field => {
+                document.getElementById(field).value = npc[field] || '';
+            });
+
+            selectedSkills = npc.skills ? npc.skills.split(',').map(s => s.trim()).filter(s => s) : [];
+            renderSkillTags();
+
+            modal.style.display = 'block';
+        }
+    }
+
+    async function deleteModifiedNPC(id) {
+        if (!confirm('Sei sicuro di voler eliminare questo PNG modificato?')) return;
+        try {
+            const response = await fetch(`/api/modified_npcs/${id}`, { method: 'DELETE' });
+            const data = await response.json();
+            if (data.success) {
+                loadModifiedNPCs();
+            }
+        } catch (e) {
+            console.error('Error deleting modified NPC:', e);
+        }
+    }
+
+    function addModifiedToCombat(modifiedNpcId) {
+        const npc = modifiedNpcs.find(n => n.id === modifiedNpcId);
+        if (!npc) return;
+
+        const combatant = {
+            ...JSON.parse(JSON.stringify(npc)),
+            instanceId: Date.now() + Math.random(),
+            currentWounds: npc.w || 0,
+            isModified: true
+        };
+
+        combatants.push(combatant);
+        renderCombatants();
     }
 
     function renderCombatants() {
@@ -806,6 +1150,7 @@
 
     // --- Standard NPC Management Functions (Same as before) ---
 
+
     function openModal(npc = null) {
         const modal = document.getElementById('npcModal');
         const form = document.getElementById('npcForm');
@@ -848,6 +1193,7 @@
         modal.style.display = 'block';
     }
 
+
     function editCombatant(instanceId) {
         const combatant = combatants.find(c => c.instanceId === instanceId);
         if (combatant) {
@@ -883,6 +1229,7 @@
         }
     }
 
+
     async function saveNPC(event) {
         event.preventDefault();
 
@@ -908,6 +1255,38 @@
 
         // Serialize skills
         formData.skills = selectedSkills.join(', ');
+
+        // Check if it's a modified NPC
+        const baseNpcId = document.getElementById('baseNpcId') ? document.getElementById('baseNpcId').value : '';
+        const modifiedNpcId = document.getElementById('modifiedNpcId') ? document.getElementById('modifiedNpcId').value : '';
+
+        if (baseNpcId || modifiedNpcId) {
+            // Save as modified NPC
+            formData.base_npc_id = baseNpcId ? parseInt(baseNpcId) : null;
+
+            const method = modifiedNpcId ? 'PUT' : 'POST';
+            const url = modifiedNpcId ? `/api/modified_npcs/${modifiedNpcId}` : '/api/modified_npcs';
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                const data = await response.json();
+                if (data.success) {
+                    closeModal();
+                    loadModifiedNPCs();
+                    // Clear hidden fields
+                    if (document.getElementById('baseNpcId')) document.getElementById('baseNpcId').value = '';
+                    if (document.getElementById('modifiedNpcId')) document.getElementById('modifiedNpcId').value = '';
+                }
+            } catch (e) {
+                console.error('Error saving modified NPC:', e);
+                alert('Errore nel salvataggio');
+            }
+            return;
+        }
 
         // If it's a combatant instance, update local state only
         if (instanceId) {
