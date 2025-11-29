@@ -94,11 +94,86 @@ def create_table():
             career_exits TEXT
         )
     ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS diary (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date_iso TEXT UNIQUE NOT NULL,
+            year INTEGER,
+            month_index INTEGER,
+            month_name TEXT,
+            day INTEGER,
+            note TEXT,
+            weather_json TEXT,
+            updated_at TEXT
+        )
+    ''')
     conn.commit()
     conn.close()
 
 # Create table on startup
 create_table()
+
+def migrate_diary_csv_to_db():
+    """Migrates diary data from diario.csv to the diary table if the table is empty."""
+    conn = sqlite3.connect(DATABASE)
+    c = conn.cursor()
+    
+    # Check if diary table is empty
+    c.execute('SELECT COUNT(*) FROM diary')
+    count = c.fetchone()[0]
+    
+    if count > 0:
+        print(f"Diary table already contains {count} entries. Skipping migration.")
+        conn.close()
+        return
+    
+    # Check if CSV exists
+    csv_path = os.path.join(os.path.dirname(__file__), 'diario.csv')
+    if not os.path.exists(csv_path):
+        print("diario.csv not found. Skipping migration.")
+        conn.close()
+        return
+    
+    try:
+        print("Starting diary migration from CSV to database...")
+        df = pd.read_csv(csv_path, encoding='utf-8')
+        migrated_count = 0
+        
+        for _, row in df.iterrows():
+            try:
+                # Decode note from base64
+                note_decoded = base64.b64decode(row['note']).decode('utf-8') if pd.notna(row['note']) and row['note'] else ''
+            except Exception as e:
+                print(f"Error decoding note for {row['date_iso']}: {e}")
+                note_decoded = ''
+            
+            # Prepare data
+            date_iso = row['date_iso']
+            year = int(row['year']) if pd.notna(row['year']) else None
+            month_index = int(row['month_index']) if pd.notna(row['month_index']) else None
+            month_name = row['month_name'] if pd.notna(row['month_name']) else ''
+            day = int(row['day']) if pd.notna(row['day']) else None
+            weather_json = row['weather_json'] if pd.notna(row['weather_json']) else '{}'
+            updated_at = row['updated_at'] if pd.notna(row['updated_at']) else ''
+            
+            # Insert into database
+            c.execute('''
+                INSERT INTO diary (date_iso, year, month_index, month_name, day, note, weather_json, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (date_iso, year, month_index, month_name, day, note_decoded, weather_json, updated_at))
+            migrated_count += 1
+        
+        conn.commit()
+        print(f"Successfully migrated {migrated_count} diary entries from CSV to database.")
+    except Exception as e:
+        print(f"Error during diary migration: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+
+# Run migration on startup
+migrate_diary_csv_to_db()
+
 
 
 def load_shop_data():
@@ -265,37 +340,37 @@ def load_calendar_data():
 import base64
 
 def load_diary_data():
-    """Reads the diary data from the CSV file."""
-    csv_path = os.path.join(os.path.dirname(__file__), 'diario.csv')
-    if not os.path.exists(csv_path):
-        return {}
+    """Reads the diary data from the database."""
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
     
     try:
-        df = pd.read_csv(csv_path, encoding='utf-8')
+        c.execute('SELECT * FROM diary')
+        rows = c.fetchall()
+        
         # Create a dictionary keyed by date_iso for easy lookup
         diary_entries = {}
-        for _, row in df.iterrows():
-            try:
-                note_decoded = base64.b64decode(row['note']).decode('utf-8')
-            except:
-                note_decoded = "Error decoding note"
-            
+        for row in rows:
             weather_data = {}
             try:
-                weather_raw = row.get('weather_json', '{}')
-                if pd.notna(weather_raw) and weather_raw:
+                weather_raw = row['weather_json']
+                if weather_raw:
                     weather_data = json.loads(weather_raw)
             except Exception as e:
                 print(f"Error parsing weather JSON for {row['date_iso']}: {e}")
-
+            
             diary_entries[row['date_iso']] = {
-                'note': note_decoded,
+                'note': row['note'] or '',
                 'weather': weather_data
             }
         return diary_entries
     except Exception as e:
-        print(f"Error reading Diary CSV: {e}")
+        print(f"Error reading diary from database: {e}")
         return {}
+    finally:
+        conn.close()
+
 
 from datetime import datetime
 import random
@@ -412,34 +487,33 @@ def save_diary():
         return {'success': False, 'error': 'No date provided'}, 400
 
     try:
-        # Load existing data
-        csv_path = os.path.join(os.path.dirname(__file__), 'diario.csv')
-        if os.path.exists(csv_path):
-            df = pd.read_csv(csv_path, encoding='utf-8')
-        else:
-            df = pd.DataFrame(columns=['date_iso', 'year', 'month_index', 'month_name', 'day', 'note', 'weather_json', 'updated_at'])
-
-        # Encode note to base64
-        note_b64 = base64.b64encode(note_html.encode('utf-8')).decode('utf-8')
+        db = get_db()
         
         # Prepare weather JSON string
         weather_str = json.dumps(weather_json) if weather_json else '{}'
         
         # Check if entry exists
-        if date_iso in df['date_iso'].values:
-            # Update existing
-            idx = df.index[df['date_iso'] == date_iso].tolist()[0]
-            df.at[idx, 'note'] = note_b64
-            df.at[idx, 'updated_at'] = datetime.now().isoformat()
+        cursor = db.execute('SELECT id, weather_json FROM diary WHERE date_iso = ?', (date_iso,))
+        existing = cursor.fetchone()
+        
+        if existing:
+            # Update existing entry
             # Only update weather if provided and not already set
-            if weather_json and (pd.isna(df.at[idx, 'weather_json']) or df.at[idx, 'weather_json'] == '{}'):
-                df.at[idx, 'weather_json'] = weather_str
+            if weather_json and (not existing['weather_json'] or existing['weather_json'] == '{}'):
+                db.execute('''
+                    UPDATE diary 
+                    SET note = ?, weather_json = ?, updated_at = ?
+                    WHERE date_iso = ?
+                ''', (note_html, weather_str, datetime.now().isoformat(), date_iso))
+            else:
+                db.execute('''
+                    UPDATE diary 
+                    SET note = ?, updated_at = ?
+                    WHERE date_iso = ?
+                ''', (note_html, datetime.now().isoformat(), date_iso))
         else:
             # Create new entry
             # Parse date to get components
-            # date_iso format is YYYY-MM-DD (Imperial)
-            # We need to look up month name from calendar.json to be consistent, or just pass it from frontend
-            # For simplicity, let's load calendar data to get month name
             calendar_data = load_calendar_data()
             parts = date_iso.split('-')
             year = int(parts[0])
@@ -450,24 +524,18 @@ def save_diary():
             if 1 <= month_idx <= len(calendar_data.get('months', [])):
                 month_name = calendar_data['months'][month_idx-1]['name']
 
-            new_row = {
-                'date_iso': date_iso,
-                'year': year,
-                'month_index': month_idx,
-                'month_name': month_name,
-                'day': day,
-                'note': note_b64,
-                'weather_json': weather_str,
-                'updated_at': datetime.now().isoformat()
-            }
-            df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-
-        df.to_csv(csv_path, index=False, encoding='utf-8')
+            db.execute('''
+                INSERT INTO diary (date_iso, year, month_index, month_name, day, note, weather_json, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (date_iso, year, month_idx, month_name, day, note_html, weather_str, datetime.now().isoformat()))
+        
+        db.commit()
         return {'success': True}
         
     except Exception as e:
         print(f"Error saving diary: {e}")
         return {'success': False, 'error': str(e)}, 500
+
 
 @app.route('/generate_weather', methods=['GET'])
 def generate_weather():
