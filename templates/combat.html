@@ -571,7 +571,11 @@
 
             <div class="form-group">
                 <label>Talenti</label>
-                <textarea id="talents" rows="2"></textarea>
+                <div id="talentsContainer" class="tag-container"></div>
+                <div style="position: relative; margin-top: 5px;">
+                    <input type="text" id="talentInput" placeholder="Aggiungi talento..." autocomplete="off">
+                    <ul id="talentSuggestions" class="suggestions-list"></ul>
+                </div>
             </div>
             <div class="form-group">
                 <label>Abilità</label>
@@ -623,8 +627,10 @@
         loadModifiedNPCs();
         loadMutations();
         loadSkills();
+        loadTalents();
         loadCareers();
         setupSkillInput();
+        setupTalentInput();
     });
 
 
@@ -695,15 +701,12 @@
 
         // Merge talents (allowing duplicates)
         if (career.talents) {
-            const talentsTextarea = document.getElementById('talents');
-            const currentTalents = talentsTextarea.value.trim();
-            const careerTalents = career.talents.trim();
-            
-            if (currentTalents && careerTalents) {
-                talentsTextarea.value = currentTalents + ', ' + careerTalents;
-            } else if (careerTalents) {
-                talentsTextarea.value = careerTalents;
-            }
+            const careerTalents = career.talents.split(',').map(t => t.trim()).filter(t => t);
+            careerTalents.forEach(talentName => {
+                // Add talent directly without checking for duplicates
+                selectedTalents.push(talentName);
+            });
+            renderTalentTags();
         }
 
         // Merge trappings to equipment
@@ -846,6 +849,124 @@
             }
         });
     }
+
+    // --- TALENT FUNCTIONS ---
+
+    async function loadTalents() {
+        try {
+            const response = await fetch('/api/talents');
+            const data = await response.json();
+            if (data.success) {
+                allTalents = data.talents;
+            }
+        } catch (e) {
+            console.error('Error loading talents:', e);
+        }
+    }
+
+    function setupTalentInput() {
+        const input = document.getElementById('talentInput');
+        const suggestions = document.getElementById('talentSuggestions');
+
+        input.addEventListener('input', (e) => {
+            const value = e.target.value.toLowerCase();
+            if (value.length < 2) {
+                suggestions.style.display = 'none';
+                return;
+            }
+
+            // Allow duplicates - don't filter out already selected talents
+            const filtered = allTalents.filter(talent =>
+                talent.name.toLowerCase().includes(value)
+            );
+
+            if (filtered.length > 0) {
+                suggestions.innerHTML = filtered.map(talent =>
+                    `<li data-talent-name="${talent.name}">${talent.name}</li>`
+                ).join('');
+                suggestions.style.display = 'block';
+            } else {
+                suggestions.style.display = 'none';
+            }
+        });
+
+        suggestions.addEventListener('click', (e) => {
+            if (e.target.tagName === 'LI') {
+                const talentName = e.target.dataset.talentName;
+                addTalent(talentName);
+                input.value = '';
+                suggestions.style.display = 'none';
+            }
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const firstSuggestion = suggestions.querySelector('li');
+                if (firstSuggestion) {
+                    addTalent(firstSuggestion.dataset.talentName);
+                    input.value = '';
+                    suggestions.style.display = 'none';
+                }
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (e.target !== input) {
+                suggestions.style.display = 'none';
+            }
+        });
+    }
+
+    function addTalent(talentName) {
+        // Handle (varie) replacement like skills
+        if (talentName.includes('(varie)')) {
+            const replacement = prompt('Questo talento contiene "(varie)". Inserisci il testo da sostituire a "varie":', '');
+            if (replacement === null) return;
+            if (replacement.trim() === '') {
+                alert('Devi inserire un valore per sostituire "varie"');
+                return;
+            }
+            talentName = talentName.replace('(varie)', `(${replacement.trim()})`);
+        }
+
+        // Allow duplicates - always add
+        selectedTalents.push(talentName);
+        renderTalentTags();
+    }
+
+    function removeTalent(index) {
+        selectedTalents.splice(index, 1);
+        renderTalentTags();
+    }
+
+    function renderTalentTags() {
+        const container = document.getElementById('talentsContainer');
+        container.innerHTML = selectedTalents.map((talentName, index) => {
+            let talent = allTalents.find(t => t.name === talentName);
+            if (!talent && talentName.includes('(') && talentName.includes(')')) {
+                const baseTalentName = talentName.replace(/\([^)]+\)/, '(varie)');
+                talent = allTalents.find(t => t.name === baseTalentName);
+            }
+
+            const tooltipHtml = talent ? `
+                <div class="tooltip-content">
+                    <strong>${talent.name}</strong><br>
+                    <em>Descrizione:</em> ${talent.description || 'N/A'}
+                </div>
+            ` : '';
+
+            return `
+                <span class="tag">
+                    ${talentName}
+                    <span class="tag-remove" onclick="removeTalent(${index})">&times;</span>
+                    ${tooltipHtml}
+                </span>
+            `;
+        }).join('');
+    }
+
+    // --- END TALENT FUNCTIONS ---
 
     function addSkill(skillName) {
         if (skillName.includes('(varie)')) {
@@ -1080,12 +1201,14 @@
                 document.getElementById(stat).value = baseNpc[stat] || '';
             });
 
-        ['talents', 'special_rules', 'armor', 'weapons', 'equipment'].forEach(field => {
+        ['special_rules', 'armor', 'weapons', 'equipment'].forEach(field => {
             document.getElementById(field).value = baseNpc[field] || '';
         });
 
         selectedSkills = baseNpc.skills ? baseNpc.skills.split(',').map(s => s.trim()).filter(s => s) : [];
+        selectedTalents = baseNpc.talents ? baseNpc.talents.split(',').map(t => t.trim()).filter(t => t) : [];
         renderSkillTags();
+        renderTalentTags();
 
         modal.style.display = 'block';
     }
@@ -1127,12 +1250,14 @@
                     document.getElementById(stat).value = npc[stat] || '';
                 });
 
-            ['talents', 'special_rules', 'armor', 'weapons', 'equipment'].forEach(field => {
+            ['special_rules', 'armor', 'weapons', 'equipment'].forEach(field => {
                 document.getElementById(field).value = npc[field] || '';
             });
 
             selectedSkills = npc.skills ? npc.skills.split(',').map(s => s.trim()).filter(s => s) : [];
+            selectedTalents = npc.talents ? npc.talents.split(',').map(t => t.trim()).filter(t => t) : [];
             renderSkillTags();
+            renderTalentTags();
 
             modal.style.display = 'block';
         }
@@ -1283,20 +1408,26 @@
                 document.getElementById(stat).value = npc[stat] || '';
             });
 
-            // Text areas (except skills)
-            ['talents', 'special_rules', 'armor', 'weapons', 'equipment'].forEach(field => {
+            // Text areas (except skills and talents)
+            ['special_rules', 'armor', 'weapons', 'equipment'].forEach(field => {
                 document.getElementById(field).value = npc[field] || '';
             });
 
             // Load skills as tags
             selectedSkills = npc.skills ? npc.skills.split(',').map(s => s.trim()).filter(s => s) : [];
             renderSkillTags();
+
+            // Load talents as tags
+            selectedTalents = npc.talents ? npc.talents.split(',').map(t => t.trim()).filter(t => t) : [];
+            renderTalentTags();
         } else {
             title.innerText = 'Nuovo PNG';
             form.reset();
             document.getElementById('npcId').value = '';
             selectedSkills = [];
+            selectedTalents = [];
             renderSkillTags();
+            renderTalentTags();
         }
 
         // Clear combatant instance ID if not explicitly set (handled by editCombatant)
