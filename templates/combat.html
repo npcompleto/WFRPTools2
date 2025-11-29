@@ -521,6 +521,22 @@
                         <button type="button" class="btn btn-primary" onclick="addSelectedMutation()">Aggiungi</button>
                     </div>
                 </div>
+
+                <!-- Career Application Controls -->
+                <div id="careerControls"
+                    style="margin-top: 10px; padding: 10px; background: #1a3a1a; border-radius: 4px; border: 1px solid #28a745;">
+                    <label style="color: #28a745; margin-bottom: 5px; display: block; font-weight: bold;">Applica Carriera</label>
+                    <div style="display: flex; gap: 5px; flex-wrap: wrap; align-items: center;">
+                        <select id="careerSelect"
+                            style="flex-grow: 1; padding: 5px; background: #222; color: #fff; border: 1px solid #555;">
+                            <option value="">-- Seleziona Carriera --</option>
+                        </select>
+                        <button type="button" class="btn btn-add" onclick="applyCareerToNPC()">Applica Carriera</button>
+                    </div>
+                    <div style="font-size: 0.75rem; color: #aaa; margin-top: 5px;">
+                        Somma le statistiche, aggiunge abilità/talenti (duplicati consentiti) e ferri del mestiere
+                    </div>
+                </div>
             </div>
 
             <h3>Caratteristiche Principali</h3>
@@ -600,14 +616,113 @@
     let allSkills = [];
     let selectedSkills = [];
 
+    let careersData = [];
+
     document.addEventListener('DOMContentLoaded', () => {
         loadNPCs();
         loadModifiedNPCs();
         loadMutations();
         loadSkills();
+        loadCareers();
         setupSkillInput();
     });
 
+
+    // --- CAREER FUNCTIONS ---
+
+    async function loadCareers() {
+        try {
+            const response = await fetch('/api/careers');
+            const data = await response.json();
+            if (data.success) {
+                careersData = data.careers;
+                populateCareerSelect();
+            }
+        } catch (e) {
+            console.error('Error loading careers:', e);
+        }
+    }
+
+    function populateCareerSelect() {
+        const select = document.getElementById('careerSelect');
+        // Clear existing options except the first one
+        select.innerHTML = '<option value="">-- Seleziona Carriera --</option>';
+        
+        // Sort alphabetically
+        const sorted = [...careersData].sort((a, b) => a.name.localeCompare(b.name));
+
+        sorted.forEach(career => {
+            const option = document.createElement('option');
+            option.value = career.id;
+            option.textContent = career.name;
+            select.appendChild(option);
+        });
+    }
+
+    async function applyCareerToNPC() {
+        const select = document.getElementById('careerSelect');
+        const careerId = select.value;
+        
+        if (!careerId) {
+            alert('Seleziona una carriera prima di applicarla');
+            return;
+        }
+
+        const career = careersData.find(c => c.id == careerId);
+        if (!career) {
+            alert('Carriera non trovata');
+            return;
+        }
+
+        // Sum stats (AC, AB, F, R, Ag, Int, Vol, Sim, A, Fe, M, Mag, Fol, PF)
+        const statFields = ['ws', 'bs', 's', 't', 'ag', 'int', 'wp', 'fel', 'a', 'w', 'm', 'mag', 'ip', 'fp'];
+        statFields.forEach(stat => {
+            const input = document.getElementById(stat);
+            const currentValue = parseInt(input.value) || 0;
+            const careerValue = parseInt(career[stat]) || 0;
+            input.value = currentValue + careerValue;
+        });
+
+        // Merge skills (allowing duplicates)
+        if (career.skills) {
+            const careerSkills = career.skills.split(',').map(s => s.trim()).filter(s => s);
+            careerSkills.forEach(skillName => {
+                // Add skill directly without checking for duplicates
+                selectedSkills.push(skillName);
+            });
+            renderSkillTags();
+        }
+
+        // Merge talents (allowing duplicates)
+        if (career.talents) {
+            const talentsTextarea = document.getElementById('talents');
+            const currentTalents = talentsTextarea.value.trim();
+            const careerTalents = career.talents.trim();
+            
+            if (currentTalents && careerTalents) {
+                talentsTextarea.value = currentTalents + ', ' + careerTalents;
+            } else if (careerTalents) {
+                talentsTextarea.value = careerTalents;
+            }
+        }
+
+        // Merge trappings to equipment
+        if (career.trappings) {
+            const equipmentTextarea = document.getElementById('equipment');
+            const currentEquipment = equipmentTextarea.value.trim();
+            const careerTrappings = career.trappings.trim();
+            
+            if (currentEquipment && careerTrappings) {
+                equipmentTextarea.value = currentEquipment + ', ' + careerTrappings;
+            } else if (careerTrappings) {
+                equipmentTextarea.value = careerTrappings;
+            }
+        }
+
+        alert(`Carriera "${career.name}" applicata con successo!\n\nStatistiche sommate, abilità e talenti aggiunti (duplicati consentiti), ferri del mestiere aggiunti all'equipaggiamento.`);
+    }
+
+    // --- END CAREER FUNCTIONS ---
 
     async function loadMutations() {
         try {
