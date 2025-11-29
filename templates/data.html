@@ -612,7 +612,7 @@
 
             careerSelectedSkills = career.skills ? career.skills.split(',').map(s => s.trim()).filter(s => s) : [];
             careerSelectedTalents = career.talents ? career.talents.split(',').map(s => s.trim()).filter(s => s) : [];
-
+            setupCareerTagInputs()
             renderCareerSkillTags();
             renderCareerTalentTags();
 
@@ -686,7 +686,7 @@
                 skillSuggestions.style.display = 'none';
                 return;
             }
-            const filtered = skillsData.filter(s => s.name.toLowerCase().includes(value) && !careerSelectedSkills.includes(s.name));
+            const filtered = skillsData.filter(s => s.name.toLowerCase().includes(value));
             if (filtered.length > 0) {
                 skillSuggestions.innerHTML = filtered.map(s => `<li data-name="${s.name}" onclick="addCareerSkill('${s.name}')">${s.name}</li>`).join('');
                 skillSuggestions.style.display = 'block';
@@ -705,7 +705,7 @@
                 talentSuggestions.style.display = 'none';
                 return;
             }
-            const filtered = talentsData.filter(t => t.name.toLowerCase().includes(value) && !careerSelectedTalents.includes(t.name));
+            const filtered = talentsData.filter(t => t.name.toLowerCase().includes(value));
             if (filtered.length > 0) {
                 talentSuggestions.innerHTML = filtered.map(t => `<li data-name="${t.name}" onclick="addCareerTalent('${t.name}')">${t.name}</li>`).join('');
                 talentSuggestions.style.display = 'block';
@@ -727,10 +727,8 @@
             if (replacement === null || replacement.trim() === '') return;
             name = name.replace('(varie)', `(${replacement.trim()})`);
         }
-        if (!careerSelectedSkills.includes(name)) {
-            careerSelectedSkills.push(name);
-            renderCareerSkillTags();
-        }
+        careerSelectedSkills.push(name);
+        renderCareerSkillTags();
         document.getElementById('careerSkillInput').value = '';
         document.getElementById('careerSkillSuggestions').style.display = 'none';
     }
@@ -759,10 +757,8 @@
             if (replacement === null || replacement.trim() === '') return;
             name = name.replace('(varie)', `(${replacement.trim()})`);
         }
-        if (!careerSelectedTalents.includes(name)) {
-            careerSelectedTalents.push(name);
-            renderCareerTalentTags();
-        }
+        careerSelectedTalents.push(name);
+        renderCareerTalentTags();
         document.getElementById('careerTalentInput').value = '';
         document.getElementById('careerTalentSuggestions').style.display = 'none';
     }
