@@ -688,7 +688,10 @@
             }
             const filtered = skillsData.filter(s => s.name.toLowerCase().includes(value));
             if (filtered.length > 0) {
-                skillSuggestions.innerHTML = filtered.map(s => `<li data-name="${s.name}" onclick="addCareerSkill('${s.name}')">${s.name}</li>`).join('');
+                skillSuggestions.innerHTML = filtered.map(s => {
+                    const escapedName = s.name.replace(/'/g, "\\'");
+                    return `<li data-name="${s.name}" onclick="addCareerSkill('${escapedName}')">${s.name}</li>`;
+                }).join('');
                 skillSuggestions.style.display = 'block';
             } else {
                 skillSuggestions.style.display = 'none';
@@ -707,7 +710,10 @@
             }
             const filtered = talentsData.filter(t => t.name.toLowerCase().includes(value));
             if (filtered.length > 0) {
-                talentSuggestions.innerHTML = filtered.map(t => `<li data-name="${t.name}" onclick="addCareerTalent('${t.name}')">${t.name}</li>`).join('');
+                talentSuggestions.innerHTML = filtered.map(t => {
+                    const escapedName = t.name.replace(/'/g, "\\'");
+                    return `<li data-name="${t.name}" onclick="addCareerTalent('${escapedName}')">${t.name}</li>`;
+                }).join('');
                 talentSuggestions.style.display = 'block';
             } else {
                 talentSuggestions.style.display = 'none';
