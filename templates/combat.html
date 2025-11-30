@@ -1581,11 +1581,17 @@
         const npc = modifiedNpcs.find(n => n.id === modifiedNpcId);
         if (!npc) return;
 
+        const ag = npc.ag || 0;
+        const d10 = Math.floor(Math.random() * 10) + 1;
+        const initiative = ag + d10;
+        
         const combatant = {
             ...JSON.parse(JSON.stringify(npc)),
             instanceId: Date.now() + Math.random(),
             currentWounds: npc.w || 0,
-            isModified: true
+            isModified: true,
+            initiative: initiative,
+            initiativeRoll: d10
         };
 
         combatants.push(combatant);
@@ -1613,8 +1619,13 @@
 
             card.innerHTML = `
                 <div class="npc-name">
-                    ${combatant.name}
-                    <span style="font-size:0.8rem; color:#aaa; font-weight:normal;">#${index + 1}</span>
+                    <div>
+                        ${combatant.name}
+                        <span style="font-size:0.8rem; color:#aaa; font-weight:normal;">#${index + 1}</span>
+                    </div>
+                    <div style="font-size: 0.9rem; color: #00ffff; border: 1px solid #00aaaa; padding: 2px 6px; border-radius: 4px;" title="Iniziativa (Ag ${combatant.ag || 0} + d10 ${combatant.initiativeRoll || '?'})">
+                        INIZ: ${combatant.initiative || 0}
+                    </div>
                 </div>
                 
                 <div class="wounds-display">
@@ -1659,10 +1670,16 @@
         if (!npc) return;
 
         // Create a deep copy and add instance properties
+        const ag = npc.ag || 0;
+        const d10 = Math.floor(Math.random() * 10) + 1;
+        const initiative = ag + d10;
+        
         const combatant = {
             ...JSON.parse(JSON.stringify(npc)),
             instanceId: Date.now() + Math.random(), // Unique ID for this instance
-            currentWounds: npc.w || 0
+            currentWounds: npc.w || 0,
+            initiative: initiative,
+            initiativeRoll: d10 // Store the roll for reference if needed
         };
 
         combatants.push(combatant);
