@@ -525,7 +525,8 @@
                 <!-- Career Application Controls -->
                 <div id="careerControls"
                     style="margin-top: 10px; padding: 10px; background: #1a3a1a; border-radius: 4px; border: 1px solid #28a745;">
-                    <label style="color: #28a745; margin-bottom: 5px; display: block; font-weight: bold;">Applica Carriera</label>
+                    <label style="color: #28a745; margin-bottom: 5px; display: block; font-weight: bold;">Applica
+                        Carriera</label>
                     <div style="display: flex; gap: 5px; flex-wrap: wrap; align-items: center;">
                         <select id="careerSelect"
                             style="flex-grow: 1; padding: 5px; background: #222; color: #fff; border: 1px solid #555;">
@@ -653,7 +654,7 @@
         const select = document.getElementById('careerSelect');
         // Clear existing options except the first one
         select.innerHTML = '<option value="">-- Seleziona Carriera --</option>';
-        
+
         // Sort alphabetically
         const sorted = [...careersData].sort((a, b) => a.name.localeCompare(b.name));
 
@@ -668,7 +669,7 @@
     async function applyCareerToNPC() {
         const select = document.getElementById('careerSelect');
         const careerId = select.value;
-        
+
         if (!careerId) {
             alert('Seleziona una carriera prima di applicarla');
             return;
@@ -714,7 +715,7 @@
             const equipmentTextarea = document.getElementById('equipment');
             const currentEquipment = equipmentTextarea.value.trim();
             const careerTrappings = career.trappings.trim();
-            
+
             if (currentEquipment && careerTrappings) {
                 equipmentTextarea.value = currentEquipment + ', ' + careerTrappings;
             } else if (careerTrappings) {
@@ -1040,6 +1041,26 @@
         `;
     }
 
+    function getTalentBadgeHTML(talentName) {
+        let talent = allTalents.find(t => t.name === talentName);
+        if (!talent && talentName.includes('(') && talentName.includes(')')) {
+            const baseTalentName = talentName.replace(/\([^)]+\)/, '(varie)');
+            talent = allTalents.find(t => t.name === baseTalentName);
+        }
+
+        if (!talent) return `<span class="skill-badge">${talentName}</span>`;
+
+        return `
+            <span class="skill-badge">
+                ${talentName}
+                <div class="tooltip-content">
+                    <strong>${talent.name}</strong><br>
+                    <em>Descrizione:</em> ${talent.description || 'N/A'}
+                </div>
+            </span>
+        `;
+    }
+
 
 
     async function loadNPCs() {
@@ -1341,7 +1362,7 @@
                     <div><strong>Armatura:</strong> T:${combatant.armor_head || 0} B:${combatant.armor_arms || 0} C:${combatant.armor_body || 0} G:${combatant.armor_legs || 0}</div>
                     <div><strong>Armi:</strong> ${combatant.weapons || '-'}</div>
                     <div><strong>Abilità:</strong> ${combatant.skills ? combatant.skills.split(',').map(s => getSkillBadgeHTML(s.trim())).join(' ') : '-'}</div>
-                    <div><strong>Talenti:</strong> ${combatant.talents || '-'}</div>
+                    <div><strong>Talenti:</strong> ${combatant.talents ? combatant.talents.split(',').map(t => getTalentBadgeHTML(t.trim())).join(' ') : '-'}</div>
                 </div>
 
                 <div class="npc-actions">
@@ -1495,12 +1516,13 @@
         });
 
         // Collect text areas (except skills)
-        ['talents', 'special_rules', 'armor', 'weapons', 'equipment'].forEach(field => {
+        ['special_rules', 'armor', 'weapons', 'equipment'].forEach(field => {
             formData[field] = document.getElementById(field).value;
         });
 
         // Serialize skills
         formData.skills = selectedSkills.join(', ');
+        formData.talents = selectedTalents.join(', ');
 
         // Check if it's a modified NPC
         const baseNpcId = document.getElementById('baseNpcId') ? document.getElementById('baseNpcId').value : '';
