@@ -442,6 +442,106 @@
         cursor: help;
         border: 1px solid #555;
     }
+
+    /* NPC Table Styles */
+    .btn-icon {
+        padding: 4px 6px !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 0;
+    }
+
+    .btn-icon svg {
+        pointer-events: none;
+    }
+
+    #npcTable tbody tr {
+        border-bottom: 1px solid #333;
+        transition: background 0.2s;
+    }
+
+    #npcTable tbody tr:hover {
+        background: #333;
+    }
+
+    #npcTable tbody td {
+        padding: 8px;
+        font-size: 0.85rem;
+    }
+
+    #npcTable .skill-badge-small {
+        display: inline-block;
+        background: #444;
+        color: #ddd;
+        padding: 1px 4px;
+        border-radius: 3px;
+        margin: 1px;
+        font-size: 0.7rem;
+        border: 1px solid #555;
+    }
+
+    #npcTable .table-actions {
+        display: flex;
+        gap: 3px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    #npcTable .table-actions .btn {
+        padding: 3px 6px;
+        font-size: 0.7rem;
+    }
+
+    /* NPC Table Styles */
+    .btn-icon {
+        padding: 4px 6px !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 0;
+    }
+
+    .btn-icon svg {
+        pointer-events: none;
+    }
+
+    #npcTable tbody tr {
+        border-bottom: 1px solid #333;
+        transition: background 0.2s;
+    }
+
+    #npcTable tbody tr:hover {
+        background: #333;
+    }
+
+    #npcTable tbody td {
+        padding: 8px;
+        font-size: 0.85rem;
+    }
+
+    #npcTable .skill-badge-small {
+        display: inline-block;
+        background: #444;
+        color: #ddd;
+        padding: 1px 4px;
+        border-radius: 3px;
+        margin: 1px;
+        font-size: 0.7rem;
+        border: 1px solid #555;
+    }
+
+    #npcTable .table-actions {
+        display: flex;
+        gap: 3px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    #npcTable .table-actions .btn {
+        padding: 3px 6px;
+        font-size: 0.7rem;
+    }
 </style>
 
 <div class="combat-container">
@@ -459,16 +559,6 @@
         </div>
     </section>
 
-    <!-- NPC Library Section -->
-    <section>
-        <div class="section-header">
-            <h2 class="section-title">Libreria PNG</h2>
-            <button class="btn btn-primary" onclick="openModal()">+ Nuovo PNG</button>
-        </div>
-        <div id="npcList" class="npc-grid">
-            <!-- Library NPCs will be loaded here -->
-        </div>
-    </section>
 
     <!-- Modified NPCs Library Section -->
     <section>
@@ -478,6 +568,77 @@
         </div>
         <div id="modifiedNpcList" class="npc-grid">
             <!-- Modified NPCs will be loaded here -->
+        </div>
+    </section>
+    <!-- NPC Library Section (Tabular) -->
+    <section>
+        <div class="section-header">
+            <h2 class="section-title">Libreria PNG</h2>
+            <button class="btn btn-primary" onclick="openModal()">+ Nuovo PNG</button>
+        </div>
+
+        <!-- Search Filters -->
+        <div
+            style="background: #2a2a2a; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #444;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                <div>
+                    <label style="display: block; color: #aaa; margin-bottom: 5px; font-size: 0.9rem;">Cerca per
+                        Nome</label>
+                    <input type="text" id="searchName" placeholder="Nome PNG..."
+                        style="width: 100%; padding: 8px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;"
+                        oninput="filterNPCTable()">
+                </div>
+                <div>
+                    <label style="display: block; color: #aaa; margin-bottom: 5px; font-size: 0.9rem;">Cerca per
+                        Abilità</label>
+                    <input type="text" id="searchSkill" placeholder="Abilità..."
+                        style="width: 100%; padding: 8px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;"
+                        oninput="filterNPCTable()">
+                </div>
+                <div>
+                    <label style="display: block; color: #aaa; margin-bottom: 5px; font-size: 0.9rem;">Cerca per
+                        Talento</label>
+                    <input type="text" id="searchTalent" placeholder="Talento..."
+                        style="width: 100%; padding: 8px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;"
+                        oninput="filterNPCTable()">
+                </div>
+            </div>
+            <button class="btn" onclick="clearNPCFilters()"
+                style="margin-top: 10px; background: #555; color: #fff;">Cancella Filtri</button>
+        </div>
+
+        <!-- NPC Table -->
+        <div style="overflow-x: auto; background: #2a2a2a; border-radius: 8px; border: 1px solid #444;">
+            <table id="npcTable" style="width: 100%; border-collapse: collapse; color: #fff;">
+                <thead>
+                    <tr style="background: #1a1a1a; border-bottom: 2px solid #ffd700;">
+                        <th style="padding: 10px; text-align: left; color: #ffd700; font-size: 0.9rem;">ID</th>
+                        <th style="padding: 10px; text-align: left; color: #ffd700; font-size: 0.9rem;">Nome</th>
+                        <th style="padding: 10px; text-align: left; color: #ffd700; font-size: 0.9rem;">Segni</th>
+                        <th style="padding: 10px; text-align: center; color: #ffd700; font-size: 0.8rem;">AC</th>
+                        <th style="padding: 10px; text-align: center; color: #ffd700; font-size: 0.8rem;">AB</th>
+                        <th style="padding: 10px; text-align: center; color: #ffd700; font-size: 0.8rem;">F</th>
+                        <th style="padding: 10px; text-align: center; color: #ffd700; font-size: 0.8rem;">R</th>
+                        <th style="padding: 10px; text-align: center; color: #ffd700; font-size: 0.8rem;">Ag</th>
+                        <th style="padding: 10px; text-align: center; color: #ffd700; font-size: 0.8rem;">Int</th>
+                        <th style="padding: 10px; text-align: center; color: #ffd700; font-size: 0.8rem;">Vol</th>
+                        <th style="padding: 10px; text-align: center; color: #ffd700; font-size: 0.8rem;">Sim</th>
+                        <th style="padding: 10px; text-align: center; color: #ffd700; font-size: 0.8rem;">A</th>
+                        <th style="padding: 10px; text-align: center; color: #ffd700; font-size: 0.8rem;">Fe</th>
+                        <th style="padding: 10px; text-align: center; color: #ffd700; font-size: 0.8rem;">M</th>
+                        <th style="padding: 10px; text-align: left; color: #ffd700; font-size: 0.9rem;">Abilità</th>
+                        <th style="padding: 10px; text-align: left; color: #ffd700; font-size: 0.9rem;">Talenti</th>
+                        <th style="padding: 10px; text-align: center; color: #ffd700; font-size: 0.9rem;">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody id="npcTableBody">
+                    <!-- NPCs will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+        <div id="npcTableEmpty"
+            style="display: none; text-align: center; color: #666; padding: 2rem; background: #2a2a2a; border-radius: 8px; border: 1px solid #444; margin-top: 1rem;">
+            Nessun PNG trovato.
         </div>
     </section>
 
@@ -1069,7 +1230,7 @@
             const data = await response.json();
             if (data.success) {
                 npcs = data.npcs;
-                renderNPCs();
+                renderNPCTable();
             }
         } catch (e) {
             console.error('Error loading NPCs:', e);
@@ -1114,6 +1275,125 @@
         });
     }
 
+
+
+    // --- NPC TABLE FUNCTIONS ---
+
+    function renderNPCTable() {
+        const tbody = document.getElementById('npcTableBody');
+        const emptyDiv = document.getElementById('npcTableEmpty');
+        const table = document.getElementById('npcTable');
+
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+
+        if (npcs.length === 0) {
+            table.style.display = 'none';
+            emptyDiv.style.display = 'block';
+            emptyDiv.textContent = 'Nessun PNG nella libreria.';
+            return;
+        }
+
+        table.style.display = 'table';
+        emptyDiv.style.display = 'none';
+
+
+        // Ordina i PNG alfabeticamente per nome
+        npcs.sort((a, b) => a.name.localeCompare(b.name));
+
+        npcs.forEach(npc => {
+            const row = document.createElement('tr');
+            row.dataset.npcId = npc.id;
+            row.dataset.npcName = (npc.name || '').toLowerCase();
+            row.dataset.npcSkills = (npc.skills || '').toLowerCase();
+            row.dataset.npcTalents = (npc.talents || '').toLowerCase();
+
+            // Formatta abilita e talenti per la visualizzazione
+            const skillsHtml = npc.skills ?
+                npc.skills.split(',').map(s => `<span class="skill-badge-small">${s.trim()}</span>`).join(' ') :
+                '-';
+            const talentsHtml = npc.talents ?
+                npc.talents.split(',').map(t => `<span class="skill-badge-small">${t.trim()}</span>`).join(' ') :
+                '-';
+
+            row.innerHTML = `
+                <td style="color: #ffd700; font-weight: bold;">${npc.id}</td>
+                <td style="font-weight: bold;">${npc.name}</td>
+                <td style="color: #aaa; font-size: 0.8rem;">${npc.traits || '-'}</td>
+                <td style="text-align: center;">${npc.ws || '-'}</td>
+                <td style="text-align: center;">${npc.bs || '-'}</td>
+                <td style="text-align: center;">${npc.s || '-'}</td>
+                <td style="text-align: center;">${npc.t || '-'}</td>
+                <td style="text-align: center;">${npc.ag || '-'}</td>
+                <td style="text-align: center;">${npc.int || '-'}</td>
+                <td style="text-align: center;">${npc.wp || '-'}</td>
+                <td style="text-align: center;">${npc.fel || '-'}</td>
+                <td style="text-align: center;">${npc.a || '-'}</td>
+                <td style="text-align: center;">${npc.w || '-'}</td>
+                <td style="text-align: center;">${npc.m || '-'}</td>
+                <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">${skillsHtml}</td>
+                <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">${talentsHtml}</td>
+                <td>
+                    <div class="table-actions">
+                        <button class="btn btn-add btn-icon" onclick="addToCombat(${npc.id})" title="Aggiungi al Combattimento"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+                        <button class="btn btn-edit btn-icon" onclick="editNPC(${npc.id})" title="Modifica PNG"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                        <button class="btn btn-danger btn-icon" onclick="deleteNPC(${npc.id})" title="Elimina PNG"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
+                    </div>
+                </td>
+            `;
+
+            tbody.appendChild(row);
+        });
+    }
+
+    function filterNPCTable() {
+        const nameFilter = document.getElementById('searchName').value.toLowerCase();
+        const skillFilter = document.getElementById('searchSkill').value.toLowerCase();
+        const talentFilter = document.getElementById('searchTalent').value.toLowerCase();
+
+        const tbody = document.getElementById('npcTableBody');
+        const rows = tbody.getElementsByTagName('tr');
+        const emptyDiv = document.getElementById('npcTableEmpty');
+        const table = document.getElementById('npcTable');
+
+        let visibleCount = 0;
+
+        for (let row of rows) {
+            const name = row.dataset.npcName || '';
+            const skills = row.dataset.npcSkills || '';
+            const talents = row.dataset.npcTalents || '';
+
+            const matchName = !nameFilter || name.includes(nameFilter);
+            const matchSkill = !skillFilter || skills.includes(skillFilter);
+            const matchTalent = !talentFilter || talents.includes(talentFilter);
+
+            if (matchName && matchSkill && matchTalent) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        }
+
+        if (visibleCount === 0) {
+            table.style.display = 'none';
+            emptyDiv.style.display = 'block';
+            emptyDiv.textContent = 'Nessun PNG corrisponde ai criteri di ricerca.';
+        } else {
+            table.style.display = 'table';
+            emptyDiv.style.display = 'none';
+        }
+    }
+
+    function clearNPCFilters() {
+        document.getElementById('searchName').value = '';
+        document.getElementById('searchSkill').value = '';
+        document.getElementById('searchTalent').value = '';
+        filterNPCTable();
+    }
+
+    // --- END NPC TABLE FUNCTIONS ---
 
     async function loadModifiedNPCs() {
         try {
@@ -1602,5 +1882,104 @@
             closeModal();
         }
     }
+
+
+    function filterNPCTable() {
+        const nameFilter = document.getElementById('searchName').value.toLowerCase();
+        const skillFilter = document.getElementById('searchSkill').value.toLowerCase();
+        const talentFilter = document.getElementById('searchTalent').value.toLowerCase();
+
+        const tbody = document.getElementById('npcTableBody');
+        const rows = tbody.getElementsByTagName('tr');
+        const emptyDiv = document.getElementById('npcTableEmpty');
+        const table = document.getElementById('npcTable');
+
+        let visibleCount = 0;
+
+        for (let row of rows) {
+            const name = row.dataset.npcName || '';
+            const skills = row.dataset.npcSkills || '';
+            const talents = row.dataset.npcTalents || '';
+
+            const matchName = !nameFilter || name.includes(nameFilter);
+            const matchSkill = !skillFilter || skills.includes(skillFilter);
+            const matchTalent = !talentFilter || talents.includes(talentFilter);
+
+            if (matchName && matchSkill && matchTalent) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        }
+
+        if (visibleCount === 0) {
+            table.style.display = 'none';
+            emptyDiv.style.display = 'block';
+            emptyDiv.textContent = 'Nessun PNG corrisponde ai criteri di ricerca.';
+        } else {
+            table.style.display = 'table';
+            emptyDiv.style.display = 'none';
+        }
+    }
+
+    function clearNPCFilters() {
+        document.getElementById('searchName').value = '';
+        document.getElementById('searchSkill').value = '';
+        document.getElementById('searchTalent').value = '';
+        filterNPCTable();
+    }
+
+    // --- END NPC TABLE FUNCTIONS ---
+
+
+    function filterNPCTable() {
+        const nameFilter = document.getElementById('searchName').value.toLowerCase();
+        const skillFilter = document.getElementById('searchSkill').value.toLowerCase();
+        const talentFilter = document.getElementById('searchTalent').value.toLowerCase();
+
+        const tbody = document.getElementById('npcTableBody');
+        const rows = tbody.getElementsByTagName('tr');
+        const emptyDiv = document.getElementById('npcTableEmpty');
+        const table = document.getElementById('npcTable');
+
+        let visibleCount = 0;
+
+        for (let row of rows) {
+            const name = row.dataset.npcName || '';
+            const skills = row.dataset.npcSkills || '';
+            const talents = row.dataset.npcTalents || '';
+
+            const matchName = !nameFilter || name.includes(nameFilter);
+            const matchSkill = !skillFilter || skills.includes(skillFilter);
+            const matchTalent = !talentFilter || talents.includes(talentFilter);
+
+            if (matchName && matchSkill && matchTalent) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        }
+
+        if (visibleCount === 0) {
+            table.style.display = 'none';
+            emptyDiv.style.display = 'block';
+            emptyDiv.textContent = 'Nessun PNG corrisponde ai criteri di ricerca.';
+        } else {
+            table.style.display = 'table';
+            emptyDiv.style.display = 'none';
+        }
+    }
+
+    function clearNPCFilters() {
+        document.getElementById('searchName').value = '';
+        document.getElementById('searchSkill').value = '';
+        document.getElementById('searchTalent').value = '';
+        filterNPCTable();
+    }
+
+    // --- END NPC TABLE FUNCTIONS ---
+
 </script>
 {% endblock %}
