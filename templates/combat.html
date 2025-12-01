@@ -557,6 +557,21 @@
                 Nessun combattente attivo. Aggiungi PNG dalla libreria sottostante.
             </div>
         </div>
+
+        <!-- Player Characters (PG) Section -->
+        <section>
+            <div class="section-header">
+                <h2 class="section-title">Personaggi Giocanti (PG)</h2>
+                <button class="btn btn-primary" onclick="openPGModal()">+ Nuovo PG</button>
+            </div>
+            <div id="pgList" class="npc-grid">
+                <!-- Player characters will be loaded here -->
+                <div style="grid-column: 1/-1; text-align: center; color: #666; padding: 2rem;">
+                    Nessun PG inserito. Aggiungi i tuoi personaggi giocanti.
+                </div>
+            </div>
+        </section>
+
     </section>
 
 
@@ -773,6 +788,62 @@
     </div>
 </div>
 
+
+<!-- Add/Edit PG Modal -->
+<div id="pgModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closePGModal()" style="float:right; cursor:pointer; font-size:28px;">&times;</span>
+        <h2 id="pgModalTitle">Nuovo PG</h2>
+
+        <form id="pgForm" onsubmit="savePG(event)">
+            <input type="hidden" id="pgId">
+
+            <div class="form-group">
+                <label>Nome</label>
+                <input type="text" id="pgName" required>
+            </div>
+
+            <div class="form-group">
+                <label>Descrizione</label>
+                <textarea id="pgDescription" rows="3"></textarea>
+            </div>
+
+            <h3>Caratteristiche Principali</h3>
+            <div class="form-grid">
+                <div class="stat-input-group"><label>AC</label><input type="number" id="pgWs"></div>
+                <div class="stat-input-group"><label>AB</label><input type="number" id="pgBs"></div>
+                <div class="stat-input-group"><label>F</label><input type="number" id="pgS"></div>
+                <div class="stat-input-group"><label>R</label><input type="number" id="pgT"></div>
+                <div class="stat-input-group"><label>Ag</label><input type="number" id="pgAg"></div>
+                <div class="stat-input-group"><label>Int</label><input type="number" id="pgInt"></div>
+                <div class="stat-input-group"><label>Vol</label><input type="number" id="pgWp"></div>
+                <div class="stat-input-group"><label>Sim</label><input type="number" id="pgFel"></div>
+            </div>
+
+            <h3>Caratteristiche Secondarie</h3>
+            <div class="form-grid">
+                <div class="stat-input-group"><label>A</label><input type="number" id="pgA"></div>
+                <div class="stat-input-group"><label>Fe</label><input type="number" id="pgW"></div>
+                <div class="stat-input-group"><label>M</label><input type="number" id="pgM"></div>
+            </div>
+
+            <h3>Punti Armatura</h3>
+            <div class="form-grid">
+                <div class="stat-input-group"><label>Testa</label><input type="number" id="pgArmorHead"></div>
+                <div class="stat-input-group"><label>Braccia</label><input type="number" id="pgArmorArms"></div>
+                <div class="stat-input-group"><label>Corpo</label><input type="number" id="pgArmorBody"></div>
+                <div class="stat-input-group"><label>Gambe</label><input type="number" id="pgArmorLegs"></div>
+            </div>
+
+            <div style="text-align: right; margin-top: 1rem;">
+                <button type="button" class="btn" onclick="closePGModal()"
+                    style="background:#555; color:#fff; margin-right:10px;">Annulla</button>
+                <button type="submit" class="btn btn-primary">Salva</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 
     let npcs = [];
@@ -791,6 +862,7 @@
         loadSkills();
         loadTalents();
         loadCareers();
+        loadPlayerCharacters();
         setupSkillInput();
         setupTalentInput();
     });
@@ -1584,7 +1656,7 @@
         const ag = npc.ag || 0;
         const d10 = Math.floor(Math.random() * 10) + 1;
         const initiative = ag + d10;
-        
+
         const combatant = {
             ...JSON.parse(JSON.stringify(npc)),
             instanceId: Date.now() + Math.random(),
@@ -1650,6 +1722,7 @@
                 </div>
 
                 <div style="font-size:0.8rem; color:#ccc; margin-bottom:0.5rem;">
+                    ${combatant.description ? `<div style="margin-bottom: 5px; font-style: italic; color: #aaa; border-bottom: 1px solid #444; padding-bottom: 3px;">${combatant.description}</div>` : ""}
                     <div><strong>Armatura:</strong> T:${combatant.armor_head || 0} B:${combatant.armor_arms || 0} C:${combatant.armor_body || 0} G:${combatant.armor_legs || 0}</div>
                     <div><strong>Armi:</strong> ${combatant.weapons || '-'}</div>
                     <div><strong>Abilità:</strong> ${combatant.skills ? combatant.skills.split(',').map(s => getSkillBadgeHTML(s.trim())).join(' ') : '-'}</div>
@@ -1673,7 +1746,7 @@
         const ag = npc.ag || 0;
         const d10 = Math.floor(Math.random() * 10) + 1;
         const initiative = ag + d10;
-        
+
         const combatant = {
             ...JSON.parse(JSON.stringify(npc)),
             instanceId: Date.now() + Math.random(), // Unique ID for this instance
@@ -1997,6 +2070,204 @@
     }
 
     // --- END NPC TABLE FUNCTIONS ---
+
+
+    // --- PLAYER CHARACTER (PG) FUNCTIONS ---
+
+    let playerCharacters = [];
+
+    async function loadPlayerCharacters() {
+        try {
+            const response = await fetch('/api/player_characters');
+            const data = await response.json();
+            if (data.success) {
+                playerCharacters = data.player_characters;
+                renderPlayerCharacters();
+            }
+        } catch (e) {
+            console.error('Error loading player characters:', e);
+        }
+    }
+
+    function renderPlayerCharacters() {
+        const container = document.getElementById('pgList');
+        if (!container) return;
+        container.innerHTML = '';
+
+        if (playerCharacters.length === 0) {
+            container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #666; padding: 2rem;">Nessun PG inserito. Aggiungi i tuoi personaggi giocanti.</div>';
+            return;
+        }
+
+        playerCharacters.forEach(pg => {
+            const card = document.createElement('div');
+            card.className = 'npc-card';
+            card.style.borderColor = '#007bff'; // Blue border for PGs
+
+            card.innerHTML = `
+                <div class="npc-name">
+                    ${pg.name}
+                </div>
+                <div class="npc-stats">
+                    <div class="stat-box"><div class="stat-label">AC</div><div class="stat-value">${pg.ws || '-'}</div></div>
+                    <div class="stat-box"><div class="stat-label">AB</div><div class="stat-value">${pg.bs || '-'}</div></div>
+                    <div class="stat-box"><div class="stat-label">F</div><div class="stat-value">${pg.s || '-'}</div></div>
+                    <div class="stat-box"><div class="stat-label">R</div><div class="stat-value">${pg.t || '-'}</div></div>
+                    <div class="stat-box"><div class="stat-label">Ag</div><div class="stat-value">${pg.ag || '-'}</div></div>
+                    <div class="stat-box"><div class="stat-label">Int</div><div class="stat-value">${pg.int || '-'}</div></div>
+                    <div class="stat-box"><div class="stat-label">Vol</div><div class="stat-value">${pg.wp || '-'}</div></div>
+                    <div class="stat-box"><div class="stat-label">Sim</div><div class="stat-value">${pg.fel || '-'}</div></div>
+                </div>
+                <div class="secondary-stats">
+                    <span><strong>A:</strong> ${pg.a || '-'}</span>
+                    <span><strong>Fe:</strong> ${pg.w || '-'}</span>
+                    <span><strong>M:</strong> ${pg.m || '-'}</span>
+                </div>
+                <div class="secondary-stats">
+                    <span><strong>Armatura:</strong> T:${pg.armor_head || 0} B:${pg.armor_arms || 0} C:${pg.armor_body || 0} G:${pg.armor_legs || 0}</span>
+                </div>
+                ${pg.description ? `<div style="font-size: 0.8rem; color: #aaa; margin-top: 0.5rem;">${pg.description}</div>` : ''}
+                <div class="npc-actions">
+                    <button class="btn btn-add" onclick="addPGToCombat(${pg.id})">Aggiungi al Combattimento</button>
+                    <button class="btn btn-edit" onclick="editPG(${pg.id})">Modifica</button>
+                    <button class="btn btn-danger" onclick="deletePG(${pg.id})">Elimina</button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function openPGModal() {
+        const modal = document.getElementById('pgModal');
+        const form = document.getElementById('pgForm');
+        const title = document.getElementById('pgModalTitle');
+
+        title.innerText = 'Nuovo PG';
+        form.reset();
+        document.getElementById('pgId').value = '';
+
+        modal.style.display = 'block';
+    }
+
+    function closePGModal() {
+        document.getElementById('pgModal').style.display = 'none';
+    }
+
+    function editPG(id) {
+        const pg = playerCharacters.find(p => p.id === id);
+        if (!pg) return;
+
+        const modal = document.getElementById('pgModal');
+        const title = document.getElementById('pgModalTitle');
+
+        title.innerText = 'Modifica PG';
+
+        document.getElementById('pgId').value = pg.id;
+        document.getElementById('pgName').value = pg.name;
+        document.getElementById('pgDescription').value = pg.description || '';
+
+        ['ws', 'bs', 's', 't', 'ag', 'int', 'wp', 'fel', 'a', 'w', 'm'].forEach(stat => {
+            document.getElementById('pg' + stat.charAt(0).toUpperCase() + stat.slice(1)).value = pg[stat] || '';
+        });
+
+        document.getElementById('pgArmorHead').value = pg.armor_head || '';
+        document.getElementById('pgArmorArms').value = pg.armor_arms || '';
+        document.getElementById('pgArmorBody').value = pg.armor_body || '';
+        document.getElementById('pgArmorLegs').value = pg.armor_legs || '';
+
+        modal.style.display = 'block';
+    }
+
+    async function savePG(event) {
+        event.preventDefault();
+
+        const id = document.getElementById('pgId').value;
+        const pgData = {
+            name: document.getElementById('pgName').value,
+            description: document.getElementById('pgDescription').value,
+            ws: document.getElementById('pgWs').value || null,
+            bs: document.getElementById('pgBs').value || null,
+            s: document.getElementById('pgS').value || null,
+            t: document.getElementById('pgT').value || null,
+            ag: document.getElementById('pgAg').value || null,
+            int: document.getElementById('pgInt').value || null,
+            wp: document.getElementById('pgWp').value || null,
+            fel: document.getElementById('pgFel').value || null,
+            a: document.getElementById('pgA').value || null,
+            w: document.getElementById('pgW').value || null,
+            m: document.getElementById('pgM').value || null,
+            armor_head: document.getElementById('pgArmorHead').value || null,
+            armor_arms: document.getElementById('pgArmorArms').value || null,
+            armor_body: document.getElementById('pgArmorBody').value || null,
+            armor_legs: document.getElementById('pgArmorLegs').value || null
+        };
+
+        try {
+            let response;
+            if (id) {
+                response = await fetch(`/api/player_characters/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(pgData)
+                });
+            } else {
+                response = await fetch('/api/player_characters', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(pgData)
+                });
+            }
+
+            const data = await response.json();
+            if (data.success) {
+                closePGModal();
+                loadPlayerCharacters();
+            }
+        } catch (e) {
+            console.error('Error saving PG:', e);
+            alert('Errore nel salvataggio del PG');
+        }
+    }
+
+    async function deletePG(id) {
+        if (!confirm('Sei sicuro di voler eliminare questo PG?')) return;
+
+        try {
+            const response = await fetch(`/api/player_characters/${id}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+            if (data.success) {
+                loadPlayerCharacters();
+            }
+        } catch (e) {
+            console.error('Error deleting PG:', e);
+        }
+    }
+
+    function addPGToCombat(pgId) {
+        const pg = playerCharacters.find(p => p.id === pgId);
+        if (!pg) return;
+
+        const ag = pg.ag || 0;
+        const d10 = Math.floor(Math.random() * 10) + 1;
+        const initiative = ag + d10;
+
+        const combatant = {
+            ...JSON.parse(JSON.stringify(pg)),
+            instanceId: Date.now() + Math.random(),
+            currentWounds: pg.w || 0,
+            isPG: true,
+            initiative: initiative,
+            initiativeRoll: d10
+        };
+
+        combatants.push(combatant);
+        renderCombatants();
+    }
+
+    // --- END PLAYER CHARACTER FUNCTIONS ---
+
 
 </script>
 {% endblock %}

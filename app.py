@@ -107,6 +107,16 @@ def create_table():
             updated_at TEXT
         )
     ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS player_characters (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            description TEXT,
+            ws INTEGER, bs INTEGER, s INTEGER, t INTEGER, ag INTEGER, int INTEGER, wp INTEGER, fel INTEGER,
+            a INTEGER, w INTEGER, m INTEGER,
+            armor_head INTEGER, armor_arms INTEGER, armor_body INTEGER, armor_legs INTEGER
+        )
+    ''')
     conn.commit()
     conn.close()
 
@@ -826,6 +836,60 @@ def delete_career(id):
     db.execute('DELETE FROM careers WHERE id = ?', (id,))
     db.commit()
     return {'success': True}
+
+# --- Player Characters API Endpoints ---
+
+@app.route('/api/player_characters', methods=['GET'])
+def get_player_characters():
+    db = get_db()
+    cursor = db.execute('SELECT * FROM player_characters')
+    player_characters = [dict(row) for row in cursor.fetchall()]
+    return {'success': True, 'player_characters': player_characters}
+
+@app.route('/api/player_characters', methods=['POST'])
+def add_player_character():
+    data = request.json
+    db = get_db()
+    sql = '''INSERT INTO player_characters (name, description, ws, bs, s, t, ag, int, wp, fel,
+             a, w, m, armor_head, armor_arms, armor_body, armor_legs)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''
+    values = (
+        data.get('name'), data.get('description'),
+        data.get('ws'), data.get('bs'), data.get('s'), data.get('t'),
+        data.get('ag'), data.get('int'), data.get('wp'), data.get('fel'),
+        data.get('a'), data.get('w'), data.get('m'),
+        data.get('armor_head'), data.get('armor_arms'),
+        data.get('armor_body'), data.get('armor_legs')
+    )
+    cursor = db.execute(sql, values)
+    db.commit()
+    return {'success': True, 'id': cursor.lastrowid}
+
+@app.route('/api/player_characters/<int:id>', methods=['PUT'])
+def update_player_character(id):
+    data = request.json
+    db = get_db()
+    sql = '''UPDATE player_characters SET name=?, description=?, ws=?, bs=?, s=?, t=?, ag=?, int=?, wp=?, fel=?,
+             a=?, w=?, m=?, armor_head=?, armor_arms=?, armor_body=?, armor_legs=? WHERE id=?'''
+    values = (
+        data.get('name'), data.get('description'),
+        data.get('ws'), data.get('bs'), data.get('s'), data.get('t'),
+        data.get('ag'), data.get('int'), data.get('wp'), data.get('fel'),
+        data.get('a'), data.get('w'), data.get('m'),
+        data.get('armor_head'), data.get('armor_arms'),
+        data.get('armor_body'), data.get('armor_legs'), id
+    )
+    db.execute(sql, values)
+    db.commit()
+    return {'success': True}
+
+@app.route('/api/player_characters/<int:id>', methods=['DELETE'])
+def delete_player_character(id):
+    db = get_db()
+    db.execute('DELETE FROM player_characters WHERE id = ?', (id,))
+    db.commit()
+    return {'success': True}
+
 
 
 if __name__ == '__main__':
