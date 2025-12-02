@@ -1,0 +1,112 @@
+    .shop-layout {
+        display: flex;
+        gap: 2rem;
+        align-items: flex-start;
+    }
+
+    .inventory-section {
+        flex: 2;
+    }
+
+    .carts-section {
+        flex: 1;
+        min-width: 300px;
+        background: #2a2a2a;
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid #444;
+        position: sticky;
+        top: 20px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .cart-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        font-size: 0.9rem;
+        border-bottom: 1px solid #444;
+        padding: 0.5rem 0;
+        gap: 0.5rem;
+    }
+
+    .cart-item-details {
+        flex: 1;
+        word-break: break-word;
+    }
+
+    .cart-item-quality {
+        font-size: 0.8em;
+        color: #aaa;
+        font-style: italic;
+    }
+
+    .cart-item-price {
+        white-space: nowrap;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+    }
+
+    .cart-total {
+        font-weight: bold;
+        margin-top: 0.5rem;
+        text-align: right;
+        color: #ffd700;
+    }
+
+    .cart-controls {
+        margin-bottom: 1rem;
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .cart-card {
+        background: #333;
+        margin-bottom: 1rem;
+        padding: 0.5rem;
+        border-radius: 4px;
+        border: 1px solid #555;
+        cursor: pointer;
+        transition: border-color 0.2s;
+    }
+
+    .cart-card:hover {
+        border-color: #777;
+    }
+
+    .cart-card.active {
+        border-color: #ffd700;
+        box-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
+    }
+
+    .btn-small {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+        cursor: pointer;
+        background: #444;
+        color: white;
+        border: 1px solid #666;
+        border-radius: 3px;
+    }
+
+    .add-btn {
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+    }
+
+    .add-btn:hover {
+        background-color: #45a049;
+    }
+
+    .remove-btn {
+        color: #ff6b6b;
+        cursor: pointer;
+        margin-left: 5px;
+        font-weight: bold;
+    }

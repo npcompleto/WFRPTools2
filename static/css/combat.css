@@ -1,0 +1,539 @@
+    .combat-container {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        border-bottom: 1px solid #444;
+        padding-bottom: 0.5rem;
+    }
+
+    .section-title {
+        color: #ffd700;
+        margin: 0;
+    }
+
+    .npc-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .npc-card {
+        background: #2a2a2a;
+        border: 1px solid #444;
+        border-radius: 8px;
+        padding: 1rem;
+        transition: transform 0.2s;
+        position: relative;
+    }
+
+    .npc-card.combatant {
+        border-color: #dc3545;
+        /* Red border for combatants to distinguish */
+        background: #221a1a;
+    }
+
+    .npc-card:hover {
+        transform: translateY(-5px);
+        border-color: #ffd700;
+    }
+
+    .npc-name {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #ffd700;
+        margin-bottom: 0.5rem;
+        border-bottom: 1px solid #444;
+        padding-bottom: 0.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .npc-stats {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        /* 8 main stats */
+        gap: 2px;
+        font-size: 0.75rem;
+        margin-bottom: 0.5rem;
+        text-align: center;
+    }
+
+    .stat-box {
+        background: #333;
+        padding: 2px;
+        border-radius: 2px;
+    }
+
+    .stat-label {
+        color: #aaa;
+        font-size: 0.6rem;
+        text-transform: uppercase;
+    }
+
+    .stat-value {
+        color: #fff;
+        font-weight: bold;
+    }
+
+    .secondary-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 0.5rem;
+        font-size: 0.8rem;
+        color: #ccc;
+    }
+
+    .wounds-display {
+        background: #4a0000;
+        padding: 5px;
+        border-radius: 4px;
+        text-align: center;
+        margin-bottom: 0.5rem;
+        border: 1px solid #ff4444;
+    }
+
+    .wounds-input {
+        width: 60px;
+        background: #220000;
+        color: #fff;
+        border: 1px solid #ff4444;
+        text-align: center;
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+
+    .npc-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 5px;
+        margin-top: 0.5rem;
+    }
+
+    .btn {
+        padding: 5px 10px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 0.8rem;
+    }
+
+    .btn-primary {
+        background: #ffd700;
+        color: #000;
+    }
+
+    .btn-danger {
+        background: #dc3545;
+        color: #fff;
+    }
+
+    .btn-edit {
+        background: #007bff;
+        color: #fff;
+    }
+
+    .btn-add {
+        background: #28a745;
+        color: #fff;
+    }
+
+    /* Modal Styling */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        overflow-y: auto;
+    }
+
+    .modal-content {
+        background-color: #2a2a2a;
+        margin: 5% auto;
+        padding: 20px;
+        border: 1px solid #ffd700;
+        width: 90%;
+        max-width: 800px;
+        border-radius: 8px;
+        color: #fff;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+        gap: 5px;
+        margin-bottom: 1rem;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        color: #aaa;
+    }
+
+    .form-group input,
+    .form-group textarea {
+        width: 100%;
+        padding: 8px;
+        background: #333;
+        border: 1px solid #555;
+        color: #fff;
+        border-radius: 4px;
+    }
+
+    .stat-input-group {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .stat-input-group input {
+        text-align: center;
+        width: 50px;
+        padding: 5px;
+        background: #333;
+        border: 1px solid #555;
+        color: #fff;
+        border-radius: 4px;
+    }
+
+    /* Tag Input Styles */
+    .tag-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        padding: 5px;
+        background: #333;
+        border: 1px solid #555;
+        border-radius: 4px;
+        min-height: 38px;
+    }
+
+    .tag {
+        background: #007bff;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        position: relative;
+        cursor: help;
+    }
+
+    .tag-remove {
+        cursor: pointer;
+        font-weight: bold;
+        color: #fff;
+    }
+
+    .tag-remove:hover {
+        color: #ffcccc;
+    }
+
+    .suggestions-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        background: #333;
+        border: 1px solid #555;
+        border-top: none;
+        max-height: 150px;
+        overflow-y: auto;
+        width: 100%;
+        z-index: 1001;
+        display: none;
+    }
+
+    .suggestions-list li {
+        padding: 8px;
+        cursor: pointer;
+        border-bottom: 1px solid #444;
+    }
+
+    .suggestions-list li:hover {
+        background: #444;
+    }
+
+    /* Tooltip Styles */
+    .tooltip-content {
+        visibility: hidden;
+        width: 250px;
+        background-color: #222;
+        color: #fff;
+        text-align: left;
+        border-radius: 6px;
+        padding: 10px;
+        position: absolute;
+        z-index: 1002;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -125px;
+        opacity: 0;
+        transition: opacity 0.3s;
+        border: 1px solid #ffd700;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        font-size: 0.8rem;
+        pointer-events: none;
+    }
+
+    .tooltip-content::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: #ffd700 transparent transparent transparent;
+    }
+
+    .tag:hover .tooltip-content,
+    .skill-badge:hover .tooltip-content {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    .skill-badge {
+        display: inline-block;
+        background: #444;
+        color: #ddd;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin: 2px;
+        font-size: 0.75rem;
+        position: relative;
+        cursor: help;
+        border: 1px solid #555;
+    }
+
+    /* Tag Input Styles */
+    .tag-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        padding: 5px;
+        background: #333;
+        border: 1px solid #555;
+        border-radius: 4px;
+        min-height: 38px;
+    }
+
+    .tag {
+        background: #007bff;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        position: relative;
+        cursor: help;
+    }
+
+    .tag-remove {
+        cursor: pointer;
+        font-weight: bold;
+        margin-left: 5px;
+    }
+
+    .tag-remove:hover {
+        color: #ffcccc;
+    }
+
+    .suggestions-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        background: #333;
+        border: 1px solid #555;
+        border-top: none;
+        max-height: 150px;
+        overflow-y: auto;
+        width: 100%;
+        z-index: 1001;
+        display: none;
+        position: absolute;
+    }
+
+    .suggestions-list li {
+        padding: 8px;
+        cursor: pointer;
+        border-bottom: 1px solid #444;
+    }
+
+    .suggestions-list li:hover {
+        background: #444;
+    }
+
+    /* Tooltip Styles */
+    .tooltip-content {
+        visibility: hidden;
+        width: 250px;
+        background-color: #222;
+        color: #fff;
+        text-align: left;
+        border-radius: 6px;
+        padding: 10px;
+        position: absolute;
+        z-index: 1002;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -125px;
+        opacity: 0;
+        transition: opacity 0.3s;
+        border: 1px solid #ffd700;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        font-size: 0.8rem;
+        pointer-events: none;
+    }
+
+    .tooltip-content::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: #ffd700 transparent transparent transparent;
+    }
+
+    .tag:hover .tooltip-content,
+    .skill-badge:hover .tooltip-content {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    .skill-badge {
+        display: inline-block;
+        background: #444;
+        color: #ddd;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin: 2px;
+        font-size: 0.75rem;
+        position: relative;
+        cursor: help;
+        border: 1px solid #555;
+    }
+
+    /* NPC Table Styles */
+    .btn-icon {
+        padding: 4px 6px !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 0;
+    }
+
+    .btn-icon svg {
+        pointer-events: none;
+    }
+
+    #npcTable tbody tr {
+        border-bottom: 1px solid #333;
+        transition: background 0.2s;
+    }
+
+    #npcTable tbody tr:hover {
+        background: #333;
+        transition: background 0.2s;
+    }
+
+    #npcTable tbody td {
+        padding: 8px;
+        font-size: 0.85rem;
+    }
+
+    #npcTable .skill-badge-small {
+        display: inline-block;
+        background: #444;
+        color: #ddd;
+        padding: 1px 4px;
+        border-radius: 3px;
+        margin: 1px;
+        font-size: 0.7rem;
+        border: 1px solid #555;
+    }
+
+    #npcTable .table-actions {
+        display: flex;
+        gap: 3px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    #npcTable .table-actions .btn {
+        padding: 3px 6px;
+        font-size: 0.7rem;
+    }
+
+    /* NPC Table Styles */
+    .btn-icon {
+        padding: 4px 6px !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 0;
+    }
+
+    .btn-icon svg {
+        pointer-events: none;
+    }
+
+    #npcTable tbody tr {
+        border-bottom: 1px solid #333;
+        transition: background 0.2s;
+    }
+
+    #npcTable tbody tr:hover {
+        background: #333;
+    }
+
+    #npcTable tbody td {
+        padding: 8px;
+        font-size: 0.85rem;
+    }
+
+    #npcTable .skill-badge-small {
+        display: inline-block;
+        background: #444;
+        color: #ddd;
+        padding: 1px 4px;
+        border-radius: 3px;
+        margin: 1px;
+        font-size: 0.7rem;
+        border: 1px solid #555;
+    }
+
+    #npcTable .table-actions {
+        display: flex;
+        gap: 3px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    #npcTable .table-actions .btn {
+        padding: 3px 6px;
+        font-size: 0.7rem;
+    }

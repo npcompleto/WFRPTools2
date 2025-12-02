@@ -1,0 +1,351 @@
+    .calendar-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 2rem;
+        padding: 1rem;
+    }
+
+    .month-card {
+        background: #2a2a2a;
+        border: 1px solid #444;
+        border-radius: 8px;
+        /* overflow: hidden; Removed to allow tooltips to show */
+        transition: transform 0.2s, box-shadow 0.2s;
+        position: relative;
+        /* Ensure z-index works if needed */
+    }
+
+    .month-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        border-color: #ffd700;
+        z-index: 5;
+        /* Bring hovered card to front */
+    }
+
+    .month-header {
+        background: #333;
+        padding: 1rem;
+        text-align: center;
+        border-bottom: 1px solid #444;
+        border-radius: 8px 8px 0 0;
+        /* Round top corners */
+    }
+
+    .month-name {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #ffd700;
+        margin: 0;
+    }
+
+    .month-season {
+        font-size: 0.9rem;
+        color: #aaa;
+        margin-top: 0.25rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .month-desc {
+        font-size: 0.8rem;
+        color: #888;
+        font-style: italic;
+        margin-top: 0.5rem;
+    }
+
+    .days-grid {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        /* 8 days in WFRP week */
+        padding: 0.5rem;
+        gap: 2px;
+    }
+
+    .weekday-header {
+        text-align: center;
+        font-size: 0.7rem;
+        color: #aaa;
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #444;
+    }
+
+    .day-cell {
+        aspect-ratio: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        border-radius: 4px;
+        cursor: default;
+        position: relative;
+    }
+
+    .day-cell:hover {
+        background: #444;
+    }
+
+    .day-cell.holiday {
+        background: rgba(255, 215, 0, 0.2);
+        color: #ffd700;
+        font-weight: bold;
+        border: 1px solid rgba(255, 215, 0, 0.3);
+        cursor: help;
+    }
+
+    /* Diary Indicator */
+    .day-cell.diary {
+        border: 1px solid #00bfff;
+        box-shadow: inset 0 0 5px rgba(0, 191, 255, 0.3);
+        cursor: help;
+    }
+
+    .day-cell.diary::before {
+        content: '';
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        width: 4px;
+        height: 4px;
+        background: #00bfff;
+        border-radius: 50%;
+    }
+
+    /* Tooltip Container */
+    .day-cell {
+        position: relative;
+    }
+
+    /* Tooltip Styling (using child element instead of pseudo-element for HTML support) */
+    .day-tooltip {
+        visibility: hidden;
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #001f3f;
+        color: #fff;
+        padding: 0.5rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        white-space: normal;
+        width: max-content;
+        max-width: 300px;
+        z-index: 100;
+        border: 1px solid #00bfff;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        opacity: 0;
+        transition: opacity 0.2s;
+        pointer-events: none;
+        /* Prevent interaction blocking */
+        text-align: left;
+    }
+
+    .day-cell:hover .day-tooltip {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    .day-tooltip h4 {
+        margin: 0 0 0.25rem 0;
+        color: #ffd700;
+        font-size: 0.9rem;
+        border-bottom: 1px solid #444;
+        padding-bottom: 0.2rem;
+    }
+
+    .day-tooltip p {
+        margin: 0;
+    }
+
+    /* Holiday specific style override */
+    .day-cell.holiday .day-tooltip {
+        border-color: #ffd700;
+        background: #000;
+    }
+
+    /* Combined style */
+    .day-cell.holiday.diary .day-tooltip {
+        background: #111;
+        border-color: #ffd700;
+    }
+
+    /* Combined Holiday + Diary */
+    .day-cell.holiday.diary {
+        border-color: #ffd700;
+        /* Holiday takes precedence for border */
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(0, 191, 255, 0.1) 100%);
+    }
+
+    .year-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .year-title {
+        font-size: 3rem;
+        color: #ffd700;
+        text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+    }
+
+    .day-cell.empty {
+        background: transparent;
+        cursor: default;
+    }
+
+    .day-cell.empty:hover {
+        background: transparent;
+    }
+
+    /* Single Day Month Styling */
+    .month-card.single-day {
+        border-radius: 50%;
+        aspect-ratio: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        border: 3px double #ffd700;
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
+        background: #222;
+    }
+
+    .month-card.single-day .month-header {
+        border-bottom: none;
+        background: transparent;
+        padding: 0.5rem;
+    }
+
+    .month-card.single-day .days-grid {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        padding: 0;
+    }
+
+    .month-card.single-day .weekday-header {
+        display: none;
+    }
+
+    .month-card.single-day .day-cell.empty {
+        display: none;
+    }
+
+    .month-card.single-day .day-cell {
+        width: 3rem;
+        height: 3rem;
+        font-size: 1.2rem;
+        border: 1px solid #ffd700;
+        border-radius: 50%;
+        background: rgba(255, 215, 0, 0.1);
+        color: #ffd700;
+        font-weight: bold;
+    }
+
+    /* Modal Styling */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+    }
+
+    .modal-content {
+        background-color: #2a2a2a;
+        margin: 10% auto;
+        padding: 20px;
+        border: 1px solid #ffd700;
+        width: 80%;
+        max-width: 800px;
+        border-radius: 8px;
+        color: #fff;
+    }
+
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: #ffd700;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    #editor-container {
+        height: 300px;
+        background: #fff;
+        color: #000;
+        margin-bottom: 1rem;
+    }
+
+    .btn-save {
+        background-color: #ffd700;
+        color: #000;
+        border: none;
+        padding: 10px 20px;
+        font-size: 1rem;
+        cursor: pointer;
+        border-radius: 4px;
+        font-weight: bold;
+    }
+
+    .btn-save:hover {
+        background-color: #e6c200;
+    }
+
+    /* Weather Widget Styling */
+    .weather-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 10px;
+        margin-bottom: 1rem;
+        background: #333;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #555;
+    }
+
+    .weather-card {
+        background: #222;
+        padding: 10px;
+        border-radius: 4px;
+        text-align: center;
+        border: 1px solid #444;
+    }
+
+    .weather-card h4 {
+        margin: 0 0 5px 0;
+        font-size: 0.9rem;
+        color: #aaa;
+        border-bottom: 1px solid #444;
+        padding-bottom: 2px;
+    }
+
+    .weather-icon {
+        font-size: 1.5rem;
+        margin: 5px 0;
+    }
+
+    .weather-temp {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #ffd700;
+    }
+
+    .weather-details {
+        font-size: 0.7rem;
+        color: #ccc;
+        margin-top: 5px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
