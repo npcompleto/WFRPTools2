@@ -117,6 +117,18 @@ def create_table():
             armor_head INTEGER, armor_arms INTEGER, armor_body INTEGER, armor_legs INTEGER
         )
     ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS inventory (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            inventario TEXT NOT NULL,
+            descrizione TEXT,
+            ingombro INTEGER,
+            disponibilita TEXT,
+            costo TEXT,
+            tipo TEXT,
+            shop_types TEXT
+        )
+    ''')
     conn.commit()
     conn.close()
 
@@ -183,6 +195,59 @@ def migrate_diary_csv_to_db():
 
 # Run migration on startup
 migrate_diary_csv_to_db()
+
+def migrate_inventory_csv_to_db():
+    """Migrates inventory data from negozio.csv to the inventory table if the table is empty."""
+    conn = sqlite3.connect(DATABASE)
+    c = conn.cursor()
+    
+    # Check if inventory table is empty
+    c.execute('SELECT COUNT(*) FROM inventory')
+    count = c.fetchone()[0]
+    
+    if count > 0:
+        print(f"Inventory table already contains {count} entries. Skipping migration.")
+        conn.close()
+        return
+    
+    # Check if CSV exists
+    csv_path = os.path.join(os.path.dirname(__file__), 'negozio.csv')
+    if not os.path.exists(csv_path):
+        print("negozio.csv not found. Skipping migration.")
+        conn.close()
+        return
+    
+    try:
+        print("Starting inventory migration from CSV to database...")
+        df = pd.read_csv(csv_path, encoding='utf-8')
+        migrated_count = 0
+        
+        for _, row in df.iterrows():
+            # Prepare data
+            inventario = row['Inventario'] if pd.notna(row['Inventario']) else ''
+            descrizione = row['Descrizione'] if pd.notna(row['Descrizione']) else ''
+            ingombro = int(row['Ingombro']) if pd.notna(row['Ingombro']) and str(row['Ingombro']).strip() else 0
+            disponibilita = row['Disponibilità'] if pd.notna(row['Disponibilità']) else ''
+            costo = row['Costo'] if pd.notna(row['Costo']) else ''
+            tipo = row['Tipo'] if pd.notna(row['Tipo']) else ''
+            
+            # Insert into database
+            c.execute('''
+                INSERT INTO inventory (inventario, descrizione, ingombro, disponibilita, costo, tipo)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (inventario, descrizione, ingombro, disponibilita, costo, tipo))
+            migrated_count += 1
+        
+        conn.commit()
+        print(f"Successfully migrated {migrated_count} inventory items from CSV to database.")
+    except Exception as e:
+        print(f"Error during inventory migration: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+
+# Run inventory migration on startup
+migrate_inventory_csv_to_db()
 
 
 
@@ -889,6 +954,45 @@ def delete_player_character(id):
     db.execute('DELETE FROM player_characters WHERE id = ?', (id,))
     db.commit()
     return {'success': True}
+
+# --- Inventory API Endpoints ---
+
+@app.route('/api/inventory', methods=['GET'])
+def get_inventory():
+    db = get_db()
+    cursor = db.execute('SELECT * FROM inventory ORDER BY tipo, inventario')
+    items = [dict(row) for row in cursor.fetchall()]
+    return {'success': True, 'items': items}
+
+@app.route('/api/inventory', methods=['POST'])
+def add_inventory():
+    data = request.json
+    db = get_db()
+    sql = 'INSERT INTO inventory (inventario, descrizione, ingombro, disponibilita, costo, tipo, shop_types) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    values = (data.get('inventario'), data.get('descrizione'), data.get('ingombro'), 
+              data.get('disponibilita'), data.get('costo'), data.get('tipo'), data.get('shop_types'))
+    cursor = db.execute(sql, values)
+    db.commit()
+    return {'success': True, 'id': cursor.lastrowid}
+
+@app.route('/api/inventory/<int:id>', methods=['PUT'])
+def update_inventory(id):
+    data = request.json
+    db = get_db()
+    sql = 'UPDATE inventory SET inventario=?, descrizione=?, ingombro=?, disponibilita=?, costo=?, tipo=?, shop_types=? WHERE id=?'
+    values = (data.get('inventario'), data.get('descrizione'), data.get('ingombro'),
+              data.get('disponibilita'), data.get('costo'), data.get('tipo'), data.get('shop_types'), id)
+    db.execute(sql, values)
+    db.commit()
+    return {'success': True}
+
+@app.route('/api/inventory/<int:id>', methods=['DELETE'])
+def delete_inventory(id):
+    db = get_db()
+    db.execute('DELETE FROM inventory WHERE id = ?', (id,))
+    db.commit()
+    return {'success': True}
+
 
 
 
