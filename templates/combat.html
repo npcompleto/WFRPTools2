@@ -1649,6 +1649,25 @@
         }
     }
 
+    function sortCombatants() {
+        // Sorts combatants by Initiative in descending order
+        combatants.sort((a, b) => {
+            const initA = parseInt(a.initiative) || 0;
+            const initB = parseInt(b.initiative) || 0;
+
+            // If initiative is equal, you can use Agility as a tie-breaker
+            if (initA === initB) {
+                const agA = parseInt(a.ag) || 0;
+                const agB = parseInt(b.ag) || 0;
+                return agB - agA;
+            }
+
+            return initB - initA;
+        });
+
+        renderCombatants();
+    }
+
     function addModifiedToCombat(modifiedNpcId) {
         const npc = modifiedNpcs.find(n => n.id === modifiedNpcId);
         if (!npc) return;
@@ -1667,8 +1686,9 @@
         };
 
         combatants.push(combatant);
-        renderCombatants();
+        sortCombatants();
     }
+
 
     function renderCombatants() {
         const container = document.getElementById('combatantList');
@@ -1756,18 +1776,18 @@
         };
 
         combatants.push(combatant);
-        renderCombatants();
+        sortCombatants();
     }
 
     function removeFromCombat(instanceId) {
         combatants = combatants.filter(c => c.instanceId !== instanceId);
-        renderCombatants();
+        sortCombatants();
     }
 
     function clearCombat() {
         if (confirm('Svuotare tutti i combattenti attivi?')) {
             combatants = [];
-            renderCombatants();
+            sortCombatants();
         }
     }
 
@@ -1937,7 +1957,7 @@
                     instanceId: original.instanceId,
                     currentWounds: original.currentWounds
                 };
-                renderCombatants();
+                sortCombatants();
                 closeModal();
             }
             return;
@@ -2263,7 +2283,7 @@
         };
 
         combatants.push(combatant);
-        renderCombatants();
+        sortCombatants();
     }
 
     // --- END PLAYER CHARACTER FUNCTIONS ---
