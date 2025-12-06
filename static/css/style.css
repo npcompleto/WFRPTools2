@@ -3,7 +3,8 @@
     --card-bg: #1e1e1e;
     --text-primary: #e0e0e0;
     --text-secondary: #a0a0a0;
-    --accent-color: #d4af37; /* Gold */
+    --accent-color: #d4af37;
+    /* Gold */
     --accent-hover: #f0c040;
     --border-color: #333;
     --font-heading: 'Cinzel', serif;
@@ -19,7 +20,12 @@ body {
     line-height: 1.6;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
     font-family: var(--font-heading);
     color: var(--accent-color);
     margin-bottom: 1rem;
@@ -43,7 +49,7 @@ a:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
     position: sticky;
     top: 0;
     z-index: 1000;
@@ -69,7 +75,8 @@ a:hover {
     font-size: 0.9rem;
 }
 
-.nav-link:hover, .nav-link.active {
+.nav-link:hover,
+.nav-link.active {
     color: var(--accent-color);
 }
 
@@ -87,13 +94,11 @@ a:hover {
     border-radius: 8px;
     padding: 2rem;
     margin-bottom: 2rem;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
 /* Table */
-.table-container {
-    overflow-x: auto;
-}
+.table-container {}
 
 table {
     width: 100%;
@@ -101,7 +106,8 @@ table {
     margin-top: 1rem;
 }
 
-th, td {
+th,
+td {
     padding: 1rem;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
@@ -139,5 +145,10 @@ tr:hover {
 }
 
 /* Utilities */
-.text-center { text-align: center; }
-.mt-4 { margin-top: 2rem; }
+.text-center {
+    text-align: center;
+}
+
+.mt-4 {
+    margin-top: 2rem;
+}

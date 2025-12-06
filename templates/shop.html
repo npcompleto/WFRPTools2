@@ -4,7 +4,7 @@
 
 {% block content %}
 {% block extra_css %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/shop.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/shop.css') }}">
 {% endblock %}
 
 <div class="card">
@@ -61,7 +61,6 @@
                     <thead>
                         <tr>
                             <th>Inventario</th>
-                            <th>Descrizione</th>
                             <th>Ingombro</th>
                             <th>Disponibilità</th>
                             <th>Probabilità</th>
@@ -73,8 +72,11 @@
                     <tbody>
                         {% for item in items %}
                         <tr>
-                            <td><strong>{{ item['Inventario'] }}</strong></td>
-                            <td>{{ item['Descrizione'] }}</td>
+                            <td>
+                                <strong {% if item['Descrizione'] %} class="item-with-description"
+                                    data-description="{{ item['Descrizione'] }}" {% endif %}>{{ item['Inventario']
+                                    }}</strong>
+                            </td>
                             <td>{{ item['Ingombro'] }}</td>
                             <td>{{ item['Disponibilità'] }}</td>
                             <td>{{ item['Percentuale'] }}</td>

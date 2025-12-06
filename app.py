@@ -252,15 +252,28 @@ migrate_inventory_csv_to_db()
 
 
 def load_shop_data():
-    """Reads the shop data from the CSV file."""
-    csv_path = os.path.join(os.path.dirname(__file__), 'negozio.csv')
-    if not os.path.exists(csv_path):
-        return []
+    """Reads the shop data from the inventory database."""
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
     
     try:
-        df = pd.read_csv(csv_path, encoding='utf-8')
-        # Convert DataFrame to a list of dictionaries for easy iteration in Jinja2
-        items = df.to_dict(orient='records')
+        c.execute('SELECT * FROM inventory')
+        rows = c.fetchall()
+        
+        # Convert to list of dictionaries with proper field names
+        items = []
+        for row in rows:
+            item = {
+                'Inventario': row['inventario'],
+                'Descrizione': row['descrizione'],
+                'Ingombro': row['ingombro'],
+                'Disponibilità': row['disponibilita'],
+                'Costo': row['costo'],
+                'Tipo': row['tipo'],
+                'shop_types': row['shop_types']
+            }
+            items.append(item)
         
         availability_percentages = {
             "Abbondante": "65%",
@@ -269,31 +282,46 @@ def load_shop_data():
             "Media": "35%",
             "Scarsa": "25%",
             "Rara": "15%",
-            "Raro": "15%", # Handle typo in CSV
+            "Raro": "15%", # Handle typo
             "Molto Rara": "5%"
         }
         
         for item in items:
-            availability = item.get('Disponibilità', '').strip()
+            availability = item.get('Disponibilità', '').strip() if item.get('Disponibilità') else ''
             item['Percentuale'] = availability_percentages.get(availability, '')
             
         return items
     except Exception as e:
-        print(f"Error reading CSV: {e}")
+        print(f"Error reading inventory from database: {e}")
         return []
+    finally:
+        conn.close()
 
 def load_shop_types():
-    """Reads the shop types configuration."""
-    json_path = os.path.join(os.path.dirname(__file__), 'shop_types.json')
-    if not os.path.exists(json_path):
-        return {}
+    """Reads the shop types from the inventory database."""
+    conn = sqlite3.connect(DATABASE)
+    c = conn.cursor()
     
     try:
-        with open(json_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
+        # Get all unique shop_types from inventory
+        c.execute('SELECT DISTINCT shop_types FROM inventory WHERE shop_types IS NOT NULL AND shop_types != ""')
+        rows = c.fetchall()
+        
+        # Collect all unique shop types
+        shop_types_set = set()
+        for row in rows:
+            if row[0]:
+                # Split by comma and trim whitespace
+                types = [t.strip() for t in row[0].split(',') if t.strip()]
+                shop_types_set.update(types)
+        
+        # Return as sorted list
+        return sorted(list(shop_types_set))
     except Exception as e:
-        print(f"Error reading JSON: {e}")
-        return {}
+        print(f"Error reading shop types from database: {e}")
+        return []
+    finally:
+        conn.close()
 
 @app.route('/')
 def index():
@@ -314,9 +342,17 @@ def shop():
     if not selected_quality:
         selected_quality = 'Comune'
     
-    if selected_type and selected_type in shop_types:
-        allowed_categories = shop_types[selected_type]
-        items = [item for item in items if item.get('Tipo') in allowed_categories]
+    # Filter by shop type using shop_types field
+    if selected_type:
+        filtered_items = []
+        for item in items:
+            shop_types_str = item.get('shop_types', '')
+            if shop_types_str:
+                # Split by comma and check if selected_type is in the list
+                item_shop_types = [t.strip() for t in shop_types_str.split(',') if t.strip()]
+                if selected_type in item_shop_types:
+                    filtered_items.append(item)
+        items = filtered_items
 
     # Quality Modifiers
     if selected_quality:
@@ -397,7 +433,7 @@ def shop():
                     new_pct = max(0, min(100, new_pct))
                     item['Percentuale'] = f"{new_pct}%"
         
-    return render_template('shop.html', items=items, shop_types=shop_types.keys(), selected_type=selected_type, selected_city_size=selected_city_size, selected_quality=selected_quality)
+    return render_template('shop.html', items=items, shop_types=shop_types, selected_type=selected_type, selected_city_size=selected_city_size, selected_quality=selected_quality)
 
 def load_calendar_data():
     """Reads the calendar configuration."""
