@@ -4,7 +4,7 @@
 
 {% block content %}
 {% block extra_css %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/combat.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/combat.css') }}">
 {% endblock %}
 
 <div class="combat-container">
@@ -21,6 +21,20 @@
             </div>
         </div>
 
+
+        <!-- Dead Combatants Section -->
+        <section>
+            <div class="section-header">
+                <h2 class="section-title" style="color: #666;">💀 Caduti</h2>
+                <button class="btn" onclick="clearDeadList()" style="background: #555; color: #fff;">Svuota
+                    Lista</button>
+            </div>
+            <div id="deadList"
+                style="display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 1rem; background: #1a1a1a; border-radius: 4px; min-height: 50px; margin-bottom: 2em;">
+                <!-- Dead combatants will be listed here -->
+            </div>
+        </section>
+
         <!-- Player Characters (PG) Section -->
         <section>
             <div class="section-header">
@@ -36,6 +50,8 @@
         </section>
 
     </section>
+
+
 
 
     <!-- Modified NPCs Library Section -->
@@ -311,15 +327,17 @@
 <!-- Critical Hit Modal -->
 <div id="criticalHitModal" class="modal" style="display: none;">
     <div class="modal-content" style="max-width: 700px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 2px solid #dc3545; padding-bottom: 0.5rem;">
+        <div
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 2px solid #dc3545; padding-bottom: 0.5rem;">
             <h2 style="margin: 0; color: #dc3545;">⚠️ COLPO CRITICO</h2>
-            <button onclick="closeCriticalHitModal()" style="background: none; border: none; color: #fff; font-size: 2rem; cursor: pointer; line-height: 1;">&times;</button>
+            <button onclick="closeCriticalHitModal()"
+                style="background: none; border: none; color: #fff; font-size: 2rem; cursor: pointer; line-height: 1;">&times;</button>
         </div>
-        
+
         <div id="criticalHitContent" style="max-height: 60vh; overflow-y: auto;">
             <!-- Content will be populated by JavaScript -->
         </div>
-        
+
         <div style="text-align: right; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #444;">
             <button class="btn btn-danger" onclick="closeCriticalHitModal()">Chiudi</button>
         </div>

@@ -1648,10 +1648,60 @@ function handleCriticalHit(instanceId) {
     }
 }
 
+// Dead combatants list
+let deadCombatants = [];
+
 function handleDeath(instanceId) {
-    // Placeholder for death logic
-    console.log('Death for combatant:', instanceId);
-    // TODO: Implement death handling
+    const combatant = combatants.find(c => c.instanceId === instanceId);
+    if (!combatant) {
+        console.error('Combatant not found:', instanceId);
+        return;
+    }
+    
+    // Confirm death
+    if (!confirm(`Confermi la morte di ${combatant.name}?`)) {
+        return;
+    }
+    
+    // Add to dead list
+    deadCombatants.push({
+        name: combatant.name,
+        timestamp: new Date().toLocaleTimeString()
+    });
+    
+    // Remove from active combatants
+    combatants = combatants.filter(c => c.instanceId !== instanceId);
+    
+    // Re-render both lists
+    renderCombatants();
+    renderDeadList();
+}
+
+function renderDeadList() {
+    const container = document.getElementById('deadList');
+    if (!container) return;
+    
+    if (deadCombatants.length === 0) {
+        container.innerHTML = '<div style="color: #666; font-style: italic;">Nessun caduto</div>';
+        return;
+    }
+    
+    container.innerHTML = deadCombatants.map(dead => `
+        <div style="background: #2a2a2a; border: 1px solid #444; border-radius: 4px; padding: 0.5rem 1rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+            <span style="color: #666;">💀</span>
+            <span style="color: #999;">${dead.name}</span>
+            <span style="color: #555; font-size: 0.8rem;">(${dead.timestamp})</span>
+        </div>
+    `).join('');
+}
+
+function clearDeadList() {
+    if (deadCombatants.length === 0) return;
+    
+    if (confirm('Svuotare la lista dei caduti?')) {
+        deadCombatants = [];
+        renderDeadList();
+    }
 }
 
 function addPGToCombat(pgId) {
