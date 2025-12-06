@@ -439,7 +439,7 @@
 
     /* NPC Table Styles */
     .btn-icon {
-        padding: 4px 6px !important;
+        padding: 2px 2px !important;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -488,18 +488,6 @@
         font-size: 0.7rem;
     }
 
-    /* NPC Table Styles */
-    .btn-icon {
-        padding: 4px 6px !important;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        line-height: 0;
-    }
-
-    .btn-icon svg {
-        pointer-events: none;
-    }
 
     #npcTable tbody tr {
         border-bottom: 1px solid #333;

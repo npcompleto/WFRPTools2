@@ -561,6 +561,8 @@ let npcs = [];
                 <td>
                     <div class="table-actions">
                         <button class="btn btn-add btn-icon" onclick="addToCombat(${npc.id})" title="Aggiungi al Combattimento"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+                        <button class="btn btn-primary btn-icon" onclick="copyNPC(${npc.id})" title="Copia come PNG Modificato"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
+                        <button class="btn btn-success btn-icon" onclick="duplicateNPC(${npc.id})" title="Duplica PNG"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="14" height="14" rx="2" ry="2"></rect><path d="M3 17V5a2 2 0 0 1 2-2h12"></path></svg></button>
                         <button class="btn btn-edit btn-icon" onclick="editNPC(${npc.id})" title="Modifica PNG"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
                         <button class="btn btn-danger btn-icon" onclick="deleteNPC(${npc.id})" title="Elimina PNG"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
                     </div>
@@ -697,6 +699,64 @@ let npcs = [];
             return;
         }
         openModalForModified(baseNpc);
+    }
+
+    function copyNPC(npcId) {
+        const baseNpc = npcs.find(n => n.id === npcId);
+        if (!baseNpc) {
+            alert('PNG non trovato!');
+            return;
+        }
+        openModalForModified(baseNpc);
+    }
+
+    function duplicateNPC(npcId) {
+        const baseNpc = npcs.find(n => n.id === npcId);
+        if (!baseNpc) {
+            alert('PNG non trovato!');
+            return;
+        }
+        
+        // Open modal for creating a new PNG (not modified)
+        const modal = document.getElementById('npcModal');
+        const form = document.getElementById('npcForm');
+        const title = document.getElementById('modalTitle');
+
+        title.innerText = `Duplica PNG: ${baseNpc.name}`;
+        form.reset();
+        document.getElementById('npcId').value = '';
+        document.getElementById('combatantInstanceId').value = '';
+
+        // Remove any hidden fields for modified NPCs
+        const baseNpcIdField = document.getElementById('baseNpcId');
+        if (baseNpcIdField) baseNpcIdField.remove();
+        const modifiedNpcIdField = document.getElementById('modifiedNpcId');
+        if (modifiedNpcIdField) modifiedNpcIdField.remove();
+
+        // Populate with base NPC data
+        document.getElementById('name').value = baseNpc.name + ' (Copia)';
+        document.getElementById('traits').value = baseNpc.traits || '';
+        document.getElementById('description').value = baseNpc.description || '';
+
+        ['ws', 'bs', 's', 't', 'ag', 'int', 'wp', 'fel', 'a', 'w', 'm', 'mag', 'ip', 'fp',
+            'armor_head', 'armor_arms', 'armor_body', 'armor_legs'].forEach(stat => {
+                document.getElementById(stat).value = baseNpc[stat] || '';
+            });
+
+        ['special_rules', 'armor', 'weapons', 'equipment'].forEach(field => {
+            document.getElementById(field).value = baseNpc[field] || '';
+        });
+
+        selectedSkills = baseNpc.skills ? baseNpc.skills.split(',').map(s => s.trim()).filter(s => s) : [];
+        selectedTalents = baseNpc.talents ? baseNpc.talents.split(',').map(t => t.trim()).filter(t => t) : [];
+        renderSkillTags();
+        renderTalentTags();
+
+        // Hide mutation and career controls for library PNGs
+        document.getElementById('mutationControls').style.display = 'none';
+        document.getElementById('careerControls').style.display = 'none';
+
+        modal.style.display = 'block';
     }
 
     function openModalForModified(baseNpc) {
