@@ -497,6 +497,7 @@ function renderNPCs() {
             `;
         container.appendChild(card);
     });
+    renderCombatGraph();
 }
 
 
@@ -677,6 +678,7 @@ function renderModifiedNPCs() {
             `;
         container.appendChild(card);
     });
+    renderCombatGraph();
 }
 
 function createModifiedNPC() {
@@ -1020,6 +1022,7 @@ function renderCombatants() {
         `;
         container.appendChild(card);
     });
+    renderCombatGraph();
 }
 
 function updateTarget(sourceId, targetId) {
@@ -1812,3 +1815,63 @@ window.addEventListener('click', function(event) {
 });
 
 // --- END PLAYER CHARACTER FUNCTIONS ---
+// --- Graph Visualization ---
+let network = null;
+
+function renderCombatGraph() {
+    const container = document.getElementById('combatGraph');
+    if (!container) return;
+
+    // Prepare nodes
+    const nodesArray = combatants.map(c => ({
+        id: c.instanceId,
+        label: c.name + '\n(Iniz: ' + (c.initiative || 0) + ')',
+        shape: 'box',
+        color: {
+            background: c.isPG ? '#007bff' : '#dc3545',
+            border: '#ffffff',
+            highlight: { background: c.isPG ? '#0056b3' : '#bd2130', border: '#ffffff' }
+        },
+        font: { color: '#ffffff' }
+    }));
+    
+    const nodes = new vis.DataSet(nodesArray);
+
+    // Prepare edges
+    const edgesArray = [];
+    combatants.forEach(c => {
+        if (c.targetId) {
+            edgesArray.push({
+                from: c.instanceId,
+                to: c.targetId,
+                arrows: 'to',
+                color: { color: '#ffd700', highlight: '#ffd700' },
+                width: 2
+            });
+        }
+    });
+    
+    const edges = new vis.DataSet(edgesArray);
+
+    const data = { nodes, edges };
+    const options = {
+        physics: {
+            enabled: true,
+            stabilization: { iterations: 100 }
+        },
+        layout: {
+            randomSeed: 2
+        },
+        interaction: {
+            dragNodes: true,
+            zoomView: true,
+            dragView: true
+        }
+    };
+
+    if (network) {
+        network.setData(data);
+    } else {
+        network = new vis.Network(container, data, options);
+    }
+}

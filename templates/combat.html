@@ -14,6 +14,10 @@
             <h2 class="section-title">Combattenti Attivi</h2>
             <button class="btn btn-danger" onclick="clearCombat()">Svuota Tutto</button>
         </div>
+        
+        <!-- Combat Graph Visualization -->
+        <div id="combatGraph" class="combat-graph"></div>
+
         <div class="combat-grid">
             <!-- PG Column -->
             <div class="combat-column pg-column">
@@ -348,5 +352,9 @@
     </div>
 </div>
 
+
+{% endblock %}
+{% block scripts %}
+<script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
 <script src="{{ url_for('static', filename='js/combat.js') }}"></script>
 {% endblock %}
