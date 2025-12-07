@@ -1009,6 +1009,8 @@ function renderCombatants() {
             <div style="font-size:0.8rem; color:#ccc; margin-bottom:0.5rem;">
                  <div><strong>Armatura:</strong> T:${combatant.armor_head || 0} B:${combatant.armor_arms || 0} C:${combatant.armor_body || 0} G:${combatant.armor_legs || 0}</div>
                  <div><strong>Armi:</strong> ${combatant.weapons || '-'}</div>
+                 <div style="margin-top: 5px;"><strong>Abilità:</strong> ${combatant.skills ? combatant.skills.split(',').map(s => getSkillBadgeHTML(s.trim())).join(' ') : '-'}</div>
+                 <div style="margin-top: 5px;"><strong>Talenti:</strong> ${combatant.talents ? combatant.talents.split(',').map(t => getTalentBadgeHTML(t.trim())).join(' ') : '-'}</div>
             </div>
 
             <div class="npc-actions">
