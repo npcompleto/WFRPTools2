@@ -1028,41 +1028,18 @@ function updateTarget(sourceId, targetId) {
 
     if (!targetId) {
         // Deselect
-        const oldTargetId = source.targetId;
         source.targetId = null;
-        
-        // Remove reverse link
-        if (oldTargetId) {
-            const oldTarget = combatants.find(c => c.instanceId == oldTargetId);
-            if (oldTarget && oldTarget.targetId === sourceId) {
-                oldTarget.targetId = null;
-            }
-        }
     } else {
         // Select new target
         const target = combatants.find(c => c.instanceId == targetId);
         if (target) {
-            // Clear old links for source
-             if (source.targetId) {
-                const oldTarget = combatants.find(c => c.instanceId == source.targetId);
-                if (oldTarget && oldTarget.targetId === sourceId) {
-                    oldTarget.targetId = null;
-                }
-            }
-            // Clear old links for target (if they were targeting someone else, should they switch to me? 
-            // Or can they be targeted by multiple people but only target one?
-            // "bidirezionale" implies 1-to-1 usually in this context (duello/ingaggio). 
-            // Let's assume 1-to-1 engagement for now.
-            if (target.targetId) {
-                 const oldSource = combatants.find(c => c.instanceId == target.targetId);
-                 if (oldSource && oldSource.targetId === target.instanceId) {
-                     oldSource.targetId = null;
-                 }
-            }
-            
-            // Set new links
             source.targetId = parseFloat(targetId);
-            target.targetId = sourceId;
+            
+            // Auto-link reverse ONLY if target has no target
+            // This allows multiple combatants to target the same person without breaking existing links
+            if (!target.targetId) {
+                target.targetId = sourceId;
+            }
         }
     }
     
