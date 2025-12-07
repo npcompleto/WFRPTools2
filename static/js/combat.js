@@ -903,75 +903,170 @@ function addModifiedToCombat(modifiedNpcId) {
 
 
 function renderCombatants() {
-    const container = document.getElementById('combatantList');
-    container.innerHTML = '';
+    const pgContainer = document.getElementById('pgCombatantList');
+    const npcContainer = document.getElementById('npcCombatantList');
+    const initContainer = document.getElementById('initiativeSidebar');
+
+    if (!pgContainer || !npcContainer || !initContainer) return;
+
+    pgContainer.innerHTML = '';
+    npcContainer.innerHTML = '';
+    initContainer.innerHTML = '';
 
     if (combatants.length === 0) {
-        container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #666; padding: 2rem;">Nessun combattente attivo. Aggiungi PNG dalla libreria sottostante.</div>';
+        pgContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 1rem;">Nessun PG</div>';
+        npcContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 1rem;">Nessun PNG</div>';
+        initContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 1rem;">-</div>';
         return;
     }
 
+    // Render Initiative Sidebar (Sorted List)
+    combatants.forEach(c => {
+        const item = document.createElement('div');
+        item.className = `initiative-item ${c.isPG ? 'is-pg' : 'is-npc'}`;
+        item.innerHTML = `
+            <span class="init-name">${c.name}</span>
+            <span class="init-value">${c.initiative || 0}</span>
+        `;
+        initContainer.appendChild(item);
+    });
+
+    // Render Combatant Cards
     combatants.forEach((combatant, index) => {
+        const isPG = combatant.isPG;
+        const container = isPG ? pgContainer : npcContainer;
+        
         const card = document.createElement('div');
         card.className = 'npc-card combatant';
+        if (isPG) card.style.borderColor = '#007bff';
 
-        // Calculate color for wounds (Green > Yellow > Red)
+        // Calculate color for wounds
         const woundPct = (combatant.currentWounds / combatant.w) * 100;
         let woundColor = '#28a745';
         if (woundPct < 50) woundColor = '#ffc107';
         if (woundPct < 25) woundColor = '#dc3545';
 
+        // Target Options
+        // If I am PG, I can target NPCs. If I am NPC, I can target PGs.
+        // Or allow targeting anyone? "bidirezionale, un combattente contro l'altro" implies opposing sides usually.
+        // Let's allow targeting anyone from the OTHER list to keep it clean, or anyone?
+        // Let's filter for opposite type for now as it makes most sense.
+        const potentialTargets = combatants.filter(c => c.isPG !== isPG);
+        
+        let targetOptions = '<option value="">-- Nessun Target --</option>';
+        potentialTargets.forEach(t => {
+            const selected = combatant.targetId === t.instanceId ? 'selected' : '';
+            targetOptions += `<option value="${t.instanceId}" ${selected}>${t.name}</option>`;
+        });
+
+        // Find who is targeting ME
+        const targetedBy = combatants.filter(c => c.targetId === combatant.instanceId);
+        let targetedByHtml = '';
+        if (targetedBy.length > 0) {
+            const names = targetedBy.map(c => c.name).join(', ');
+            targetedByHtml = `<div class="targeted-by">Ingaggiato da: ${names}</div>`;
+        }
+
         card.innerHTML = `
-                <div class="npc-name">
-                    <div>
-                        ${combatant.name}
-                        <span style="font-size:0.8rem; color:#aaa; font-weight:normal;">#${index + 1}</span>
-                    </div>
-                    <div style="font-size: 0.9rem; color: #00ffff; border: 1px solid #00aaaa; padding: 2px 6px; border-radius: 4px;" title="Iniziativa (Ag ${combatant.ag || 0} + d10 ${combatant.initiativeRoll || '?'})">
-                        INIZ: ${combatant.initiative || 0}
-                    </div>
+            <div class="npc-name">
+                <div>${combatant.name}</div>
+                <div style="font-size: 0.9rem; color: #00ffff; border: 1px solid #00aaaa; padding: 2px 6px; border-radius: 4px;">
+                    INIZ: ${combatant.initiative || 0}
                 </div>
-                
-                <div class="wounds-display">
-                    <div style="font-size:0.8rem; color:#ffaaaa; margin-bottom:2px;">FERITE ATTUALI</div>
-                    <input type="number" class="wounds-input" 
-                        value="${combatant.currentWounds}" 
-                        onchange="updateCombatantWounds(${combatant.instanceId}, this.value)"
-                        style="color: ${woundColor}"
-                    >
-                    <span style="color:#aaa;"> / ${combatant.w}</span>
-                </div>
+            </div>
+            
+            <div class="wounds-display">
+                <div style="font-size:0.8rem; color:#ffaaaa; margin-bottom:2px;">FERITE ATTUALI</div>
+                <input type="number" class="wounds-input" 
+                    value="${combatant.currentWounds}" 
+                    onchange="updateCombatantWounds(${combatant.instanceId}, this.value)"
+                    style="color: ${woundColor}"
+                >
+                <span style="color:#aaa;"> / ${combatant.w}</span>
+            </div>
 
-                <div class="npc-stats">
-                    <div class="stat-box"><div class="stat-label">AC</div><div class="stat-value">${combatant.ws || '-'}</div></div>
-                    <div class="stat-box"><div class="stat-label">AB</div><div class="stat-value">${combatant.bs || '-'}</div></div>
-                    <div class="stat-box"><div class="stat-label">F</div><div class="stat-value">${combatant.s || '-'}</div></div>
-                    <div class="stat-box"><div class="stat-label">R</div><div class="stat-value">${combatant.t || '-'}</div></div>
-                    <div class="stat-box"><div class="stat-label">Ag</div><div class="stat-value">${combatant.ag || '-'}</div></div>
-                    <div class="stat-box"><div class="stat-label">Int</div><div class="stat-value">${combatant.int || '-'}</div></div>
-                    <div class="stat-box"><div class="stat-label">Vol</div><div class="stat-value">${combatant.wp || '-'}</div></div>
-                    <div class="stat-box"><div class="stat-label">Sim</div><div class="stat-value">${combatant.fel || '-'}</div></div>
-                </div>
+            <div class="target-control">
+                <label style="font-size: 0.8rem; color: #aaa;">Target:</label>
+                <select class="target-select" onchange="updateTarget(${combatant.instanceId}, this.value)">
+                    ${targetOptions}
+                </select>
+                ${targetedByHtml}
+            </div>
 
-                <div style="font-size:0.8rem; color:#ccc; margin-bottom:0.5rem;">
-                    ${combatant.description ? `<div style="margin-bottom: 5px; font-style: italic; color: #aaa; border-bottom: 1px solid #444; padding-bottom: 3px;">${combatant.description}</div>` : ""}
-                    <div><strong>Armatura:</strong> T:${combatant.armor_head || 0} B:${combatant.armor_arms || 0} C:${combatant.armor_body || 0} G:${combatant.armor_legs || 0}</div>
-                    <div><strong>Armi:</strong> ${combatant.weapons || '-'}</div>
-                    <div><strong>Abilità:</strong> ${combatant.skills ? combatant.skills.split(',').map(s => getSkillBadgeHTML(s.trim())).join(' ') : '-'}</div>
-                    <div><strong>Talenti:</strong> ${combatant.talents ? combatant.talents.split(',').map(t => getTalentBadgeHTML(t.trim())).join(' ') : '-'}</div>
-                </div>
+            <div class="npc-stats">
+                <div class="stat-box"><div class="stat-label">AC</div><div class="stat-value">${combatant.ws || '-'}</div></div>
+                <div class="stat-box"><div class="stat-label">AB</div><div class="stat-value">${combatant.bs || '-'}</div></div>
+                <div class="stat-box"><div class="stat-label">F</div><div class="stat-value">${combatant.s || '-'}</div></div>
+                <div class="stat-box"><div class="stat-label">R</div><div class="stat-value">${combatant.t || '-'}</div></div>
+                <div class="stat-box"><div class="stat-label">Ag</div><div class="stat-value">${combatant.ag || '-'}</div></div>
+                <div class="stat-box"><div class="stat-label">Int</div><div class="stat-value">${combatant.int || '-'}</div></div>
+                <div class="stat-box"><div class="stat-label">Vol</div><div class="stat-value">${combatant.wp || '-'}</div></div>
+                <div class="stat-box"><div class="stat-label">Sim</div><div class="stat-value">${combatant.fel || '-'}</div></div>
+            </div>
 
-                <div class="npc-actions">
-                    <button class="btn btn-edit" onclick="editCombatant(${combatant.instanceId})">Modifica</button>
-                    <button class="btn btn-danger" onclick="removeFromCombat(${combatant.instanceId})">Rimuovi</button>
-                    ${combatant.currentWounds < 0 ? `
-                        <button class="btn btn-warning" onclick="handleCriticalHit(${combatant.instanceId})" style="background: #ff6b00; color: #fff; font-weight: bold;">⚠️ Colpo Critico</button>
-                        <button class="btn btn-danger" onclick="handleDeath(${combatant.instanceId})" style="background: #8b0000; color: #fff; font-weight: bold;">💀 Morto</button>
-                    ` : ''}
-                </div>
-            `;
+            <div style="font-size:0.8rem; color:#ccc; margin-bottom:0.5rem;">
+                 <div><strong>Armatura:</strong> T:${combatant.armor_head || 0} B:${combatant.armor_arms || 0} C:${combatant.armor_body || 0} G:${combatant.armor_legs || 0}</div>
+                 <div><strong>Armi:</strong> ${combatant.weapons || '-'}</div>
+            </div>
+
+            <div class="npc-actions">
+                <button class="btn btn-edit" onclick="editCombatant(${combatant.instanceId})">Modifica</button>
+                <button class="btn btn-danger" onclick="removeFromCombat(${combatant.instanceId})">Rimuovi</button>
+                ${combatant.currentWounds < 0 ? `
+                    <button class="btn btn-warning" onclick="handleCriticalHit(${combatant.instanceId})" style="background: #ff6b00; color: #fff; font-weight: bold;">⚠️ Critico</button>
+                    <button class="btn btn-danger" onclick="handleDeath(${combatant.instanceId})" style="background: #8b0000; color: #fff; font-weight: bold;">💀 Morto</button>
+                ` : ''}
+            </div>
+        `;
         container.appendChild(card);
     });
+}
+
+function updateTarget(sourceId, targetId) {
+    const source = combatants.find(c => c.instanceId === sourceId);
+    if (!source) return;
+
+    if (!targetId) {
+        // Deselect
+        const oldTargetId = source.targetId;
+        source.targetId = null;
+        
+        // Remove reverse link
+        if (oldTargetId) {
+            const oldTarget = combatants.find(c => c.instanceId == oldTargetId);
+            if (oldTarget && oldTarget.targetId === sourceId) {
+                oldTarget.targetId = null;
+            }
+        }
+    } else {
+        // Select new target
+        const target = combatants.find(c => c.instanceId == targetId);
+        if (target) {
+            // Clear old links for source
+             if (source.targetId) {
+                const oldTarget = combatants.find(c => c.instanceId == source.targetId);
+                if (oldTarget && oldTarget.targetId === sourceId) {
+                    oldTarget.targetId = null;
+                }
+            }
+            // Clear old links for target (if they were targeting someone else, should they switch to me? 
+            // Or can they be targeted by multiple people but only target one?
+            // "bidirezionale" implies 1-to-1 usually in this context (duello/ingaggio). 
+            // Let's assume 1-to-1 engagement for now.
+            if (target.targetId) {
+                 const oldSource = combatants.find(c => c.instanceId == target.targetId);
+                 if (oldSource && oldSource.targetId === target.instanceId) {
+                     oldSource.targetId = null;
+                 }
+            }
+            
+            // Set new links
+            source.targetId = parseFloat(targetId);
+            target.targetId = sourceId;
+        }
+    }
+    
+    renderCombatants();
 }
 
 function addToCombat(npcId) {

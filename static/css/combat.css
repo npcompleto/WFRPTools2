@@ -612,3 +612,136 @@
     padding-top: 1rem;
     border-top: 1px solid #444;
 }
+
+/* --- New Combat Layout Styles --- */
+
+.combat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 250px;
+    gap: 1.5rem;
+    align-items: start;
+    margin-bottom: 2rem;
+}
+
+.combat-column {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid #333;
+    min-height: 200px;
+}
+
+.pg-column {
+    border-top: 3px solid #007bff;
+}
+
+.npc-column {
+    border-top: 3px solid #dc3545;
+}
+
+.initiative-column {
+    border-top: 3px solid #ffd700;
+}
+
+.column-title {
+    text-align: center;
+    color: #aaa;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 0.5rem;
+}
+
+.npc-grid.single-col {
+    grid-template-columns: 1fr; /* Force single column in these containers */
+}
+
+/* Initiative List */
+.initiative-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.initiative-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #2a2a2a;
+    padding: 0.5rem;
+    border-radius: 4px;
+    border-left: 3px solid transparent;
+}
+
+.initiative-item.is-pg {
+    border-left-color: #007bff;
+}
+
+.initiative-item.is-npc {
+    border-left-color: #dc3545;
+}
+
+.init-name {
+    font-weight: 500;
+    color: #eee;
+}
+
+.init-value {
+    font-weight: bold;
+    color: #ffd700;
+    background: #333;
+    padding: 2px 6px;
+    border-radius: 4px;
+    min-width: 30px;
+    text-align: center;
+}
+
+/* Targeting UI */
+.target-control {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed #444;
+}
+
+.target-select {
+    width: 100%;
+    background: #333;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 5px;
+    border-radius: 4px;
+    margin-top: 5px;
+    font-size: 0.9rem;
+}
+
+.targeted-by {
+    font-size: 0.8rem;
+    color: #ff9999;
+    margin-top: 5px;
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.targeted-by::before {
+    content: '🎯';
+}
+
+@media (max-width: 1200px) {
+    .combat-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .initiative-column {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 768px) {
+    .combat-grid {
+        grid-template-columns: 1fr;
+    }
+}

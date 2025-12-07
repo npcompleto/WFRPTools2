@@ -14,10 +14,29 @@
             <h2 class="section-title">Combattenti Attivi</h2>
             <button class="btn btn-danger" onclick="clearCombat()">Svuota Tutto</button>
         </div>
-        <div id="combatantList" class="npc-grid">
-            <!-- Active combatants will be loaded here -->
-            <div class="color-padding-a8e04f" >
-                Nessun combattente attivo. Aggiungi PNG dalla libreria sottostante.
+        <div class="combat-grid">
+            <!-- PG Column -->
+            <div class="combat-column pg-column">
+                <h3 class="column-title">Personaggi Giocanti (PG)</h3>
+                <div id="pgCombatantList" class="npc-grid single-col">
+                    <!-- PGs will be loaded here -->
+                </div>
+            </div>
+
+            <!-- NPC Column -->
+            <div class="combat-column npc-column">
+                <h3 class="column-title">Personaggi Non Giocanti (PNG)</h3>
+                <div id="npcCombatantList" class="npc-grid single-col">
+                    <!-- NPCs will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Initiative Sidebar -->
+            <div class="combat-column initiative-column">
+                <h3 class="column-title">Ordine Iniziativa</h3>
+                <div id="initiativeSidebar" class="initiative-list">
+                    <!-- Initiative order will be loaded here -->
+                </div>
             </div>
         </div>
 
@@ -42,7 +61,7 @@
             </div>
             <div id="pgList" class="npc-grid">
                 <!-- Player characters will be loaded here -->
-                <div class="color-padding-a8e04f" >
+                <div class="color-padding-a8e04f">
                     Nessun PG inserito. Aggiungi i tuoi personaggi giocanti.
                 </div>
             </div>
@@ -71,22 +90,22 @@
         </div>
 
         <!-- Search Filters -->
-        <div class="background-padding-3ebf98" >
-            <div class="display-71df5f" >
+        <div class="background-padding-3ebf98">
+            <div class="display-71df5f">
                 <div>
-                    <label class="color-display-bb3347" >Cerca per
+                    <label class="color-display-bb3347">Cerca per
                         Nome</label>
                     <input class="background-color-3ac7b4" type="text" id="searchName" placeholder="Nome PNG..."
                         oninput="filterNPCTable()">
                 </div>
                 <div>
-                    <label class="color-display-bb3347" >Cerca per
+                    <label class="color-display-bb3347">Cerca per
                         Abilità</label>
                     <input class="background-color-3ac7b4" type="text" id="searchSkill" placeholder="Abilità..."
                         oninput="filterNPCTable()">
                 </div>
                 <div>
-                    <label class="color-display-bb3347" >Cerca per
+                    <label class="color-display-bb3347">Cerca per
                         Talento</label>
                     <input class="background-color-3ac7b4" type="text" id="searchTalent" placeholder="Talento..."
                         oninput="filterNPCTable()">
@@ -96,27 +115,27 @@
         </div>
 
         <!-- NPC Table -->
-        <div class="background-3c4f66" >
+        <div class="background-3c4f66">
             <table class="color-fa8d0a" id="npcTable">
                 <thead>
-                    <tr class="background-64c1c3" >
-                        <th class="color-padding-828720" >ID</th>
-                        <th class="color-padding-828720" >Nome</th>
-                        <th class="color-padding-828720" >Segni</th>
-                        <th class="color-padding-f3c182" >AC</th>
-                        <th class="color-padding-f3c182" >AB</th>
-                        <th class="color-padding-f3c182" >F</th>
-                        <th class="color-padding-f3c182" >R</th>
-                        <th class="color-padding-f3c182" >Ag</th>
-                        <th class="color-padding-f3c182" >Int</th>
-                        <th class="color-padding-f3c182" >Vol</th>
-                        <th class="color-padding-f3c182" >Sim</th>
-                        <th class="color-padding-f3c182" >A</th>
-                        <th class="color-padding-f3c182" >Fe</th>
-                        <th class="color-padding-f3c182" >M</th>
-                        <th class="color-padding-828720" >Abilità</th>
-                        <th class="color-padding-828720" >Talenti</th>
-                        <th class="color-padding-739ec2" >Azioni</th>
+                    <tr class="background-64c1c3">
+                        <th class="color-padding-828720">ID</th>
+                        <th class="color-padding-828720">Nome</th>
+                        <th class="color-padding-828720">Segni</th>
+                        <th class="color-padding-f3c182">AC</th>
+                        <th class="color-padding-f3c182">AB</th>
+                        <th class="color-padding-f3c182">F</th>
+                        <th class="color-padding-f3c182">R</th>
+                        <th class="color-padding-f3c182">Ag</th>
+                        <th class="color-padding-f3c182">Int</th>
+                        <th class="color-padding-f3c182">Vol</th>
+                        <th class="color-padding-f3c182">Sim</th>
+                        <th class="color-padding-f3c182">A</th>
+                        <th class="color-padding-f3c182">Fe</th>
+                        <th class="color-padding-f3c182">M</th>
+                        <th class="color-padding-828720">Abilità</th>
+                        <th class="color-padding-828720">Talenti</th>
+                        <th class="color-padding-739ec2">Azioni</th>
                     </tr>
                 </thead>
                 <tbody id="npcTableBody">
@@ -157,9 +176,9 @@
 
                 <!-- Mutation Controls (Visible only for Combatants) -->
                 <div class="background-display-29ae6a" id="mutationControls">
-                    <label class="color-display-7ccc1f" >Aggiungi Mutazione del
+                    <label class="color-display-7ccc1f">Aggiungi Mutazione del
                         Caos</label>
-                    <div class="display-66a140" >
+                    <div class="display-66a140">
                         <button type="button" class="btn btn-add" onclick="addRandomMutation()">Casuale (d100)</button>
                         <select class="background-color-f6c8ac" id="mutationSelect">
                             <option value="">-- Seleziona Mutazione --</option>
@@ -170,15 +189,15 @@
 
                 <!-- Career Application Controls -->
                 <div class="background-padding-c060af" id="careerControls">
-                    <label class="color-display-b34b67" >Applica
+                    <label class="color-display-b34b67">Applica
                         Carriera</label>
-                    <div class="display-7a54ff" >
+                    <div class="display-7a54ff">
                         <select class="background-color-f6c8ac" id="careerSelect">
                             <option value="">-- Seleziona Carriera --</option>
                         </select>
                         <button type="button" class="btn btn-add" onclick="applyCareerToNPC()">Applica Carriera</button>
                     </div>
-                    <div class="color-92c505" >
+                    <div class="color-92c505">
                         Somma le statistiche, aggiunge abilità/talenti (duplicati consentiti) e ferri del mestiere
                     </div>
                 </div>
@@ -217,7 +236,7 @@
             <div class="form-group">
                 <label>Talenti</label>
                 <div id="talentsContainer" class="tag-container"></div>
-                <div class="position-46345c" >
+                <div class="position-46345c">
                     <input type="text" id="talentInput" placeholder="Aggiungi talento..." autocomplete="off">
                     <ul id="talentSuggestions" class="suggestions-list"></ul>
                 </div>
@@ -225,7 +244,7 @@
             <div class="form-group">
                 <label>Abilità</label>
                 <div id="skillsContainer" class="tag-container"></div>
-                <div class="position-46345c" >
+                <div class="position-46345c">
                     <input type="text" id="skillInput" placeholder="Aggiungi abilità..." autocomplete="off">
                     <ul id="skillSuggestions" class="suggestions-list"></ul>
                 </div>
@@ -247,7 +266,7 @@
                 <textarea id="equipment" rows="2"></textarea>
             </div>
 
-            <div class="textalign-0ac85b" >
+            <div class="textalign-0ac85b">
                 <button type="button" class="btn background-color-cb1af7" onclick="closeModal()">Annulla</button>
                 <button type="submit" class="btn btn-primary">Salva</button>
             </div>
@@ -302,7 +321,7 @@
                 <div class="stat-input-group"><label>Gambe</label><input type="number" id="pgArmorLegs"></div>
             </div>
 
-            <div class="textalign-0ac85b" >
+            <div class="textalign-0ac85b">
                 <button type="button" class="btn background-color-cb1af7" onclick="closePGModal()">Annulla</button>
                 <button type="submit" class="btn btn-primary">Salva</button>
             </div>
@@ -314,8 +333,8 @@
 <!-- Critical Hit Modal -->
 <div id="criticalHitModal" class="modal display-9c7663">
     <div class="modal-content style-f715fa">
-        <div class="display-c536d1" >
-            <h2 class="color-margin-e0b3a3" >⚠️ COLPO CRITICO</h2>
+        <div class="display-c536d1">
+            <h2 class="color-margin-e0b3a3">⚠️ COLPO CRITICO</h2>
             <button class="background-color-a24239" onclick="closeCriticalHitModal()">&times;</button>
         </div>
 
@@ -323,7 +342,7 @@
             <!-- Content will be populated by JavaScript -->
         </div>
 
-        <div class="textalign-cd93d7" >
+        <div class="textalign-cd93d7">
             <button class="btn btn-danger" onclick="closeCriticalHitModal()">Chiudi</button>
         </div>
     </div>
