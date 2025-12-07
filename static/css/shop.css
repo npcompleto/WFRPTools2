@@ -175,3 +175,30 @@
     opacity: 1;
     visibility: visible;
 }
+
+/* Stili estratti da HTML */
+
+.style-6b71a2 {
+    margin-bottom: 2rem;
+}
+
+.background-color-62f18d {
+    padding: 0.5rem;
+    border-radius: 4px;
+    background: #333;
+    color: #fff;
+    border: 1px solid #555;
+}
+
+.style-1798d0 {
+    margin-left: 1rem;
+}
+
+.style-b8f7c9 {
+    margin-top: 0;
+}
+
+.background-19ff74 {
+    background: #d32f2f;
+    border-color: #b71c1c;
+}

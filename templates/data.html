@@ -69,7 +69,7 @@
         <table class="data-table">
             <thead>
                 <tr>
-                    <th style="width: 100px;">d100</th>
+                    <th class="style-b3a15a" >d100</th>
                     <th>Mutazione</th>
                     <th>Effetto</th>
                     <th>Azioni</th>
@@ -111,11 +111,11 @@
                 <tr>
                     <th>Inventario</th>
                     <th>Descrizione</th>
-                    <th style="width: 100px;">Ingombro</th>
-                    <th style="width: 120px;">Disponibilità</th>
-                    <th style="width: 100px;">Costo</th>
-                    <th style="width: 150px;">Tipo</th>
-                    <th style="width: 120px;">Azioni</th>
+                    <th class="style-b3a15a" >Ingombro</th>
+                    <th class="style-d44c18" >Disponibilità</th>
+                    <th class="style-b3a15a" >Costo</th>
+                    <th class="style-d9900c" >Tipo</th>
+                    <th class="style-d44c18" >Azioni</th>
                 </tr>
             </thead>
             <tbody id="inventoryList">
@@ -129,9 +129,8 @@
 
 <!-- Career Modal -->
 <div id="careerModal" class="modal">
-    <div class="modal-content" style="max-width: 800px;">
-        <span class="close" onclick="closeCareerModal()"
-            style="float:right; cursor:pointer; font-size:28px;">&times;</span>
+    <div class="modal-content style-b9fd24">
+        <span class="close style-28b21c" onclick="closeCareerModal()">&times;</span>
         <h2 id="careerModalTitle">Nuova Carriera</h2>
         <form id="careerForm" onsubmit="saveCareer(event)">
             <input type="hidden" id="careerId">
@@ -146,7 +145,7 @@
                 <textarea id="careerDescription" rows="2"></textarea>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; margin-bottom: 1rem;">
+            <div class="display-092071" >
                 <div class="stat-box"><label>AC</label><input type="number" id="c_ws" class="stat-input"></div>
                 <div class="stat-box"><label>AB</label><input type="number" id="c_bs" class="stat-input"></div>
                 <div class="stat-box"><label>F</label><input type="number" id="c_s" class="stat-input"></div>
@@ -156,7 +155,7 @@
                 <div class="stat-box"><label>Vol</label><input type="number" id="c_wp" class="stat-input"></div>
                 <div class="stat-box"><label>Sim</label><input type="number" id="c_fel" class="stat-input"></div>
             </div>
-            <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin-bottom: 1rem;">
+            <div class="display-4209a0" >
                 <div class="stat-box"><label>A</label><input type="number" id="c_a" class="stat-input"></div>
                 <div class="stat-box"><label>Fe</label><input type="number" id="c_w" class="stat-input"></div>
                 <div class="stat-box"><label>M</label><input type="number" id="c_m" class="stat-input"></div>
@@ -168,7 +167,7 @@
             <div class="form-group">
                 <label>Abilità</label>
                 <div id="careerSkillsContainer" class="tag-container"></div>
-                <div style="position: relative; margin-top: 5px;">
+                <div class="position-46345c" >
                     <input type="text" id="careerSkillInput" placeholder="Aggiungi abilità..." autocomplete="off">
                     <ul id="careerSkillSuggestions" class="suggestions-list"></ul>
                 </div>
@@ -177,7 +176,7 @@
             <div class="form-group">
                 <label>Talenti</label>
                 <div id="careerTalentsContainer" class="tag-container"></div>
-                <div style="position: relative; margin-top: 5px;">
+                <div class="position-46345c" >
                     <input type="text" id="careerTalentInput" placeholder="Aggiungi talento..." autocomplete="off">
                     <ul id="careerTalentSuggestions" class="suggestions-list"></ul>
                 </div>
@@ -193,9 +192,8 @@
                 <textarea id="careerExits" rows="2"></textarea>
             </div>
 
-            <div style="text-align: right; margin-top: 1rem;">
-                <button type="button" class="btn" onclick="closeCareerModal()"
-                    style="background:#555; color:#fff; margin-right:10px;">Annulla</button>
+            <div class="textalign-0ac85b" >
+                <button type="button" class="btn background-color-cb1af7" onclick="closeCareerModal()">Annulla</button>
                 <button type="submit" class="btn btn-primary">Salva</button>
             </div>
         </form>
@@ -205,8 +203,7 @@
 <!-- Skill Modal -->
 <div id="skillModal" class="modal">
     <div class="modal-content">
-        <span class="close" onclick="closeSkillModal()"
-            style="float:right; cursor:pointer; font-size:28px;">&times;</span>
+        <span class="close style-28b21c" onclick="closeSkillModal()">&times;</span>
         <h2 id="skillModalTitle">Nuova Abilità</h2>
         <form id="skillForm" onsubmit="saveSkill(event)">
             <input type="hidden" id="skillId">
@@ -229,9 +226,8 @@
                 <label>Descrizione</label>
                 <textarea id="skillDescription" rows="3"></textarea>
             </div>
-            <div style="text-align: right; margin-top: 1rem;">
-                <button type="button" class="btn" onclick="closeSkillModal()"
-                    style="background:#555; color:#fff; margin-right:10px;">Annulla</button>
+            <div class="textalign-0ac85b" >
+                <button type="button" class="btn background-color-cb1af7" onclick="closeSkillModal()">Annulla</button>
                 <button type="submit" class="btn btn-primary">Salva</button>
             </div>
         </form>
@@ -241,8 +237,7 @@
 <!-- Talent Modal -->
 <div id="talentModal" class="modal">
     <div class="modal-content">
-        <span class="close" onclick="closeTalentModal()"
-            style="float:right; cursor:pointer; font-size:28px;">&times;</span>
+        <span class="close style-28b21c" onclick="closeTalentModal()">&times;</span>
         <h2 id="talentModalTitle">Nuovo Talento</h2>
         <form id="talentForm" onsubmit="saveTalent(event)">
             <input type="hidden" id="talentId">
@@ -254,9 +249,8 @@
                 <label>Descrizione</label>
                 <textarea id="talentDescription" rows="3"></textarea>
             </div>
-            <div style="text-align: right; margin-top: 1rem;">
-                <button type="button" class="btn" onclick="closeTalentModal()"
-                    style="background:#555; color:#fff; margin-right:10px;">Annulla</button>
+            <div class="textalign-0ac85b" >
+                <button type="button" class="btn background-color-cb1af7" onclick="closeTalentModal()">Annulla</button>
                 <button type="submit" class="btn btn-primary">Salva</button>
             </div>
         </form>
@@ -266,17 +260,16 @@
 <!-- Mutation Modal -->
 <div id="mutationModal" class="modal">
     <div class="modal-content">
-        <span class="close" onclick="closeMutationModal()"
-            style="float:right; cursor:pointer; font-size:28px;">&times;</span>
+        <span class="close style-28b21c" onclick="closeMutationModal()">&times;</span>
         <h2 id="mutationModalTitle">Nuova Mutazione</h2>
         <form id="mutationForm" onsubmit="saveMutation(event)">
             <input type="hidden" id="mutationId">
             <div class="form-group">
                 <label>Range d100 (Min - Max)</label>
                 <div class="dice-range">
-                    <input type="number" id="mutMin" placeholder="Min" required style="width: 80px;">
+                    <input class="style-db80b5" type="number" id="mutMin" placeholder="Min" required>
                     <span>-</span>
-                    <input type="number" id="mutMax" placeholder="Max" required style="width: 80px;">
+                    <input class="style-db80b5" type="number" id="mutMax" placeholder="Max" required>
                 </div>
             </div>
             <div class="form-group">
@@ -287,9 +280,8 @@
                 <label>Effetto</label>
                 <textarea id="mutEffect" rows="3" required></textarea>
             </div>
-            <div style="text-align: right; margin-top: 1rem;">
-                <button type="button" class="btn" onclick="closeMutationModal()"
-                    style="background:#555; color:#fff; margin-right:10px;">Annulla</button>
+            <div class="textalign-0ac85b" >
+                <button type="button" class="btn background-color-cb1af7" onclick="closeMutationModal()">Annulla</button>
                 <button type="submit" class="btn btn-primary">Salva</button>
             </div>
         </form>
@@ -299,8 +291,7 @@
 <!-- Inventory Modal -->
 <div id="inventoryModal" class="modal">
     <div class="modal-content">
-        <span class="close" onclick="closeInventoryModal()"
-            style="float:right; cursor:pointer; font-size:28px;">&times;</span>
+        <span class="close style-28b21c" onclick="closeInventoryModal()">&times;</span>
         <h2 id="inventoryModalTitle">Nuovo Oggetto</h2>
         <form id="inventoryForm" onsubmit="saveInventoryItem(event)">
             <input type="hidden" id="inventoryItemId">
@@ -331,14 +322,13 @@
             <div class="form-group">
                 <label>Tipi di Negozio</label>
                 <div id="inventoryShopTypesContainer" class="tag-container"></div>
-                <div style="position: relative; margin-top: 5px;">
+                <div class="position-46345c" >
                     <input type="text" id="inventoryShopTypeInput" placeholder="Aggiungi tipo di negozio..." autocomplete="off">
                     <ul id="inventoryShopTypeSuggestions" class="suggestions-list"></ul>
                 </div>
             </div>
-            <div style="text-align: right; margin-top: 1rem;">
-                <button type="button" class="btn" onclick="closeInventoryModal()"
-                    style="background:#555; color:#fff; margin-right:10px;">Annulla</button>
+            <div class="textalign-0ac85b" >
+                <button type="button" class="btn background-color-cb1af7" onclick="closeInventoryModal()">Annulla</button>
                 <button type="submit" class="btn btn-primary">Salva</button>
             </div>
         </form>

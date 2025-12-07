@@ -251,3 +251,61 @@
         visibility: visible;
         opacity: 1;
     }
+
+/* Stili estratti da HTML */
+
+.style-b3a15a {
+    width: 100px;
+}
+
+.style-d44c18 {
+    width: 120px;
+}
+
+.style-d9900c {
+    width: 150px;
+}
+
+.style-b9fd24 {
+    max-width: 800px;
+}
+
+.style-28b21c {
+    float:right;
+    cursor:pointer;
+    font-size:28px;
+}
+
+.display-092071 {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 5px;
+    margin-bottom: 1rem;
+}
+
+.display-4209a0 {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 5px;
+    margin-bottom: 1rem;
+}
+
+.position-46345c {
+    position: relative;
+    margin-top: 5px;
+}
+
+.textalign-0ac85b {
+    text-align: right;
+    margin-top: 1rem;
+}
+
+.background-color-cb1af7 {
+    background:#555;
+    color:#fff;
+    margin-right:10px;
+}
+
+.style-db80b5 {
+    width: 80px;
+}

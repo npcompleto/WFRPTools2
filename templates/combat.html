@@ -16,7 +16,7 @@
         </div>
         <div id="combatantList" class="npc-grid">
             <!-- Active combatants will be loaded here -->
-            <div style="grid-column: 1/-1; text-align: center; color: #666; padding: 2rem;">
+            <div class="color-padding-a8e04f" >
                 Nessun combattente attivo. Aggiungi PNG dalla libreria sottostante.
             </div>
         </div>
@@ -25,12 +25,11 @@
         <!-- Dead Combatants Section -->
         <section>
             <div class="section-header">
-                <h2 class="section-title" style="color: #666;">💀 Caduti</h2>
-                <button class="btn" onclick="clearDeadList()" style="background: #555; color: #fff;">Svuota
+                <h2 class="section-title color-7b6573">💀 Caduti</h2>
+                <button class="btn background-color-5302bf" onclick="clearDeadList()">Svuota
                     Lista</button>
             </div>
-            <div id="deadList"
-                style="display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 1rem; background: #1a1a1a; border-radius: 4px; min-height: 50px; margin-bottom: 2em;">
+            <div class="background-display-5a8410" id="deadList">
                 <!-- Dead combatants will be listed here -->
             </div>
         </section>
@@ -43,7 +42,7 @@
             </div>
             <div id="pgList" class="npc-grid">
                 <!-- Player characters will be loaded here -->
-                <div style="grid-column: 1/-1; text-align: center; color: #666; padding: 2rem;">
+                <div class="color-padding-a8e04f" >
                     Nessun PG inserito. Aggiungi i tuoi personaggi giocanti.
                 </div>
             </div>
@@ -72,57 +71,52 @@
         </div>
 
         <!-- Search Filters -->
-        <div
-            style="background: #2a2a2a; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #444;">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+        <div class="background-padding-3ebf98" >
+            <div class="display-71df5f" >
                 <div>
-                    <label style="display: block; color: #aaa; margin-bottom: 5px; font-size: 0.9rem;">Cerca per
+                    <label class="color-display-bb3347" >Cerca per
                         Nome</label>
-                    <input type="text" id="searchName" placeholder="Nome PNG..."
-                        style="width: 100%; padding: 8px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;"
+                    <input class="background-color-3ac7b4" type="text" id="searchName" placeholder="Nome PNG..."
                         oninput="filterNPCTable()">
                 </div>
                 <div>
-                    <label style="display: block; color: #aaa; margin-bottom: 5px; font-size: 0.9rem;">Cerca per
+                    <label class="color-display-bb3347" >Cerca per
                         Abilità</label>
-                    <input type="text" id="searchSkill" placeholder="Abilità..."
-                        style="width: 100%; padding: 8px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;"
+                    <input class="background-color-3ac7b4" type="text" id="searchSkill" placeholder="Abilità..."
                         oninput="filterNPCTable()">
                 </div>
                 <div>
-                    <label style="display: block; color: #aaa; margin-bottom: 5px; font-size: 0.9rem;">Cerca per
+                    <label class="color-display-bb3347" >Cerca per
                         Talento</label>
-                    <input type="text" id="searchTalent" placeholder="Talento..."
-                        style="width: 100%; padding: 8px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;"
+                    <input class="background-color-3ac7b4" type="text" id="searchTalent" placeholder="Talento..."
                         oninput="filterNPCTable()">
                 </div>
             </div>
-            <button class="btn" onclick="clearNPCFilters()"
-                style="margin-top: 10px; background: #555; color: #fff;">Cancella Filtri</button>
+            <button class="btn background-color-eadd71" onclick="clearNPCFilters()">Cancella Filtri</button>
         </div>
 
         <!-- NPC Table -->
-        <div style="overflow-x: auto; background: #2a2a2a; border-radius: 8px; border: 1px solid #444;">
-            <table id="npcTable" style="width: 100%; border-collapse: collapse; color: #fff;">
+        <div class="background-3c4f66" >
+            <table class="color-fa8d0a" id="npcTable">
                 <thead>
-                    <tr style="background: #1a1a1a; border-bottom: 2px solid #ffd700;">
-                        <th style="padding: 10px; text-align: left; color: #ffd700; font-size: 0.9rem;">ID</th>
-                        <th style="padding: 10px; text-align: left; color: #ffd700; font-size: 0.9rem;">Nome</th>
-                        <th style="padding: 10px; text-align: left; color: #ffd700; font-size: 0.9rem;">Segni</th>
-                        <th style="padding: 10px; text-align: center; color: #ffd700; font-size: 0.8rem;">AC</th>
-                        <th style="padding: 10px; text-align: center; color: #ffd700; font-size: 0.8rem;">AB</th>
-                        <th style="padding: 10px; text-align: center; color: #ffd700; font-size: 0.8rem;">F</th>
-                        <th style="padding: 10px; text-align: center; color: #ffd700; font-size: 0.8rem;">R</th>
-                        <th style="padding: 10px; text-align: center; color: #ffd700; font-size: 0.8rem;">Ag</th>
-                        <th style="padding: 10px; text-align: center; color: #ffd700; font-size: 0.8rem;">Int</th>
-                        <th style="padding: 10px; text-align: center; color: #ffd700; font-size: 0.8rem;">Vol</th>
-                        <th style="padding: 10px; text-align: center; color: #ffd700; font-size: 0.8rem;">Sim</th>
-                        <th style="padding: 10px; text-align: center; color: #ffd700; font-size: 0.8rem;">A</th>
-                        <th style="padding: 10px; text-align: center; color: #ffd700; font-size: 0.8rem;">Fe</th>
-                        <th style="padding: 10px; text-align: center; color: #ffd700; font-size: 0.8rem;">M</th>
-                        <th style="padding: 10px; text-align: left; color: #ffd700; font-size: 0.9rem;">Abilità</th>
-                        <th style="padding: 10px; text-align: left; color: #ffd700; font-size: 0.9rem;">Talenti</th>
-                        <th style="padding: 10px; text-align: center; color: #ffd700; font-size: 0.9rem;">Azioni</th>
+                    <tr class="background-64c1c3" >
+                        <th class="color-padding-828720" >ID</th>
+                        <th class="color-padding-828720" >Nome</th>
+                        <th class="color-padding-828720" >Segni</th>
+                        <th class="color-padding-f3c182" >AC</th>
+                        <th class="color-padding-f3c182" >AB</th>
+                        <th class="color-padding-f3c182" >F</th>
+                        <th class="color-padding-f3c182" >R</th>
+                        <th class="color-padding-f3c182" >Ag</th>
+                        <th class="color-padding-f3c182" >Int</th>
+                        <th class="color-padding-f3c182" >Vol</th>
+                        <th class="color-padding-f3c182" >Sim</th>
+                        <th class="color-padding-f3c182" >A</th>
+                        <th class="color-padding-f3c182" >Fe</th>
+                        <th class="color-padding-f3c182" >M</th>
+                        <th class="color-padding-828720" >Abilità</th>
+                        <th class="color-padding-828720" >Talenti</th>
+                        <th class="color-padding-739ec2" >Azioni</th>
                     </tr>
                 </thead>
                 <tbody id="npcTableBody">
@@ -130,8 +124,7 @@
                 </tbody>
             </table>
         </div>
-        <div id="npcTableEmpty"
-            style="display: none; text-align: center; color: #666; padding: 2rem; background: #2a2a2a; border-radius: 8px; border: 1px solid #444; margin-top: 1rem;">
+        <div class="background-color-41b115" id="npcTableEmpty">
             Nessun PNG trovato.
         </div>
     </section>
@@ -141,7 +134,7 @@
 <!-- Add/Edit Modal -->
 <div id="npcModal" class="modal">
     <div class="modal-content">
-        <span class="close" onclick="closeModal()" style="float:right; cursor:pointer; font-size:28px;">&times;</span>
+        <span class="close style-28b21c" onclick="closeModal()">&times;</span>
         <h2 id="modalTitle">Nuovo PNG</h2>
 
         <form id="npcForm" onsubmit="saveNPC(event)">
@@ -163,14 +156,12 @@
                 <textarea id="description" rows="3"></textarea>
 
                 <!-- Mutation Controls (Visible only for Combatants) -->
-                <div id="mutationControls"
-                    style="display:none; margin-top: 5px; padding: 10px; background: #333; border-radius: 4px;">
-                    <label style="color: #ffd700; margin-bottom: 5px; display: block;">Aggiungi Mutazione del
+                <div class="background-display-29ae6a" id="mutationControls">
+                    <label class="color-display-7ccc1f" >Aggiungi Mutazione del
                         Caos</label>
-                    <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                    <div class="display-66a140" >
                         <button type="button" class="btn btn-add" onclick="addRandomMutation()">Casuale (d100)</button>
-                        <select id="mutationSelect"
-                            style="flex-grow: 1; padding: 5px; background: #222; color: #fff; border: 1px solid #555;">
+                        <select class="background-color-f6c8ac" id="mutationSelect">
                             <option value="">-- Seleziona Mutazione --</option>
                         </select>
                         <button type="button" class="btn btn-primary" onclick="addSelectedMutation()">Aggiungi</button>
@@ -178,18 +169,16 @@
                 </div>
 
                 <!-- Career Application Controls -->
-                <div id="careerControls"
-                    style="margin-top: 10px; padding: 10px; background: #1a3a1a; border-radius: 4px; border: 1px solid #28a745;">
-                    <label style="color: #28a745; margin-bottom: 5px; display: block; font-weight: bold;">Applica
+                <div class="background-padding-c060af" id="careerControls">
+                    <label class="color-display-b34b67" >Applica
                         Carriera</label>
-                    <div style="display: flex; gap: 5px; flex-wrap: wrap; align-items: center;">
-                        <select id="careerSelect"
-                            style="flex-grow: 1; padding: 5px; background: #222; color: #fff; border: 1px solid #555;">
+                    <div class="display-7a54ff" >
+                        <select class="background-color-f6c8ac" id="careerSelect">
                             <option value="">-- Seleziona Carriera --</option>
                         </select>
                         <button type="button" class="btn btn-add" onclick="applyCareerToNPC()">Applica Carriera</button>
                     </div>
-                    <div style="font-size: 0.75rem; color: #aaa; margin-top: 5px;">
+                    <div class="color-92c505" >
                         Somma le statistiche, aggiunge abilità/talenti (duplicati consentiti) e ferri del mestiere
                     </div>
                 </div>
@@ -228,7 +217,7 @@
             <div class="form-group">
                 <label>Talenti</label>
                 <div id="talentsContainer" class="tag-container"></div>
-                <div style="position: relative; margin-top: 5px;">
+                <div class="position-46345c" >
                     <input type="text" id="talentInput" placeholder="Aggiungi talento..." autocomplete="off">
                     <ul id="talentSuggestions" class="suggestions-list"></ul>
                 </div>
@@ -236,7 +225,7 @@
             <div class="form-group">
                 <label>Abilità</label>
                 <div id="skillsContainer" class="tag-container"></div>
-                <div style="position: relative; margin-top: 5px;">
+                <div class="position-46345c" >
                     <input type="text" id="skillInput" placeholder="Aggiungi abilità..." autocomplete="off">
                     <ul id="skillSuggestions" class="suggestions-list"></ul>
                 </div>
@@ -258,9 +247,8 @@
                 <textarea id="equipment" rows="2"></textarea>
             </div>
 
-            <div style="text-align: right; margin-top: 1rem;">
-                <button type="button" class="btn" onclick="closeModal()"
-                    style="background:#555; color:#fff; margin-right:10px;">Annulla</button>
+            <div class="textalign-0ac85b" >
+                <button type="button" class="btn background-color-cb1af7" onclick="closeModal()">Annulla</button>
                 <button type="submit" class="btn btn-primary">Salva</button>
             </div>
         </form>
@@ -271,7 +259,7 @@
 <!-- Add/Edit PG Modal -->
 <div id="pgModal" class="modal">
     <div class="modal-content">
-        <span class="close" onclick="closePGModal()" style="float:right; cursor:pointer; font-size:28px;">&times;</span>
+        <span class="close style-28b21c" onclick="closePGModal()">&times;</span>
         <h2 id="pgModalTitle">Nuovo PG</h2>
 
         <form id="pgForm" onsubmit="savePG(event)">
@@ -314,9 +302,8 @@
                 <div class="stat-input-group"><label>Gambe</label><input type="number" id="pgArmorLegs"></div>
             </div>
 
-            <div style="text-align: right; margin-top: 1rem;">
-                <button type="button" class="btn" onclick="closePGModal()"
-                    style="background:#555; color:#fff; margin-right:10px;">Annulla</button>
+            <div class="textalign-0ac85b" >
+                <button type="button" class="btn background-color-cb1af7" onclick="closePGModal()">Annulla</button>
                 <button type="submit" class="btn btn-primary">Salva</button>
             </div>
         </form>
@@ -325,20 +312,18 @@
 
 
 <!-- Critical Hit Modal -->
-<div id="criticalHitModal" class="modal" style="display: none;">
-    <div class="modal-content" style="max-width: 700px;">
-        <div
-            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 2px solid #dc3545; padding-bottom: 0.5rem;">
-            <h2 style="margin: 0; color: #dc3545;">⚠️ COLPO CRITICO</h2>
-            <button onclick="closeCriticalHitModal()"
-                style="background: none; border: none; color: #fff; font-size: 2rem; cursor: pointer; line-height: 1;">&times;</button>
+<div id="criticalHitModal" class="modal display-9c7663">
+    <div class="modal-content style-f715fa">
+        <div class="display-c536d1" >
+            <h2 class="color-margin-e0b3a3" >⚠️ COLPO CRITICO</h2>
+            <button class="background-color-a24239" onclick="closeCriticalHitModal()">&times;</button>
         </div>
 
-        <div id="criticalHitContent" style="max-height: 60vh; overflow-y: auto;">
+        <div class="style-1030c0" id="criticalHitContent">
             <!-- Content will be populated by JavaScript -->
         </div>
 
-        <div style="text-align: right; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #444;">
+        <div class="textalign-cd93d7" >
             <button class="btn btn-danger" onclick="closeCriticalHitModal()">Chiudi</button>
         </div>
     </div>

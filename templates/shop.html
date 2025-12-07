@@ -14,11 +14,10 @@
     <div class="shop-layout">
         <!-- Inventory Section -->
         <div class="inventory-section">
-            <div class="filters" style="margin-bottom: 2rem;">
+            <div class="filters style-6b71a2">
                 <form action="{{ url_for('shop') }}" method="get">
                     <label for="shop-type">Tipo di Negozio:</label>
-                    <select name="type" id="shop-type" onchange="this.form.submit()"
-                        style="padding: 0.5rem; border-radius: 4px; background: #333; color: #fff; border: 1px solid #555;">
+                    <select class="background-color-62f18d" name="type" id="shop-type" onchange="this.form.submit()">
                         <option value="">Tutti</option>
                         {% for type_name in shop_types %}
                         <option value="{{ type_name }}" {% if selected_type==type_name %}selected{% endif %}>{{
@@ -27,9 +26,8 @@
                         {% endfor %}
                     </select>
 
-                    <label for="city-size" style="margin-left: 1rem;">Dimensione Città:</label>
-                    <select name="city_size" id="city-size" onchange="this.form.submit()"
-                        style="padding: 0.5rem; border-radius: 4px; background: #333; color: #fff; border: 1px solid #555;">
+                    <label class="style-1798d0" for="city-size">Dimensione Città:</label>
+                    <select class="background-color-62f18d" name="city_size" id="city-size" onchange="this.form.submit()">
                         <option value="< 100" {% if selected_city_size=='< 100' %}selected{% endif %}>&lt; 100</option>
                         <option value="< 1000" {% if selected_city_size=='< 1000' %}selected{% endif %}>&lt; 1000
                         </option>
@@ -39,9 +37,8 @@
                         </option>
                     </select>
 
-                    <label for="quality" style="margin-left: 1rem;">Fattura:</label>
-                    <select name="quality" id="quality" onchange="this.form.submit()"
-                        style="padding: 0.5rem; border-radius: 4px; background: #333; color: #fff; border: 1px solid #555;">
+                    <label class="style-1798d0" for="quality">Fattura:</label>
+                    <select class="background-color-62f18d" name="quality" id="quality" onchange="this.form.submit()">
                         <option value="Regale" {% if selected_quality=='Regale' %}selected{% endif %}>Regale</option>
                         <option value="Nobiliare" {% if selected_quality=='Nobiliare' %}selected{% endif %}>Nobiliare
                         </option>
@@ -97,11 +94,10 @@
 
         <!-- Carts Section -->
         <div class="carts-section">
-            <h3 style="margin-top: 0;">Gestione Carrelli</h3>
+            <h3 class="style-b8f7c9" >Gestione Carrelli</h3>
             <div class="cart-controls">
                 <button onclick="createNewCart()" class="btn-small">Nuovo Carrello</button>
-                <button onclick="clearCarts()" class="btn-small"
-                    style="background: #d32f2f; border-color: #b71c1c;">Reset</button>
+                <button onclick="clearCarts()" class="btn-small background-19ff74">Reset</button>
             </div>
             <div id="carts-container">
                 <!-- Carts will be rendered here -->

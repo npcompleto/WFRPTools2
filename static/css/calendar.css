@@ -349,3 +349,15 @@
         flex-direction: column;
         gap: 2px;
     }
+
+/* Stili estratti da HTML */
+
+.margin-735066 {
+    border: 0;
+    border-top: 1px solid #444;
+    margin: 0.5rem 0;
+}
+
+.display-9c7663 {
+    display: none;
+}
