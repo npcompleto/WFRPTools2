@@ -194,8 +194,7 @@ function setupSkillInput() {
         }
 
         const filtered = allSkills.filter(skill =>
-            skill.name.toLowerCase().includes(value) &&
-            !selectedSkills.includes(skill.name)
+            skill.name.toLowerCase().includes(value)
         );
 
         if (filtered.length > 0) {
@@ -365,10 +364,14 @@ function addSkill(skillName) {
         skillName = skillName.replace('(varie)', `(${replacement.trim()})`);
     }
 
-    if (!selectedSkills.includes(skillName)) {
-        selectedSkills.push(skillName);
-        renderSkillTags();
-    }
+    const replacement = prompt('Vuoi aggiungere un bonus?', '');
+    if (replacement.trim() !== '')
+        skillName = skillName + ` [+${replacement.trim() || 0}%]`;
+
+    //if (!selectedSkills.includes(skillName)) {
+    selectedSkills.push(skillName);
+    renderSkillTags();
+    //}
 }
 
 function removeSkill(skillName) {
@@ -380,8 +383,9 @@ function renderSkillTags() {
     const container = document.getElementById('skillsContainer');
     container.innerHTML = selectedSkills.map(skillName => {
         let skill = allSkills.find(s => s.name === skillName);
-        if (!skill && skillName.includes('(') && skillName.includes(')')) {
-            const baseSkillName = skillName.replace(/\([^)]+\)/, '(varie)');
+        if (!skill && (skillName.includes('(') && skillName.includes(')') || skillName.includes('['))) {
+            let baseSkillName = skillName.replace(/\([^)]+\)/, '(varie)');
+            baseSkillName = skillName.replace(/\[\+[0-9]+%\]/, '');
             skill = allSkills.find(s => s.name === baseSkillName);
         }
 
@@ -406,8 +410,9 @@ function renderSkillTags() {
 
 function getSkillBadgeHTML(skillName) {
     let skill = allSkills.find(s => s.name === skillName);
-    if (!skill && skillName.includes('(') && skillName.includes(')')) {
-        const baseSkillName = skillName.replace(/\([^)]+\)/, '(varie)');
+    if (!skill && (skillName.includes('(') && skillName.includes(')') || skillName.includes('['))) {
+        let baseSkillName = skillName.replace(/\([^)]+\)/, '(varie)');
+        baseSkillName = skillName.replace(/ \[\+[0-9]+%\]/, '');
         skill = allSkills.find(s => s.name === baseSkillName);
     }
 
@@ -937,7 +942,7 @@ function renderCombatants() {
     combatants.forEach((combatant, index) => {
         const isPG = combatant.isPG;
         const container = isPG ? pgContainer : npcContainer;
-        
+
         const card = document.createElement('div');
         card.className = 'npc-card combatant';
         if (isPG) card.style.borderColor = '#007bff';
@@ -954,7 +959,7 @@ function renderCombatants() {
         // Let's allow targeting anyone from the OTHER list to keep it clean, or anyone?
         // Let's filter for opposite type for now as it makes most sense.
         const potentialTargets = combatants.filter(c => c.isPG !== isPG);
-        
+
         let targetOptions = '<option value="">-- Nessun Target --</option>';
         potentialTargets.forEach(t => {
             const selected = combatant.targetId === t.instanceId ? 'selected' : '';
@@ -1039,7 +1044,7 @@ function updateTarget(sourceId, targetId) {
         const target = combatants.find(c => c.instanceId == targetId);
         if (target) {
             source.targetId = parseFloat(targetId);
-            
+
             // Auto-link reverse ONLY if target has no target
             // This allows multiple combatants to target the same person without breaking existing links
             if (!target.targetId) {
@@ -1047,7 +1052,7 @@ function updateTarget(sourceId, targetId) {
             }
         }
     }
-    
+
     renderCombatants();
 }
 
@@ -1671,7 +1676,7 @@ function handleCriticalHit(instanceId) {
         const armsEffect = criticalEffects['arms'][criticalHitValue - 1];
         const bodyEffect = criticalEffects['body'][criticalHitValue - 1];
         const legsEffect = criticalEffects['legs'][criticalHitValue - 1];
-        
+
         // Popola il contenuto del modal
         const modalContent = document.getElementById('criticalHitContent');
         modalContent.innerHTML = `
@@ -1717,7 +1722,7 @@ function handleCriticalHit(instanceId) {
                 </div>
             </div>
         `;
-        
+
         // Mostra il modal
         document.getElementById('criticalHitModal').style.display = 'block';
     } else {
@@ -1734,21 +1739,21 @@ function handleDeath(instanceId) {
         console.error('Combatant not found:', instanceId);
         return;
     }
-    
+
     // Confirm death
     if (!confirm(`Confermi la morte di ${combatant.name}?`)) {
         return;
     }
-    
+
     // Add to dead list
     deadCombatants.push({
         name: combatant.name,
         timestamp: new Date().toLocaleTimeString()
     });
-    
+
     // Remove from active combatants
     combatants = combatants.filter(c => c.instanceId !== instanceId);
-    
+
     // Re-render both lists
     renderCombatants();
     renderDeadList();
@@ -1757,12 +1762,12 @@ function handleDeath(instanceId) {
 function renderDeadList() {
     const container = document.getElementById('deadList');
     if (!container) return;
-    
+
     if (deadCombatants.length === 0) {
         container.innerHTML = '<div style="color: #666; font-style: italic;">Nessun caduto</div>';
         return;
     }
-    
+
     container.innerHTML = deadCombatants.map(dead => `
         <div style="background: #2a2a2a; border: 1px solid #444; border-radius: 4px; padding: 0.5rem 1rem; display: inline-flex; align-items: center; gap: 0.5rem;">
             <span style="color: #666;">💀</span>
@@ -1774,7 +1779,7 @@ function renderDeadList() {
 
 function clearDeadList() {
     if (deadCombatants.length === 0) return;
-    
+
     if (confirm('Svuotare la lista dei caduti?')) {
         deadCombatants = [];
         renderDeadList();
@@ -1809,7 +1814,7 @@ function closeCriticalHitModal() {
 }
 
 // Close modal when clicking outside
-window.addEventListener('click', function(event) {
+window.addEventListener('click', function (event) {
     const modal = document.getElementById('criticalHitModal');
     if (event.target === modal) {
         closeCriticalHitModal();
@@ -1836,7 +1841,7 @@ function renderCombatGraph() {
         },
         font: { color: '#ffffff' }
     }));
-    
+
     const nodes = new vis.DataSet(nodesArray);
 
     // Prepare edges
@@ -1852,7 +1857,7 @@ function renderCombatGraph() {
             });
         }
     });
-    
+
     const edges = new vis.DataSet(edgesArray);
 
     const data = { nodes, edges };
