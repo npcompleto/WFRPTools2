@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block title %}Viaggi - RPG Tools{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<style>
+    #map {
+        height: calc(100vh - 100px);
+        /* Adjust based on navbar height */
+        width: 100%;
+        background: #242424;
+    }
+
+    .sidebar {
+        position: absolute;
+        top: 80px;
+        left: 20px;
+        z-index: 1000;
+        background: rgba(30, 30, 30, 0.9);
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        width: 250px;
+        color: var(--text-color);
+    }
+
+    .map-list-item {
+        padding: 8px;
+        cursor: pointer;
+        border-bottom: 1px solid #444;
+    }
+
+    .map-list-item:hover {
+        background-color: #333;
+    }
+
+    .map-list-item.active {
+        background-color: var(--accent-color);
+        color: var(--bg-color);
+    }
+
+    .sidebar-toggle {
+        position: absolute;
+        top: 80px;
+        left: 20px;
+        z-index: 1001;
+        /* Above sidebar and map */
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        color: var(--accent-color);
+        padding: 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: none;
+        /* Hidden by default, shown when sidebar is hidden */
+    }
+
+    .sidebar.hidden {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="map"></div>
+
+<button id="sidebarToggle" class="sidebar-toggle" title="Strumenti Mappa">
+    ☰
+</button>
+
+<div class="sidebar" id="sidebar">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0;">Mappe</h3>
+        <span id="closeSidebar" style="cursor: pointer; font-size: 1.2rem;">&times;</span>
+    </div>
+    <hr style="border-color: #444; margin: 10px 0;">
+    <button id="uploadBtn" class="btn btn-primary" style="width: 100%; margin-bottom: 10px;">Nuova Mappa</button>
+    <div id="mapList">
+        <!-- List of maps will serve here -->
+    </div>
+</div>
+
+<!-- Upload Modal -->
+<div id="uploadModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Carica Nuova Mappa</h2>
+        <form id="uploadForm">
+            <div class="form-group">
+                <label for="mapName">Nome Mappa</label>
+                <input type="text" id="mapName" name="name" required>
+            </div>
+            <div class="form-group">
+                <label for="mapImage">Immagine (JPG/PNG)</label>
+                <input type="file" id="mapImage" name="image" accept="image/*" required>
+            </div>
+            <button type="submit" class="btn btn-success">Carica</button>
+        </form>
+        <div id="progressContainer" style="display: none; margin-top: 20px;">
+            <p id="progressText">Caricamento in corso...</p>
+            <div style="width: 100%; background-color: #444; border-radius: 4px;">
+                <div id="progressBar"
+                    style="width: 0%; height: 20px; background-color: var(--accent-color); border-radius: 4px; transition: width 0.3s;">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="{{ url_for('static', filename='js/travel.js') }}"></script>
+{% endblock %}

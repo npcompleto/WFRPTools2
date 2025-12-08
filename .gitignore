@@ -74,3 +74,6 @@ ENV/
 *.temp
 .tmp/
 .temp/
+
+# Maps
+static/maps/

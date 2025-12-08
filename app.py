@@ -2,7 +2,10 @@ import json
 import os
 import pandas as pd
 import sqlite3
-from flask import Flask, render_template, request, g
+from flask import Flask, render_template, request, g, send_from_directory
+from PIL import Image
+import math
+import shutil
 
 app = Flask(__name__)
 DATABASE = 'wfrp.db'
@@ -127,6 +130,17 @@ def create_table():
             costo TEXT,
             tipo TEXT,
             shop_types TEXT
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS maps (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            width INTEGER,
+            height INTEGER,
+            max_zoom INTEGER,
+            tile_format TEXT,
+            min_zoom INTEGER DEFAULT 0
         )
     ''')
     conn.commit()
@@ -1030,7 +1044,127 @@ def delete_inventory(id):
     return {'success': True}
 
 
+MAPS_FOLDER = os.path.join('static', 'maps')
+if not os.path.exists(MAPS_FOLDER):
+    os.makedirs(MAPS_FOLDER)
 
+def process_map_image(file, map_id):
+    """
+    Processes the uploaded map image:
+    1. Saves the original.
+    2. Generates tiles for Leaflet (XYZ format).
+    """
+    map_dir = os.path.join(MAPS_FOLDER, str(map_id))
+    if os.path.exists(map_dir):
+        shutil.rmtree(map_dir)
+    os.makedirs(map_dir)
+    
+    # Save original temporarily to process
+    original_path = os.path.join(map_dir, 'original.img')
+    file.save(original_path)
+    
+    # Disable decompression bomb check for large maps
+    Image.MAX_IMAGE_PIXELS = None
+    
+    with Image.open(original_path) as img:
+        width, height = img.size
+        
+        # Calculate max zoom
+        # Leaflet's CRS.Simple:
+        # zoom 0: 1 tile (whole image fits in 256x256 approx)
+        max_dim = max(width, height)
+        max_zoom = math.ceil(math.log(max_dim / 256, 2))
+        max_zoom = max(max_zoom, 0)
+        
+        tile_size = 256
+        
+        for z in range(max_zoom + 1):
+            # Scale factor for this zoom level
+            scale = pow(2, z - max_zoom) 
+            
+            level_width = int(width * scale)
+            level_height = int(height * scale)
+            
+            if level_width <= 0 or level_height <= 0: continue
+            
+            img_level = img.resize((level_width, level_height), Image.Resampling.LANCZOS)
+            
+            cols = math.ceil(level_width / tile_size)
+            rows = math.ceil(level_height / tile_size)
+            
+            z_dir = os.path.join(map_dir, str(z))
+            if not os.path.exists(z_dir):
+                os.makedirs(z_dir)
+            
+            for x in range(cols):
+                for y in range(rows):
+                    left = x * tile_size
+                    upper = y * tile_size
+                    right = min(left + tile_size, level_width)
+                    lower = min(upper + tile_size, level_height)
+                    
+                    if right <= left or lower <= upper: continue
+                    
+                    tile = img_level.crop((left, upper, right, lower))
+                    
+                    tile_path = os.path.join(z_dir, f"{x}_{y}.jpg")
+                    tile.save(tile_path, quality=85)
+                    
+        return width, height, max_zoom
+
+@app.route('/api/maps', methods=['GET'])
+def get_maps():
+    try:
+        db = get_db()
+        cursor = db.execute('SELECT * FROM maps')
+        maps = [dict(row) for row in cursor.fetchall()]
+        return {'success': True, 'maps': maps}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}, 500
+
+@app.route('/api/maps', methods=['POST'])
+def upload_map():
+    name = request.form.get('name')
+    file = request.files.get('image')
+    
+    if not name or not file:
+        return {'success': False, 'error': 'Name and image are required'}, 400
+        
+    try:
+        db = get_db()
+        cursor = db.execute('INSERT INTO maps (name) VALUES (?)', (name,))
+        map_id = cursor.lastrowid
+        db.commit()
+        
+        # Process image
+        width, height, max_zoom = process_map_image(file, map_id)
+        
+        # Update map details
+        db.execute('UPDATE maps SET width=?, height=?, max_zoom=?, tile_format=?, min_zoom=0 WHERE id=?',
+                   (width, height, max_zoom, 'jpg', map_id))
+        db.commit()
+        
+        return {'success': True, 'id': map_id}
+    except Exception as e:
+        print(f"Error processing map: {e}")
+        return {'success': False, 'error': str(e)}, 500
+
+@app.route('/api/maps/<int:id>', methods=['DELETE'])
+def delete_map(id):
+    db = get_db()
+    db.execute('DELETE FROM maps WHERE id = ?', (id,))
+    db.commit()
+    
+    # Delete files
+    map_dir = os.path.join(MAPS_FOLDER, str(id))
+    if os.path.exists(map_dir):
+        shutil.rmtree(map_dir)
+        
+    return {'success': True}
+
+@app.route('/travel')
+def travel():
+    return render_template('travel.html')
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
