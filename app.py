@@ -6,6 +6,12 @@ from flask import Flask, render_template, request, g, send_from_directory
 from PIL import Image
 import math
 import shutil
+import google.generativeai as genai
+
+# Configure Gemini
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
 
 app = Flask(__name__)
 DATABASE = 'wfrp.db'
@@ -140,7 +146,8 @@ def create_table():
             height INTEGER,
 
             min_zoom INTEGER DEFAULT 0,
-            pixels_per_inch INTEGER DEFAULT 96
+            pixels_per_inch INTEGER DEFAULT 96,
+            center_poi_id INTEGER REFERENCES pois(id)
         )
     ''')
     c.execute('''
@@ -168,6 +175,8 @@ def create_table():
             end_y REAL,
             distance REAL,
             description TEXT,
+            points TEXT,
+            transport TEXT DEFAULT 'piedi',
             FOREIGN KEY (map_id) REFERENCES maps (id),
             FOREIGN KEY (start_poi_id) REFERENCES pois (id),
             FOREIGN KEY (end_poi_id) REFERENCES pois (id)
@@ -847,115 +856,7 @@ def delete_chaos_mutation(id):
 
 # --- Map Management ---
 
-@app.route('/api/maps', methods=['GET'])
-def get_maps():
-    db = get_db()
-    cursor = db.execute('SELECT * FROM maps')
-    maps = [dict(row) for row in cursor.fetchall()]
-    return {'success': True, 'maps': maps}
 
-@app.route('/api/maps', methods=['POST'])
-def upload_map():
-    if 'image' not in request.files:
-        return {'success': False, 'error': 'No image provided'}, 400
-    
-    file = request.files['image']
-    name = request.form.get('name')
-    
-    if not file or not name:
-        return {'success': False, 'error': 'Missing name or file'}, 400
-
-    if file.filename == '':
-        return {'success': False, 'error': 'No selected file'}, 400
-
-    try:
-        # Save original image
-        Image.MAX_IMAGE_PIXELS = None  # Disable limit for large maps
-        img = Image.open(file)
-        width, height = img.size
-        
-        # Calculate max zoom level based on image size and tile size (256x256)
-        # We want to be able to zoom in until 1:1 ratio
-        # Level 0: 1 tile covering the whole world? No, usually Level 0 is most zoomed out.
-        # But for Leaflet simple CRS with custom tiles, it depends on how we generate them.
-        # Let's say we want tiles up to standard detail.
-        # Standard approach: Tiling pyramidal.
-        # Let's stick to a simpler approach: Just one large image? No, browser will crash.
-        # We MUST tile it.
-        
-        # Let's generate tiles.
-        conn = get_db()
-        cursor = conn.execute('INSERT INTO maps (name, width, height, max_zoom) VALUES (?, ?, ?, ?)', (name, width, height, 0))
-        map_id = cursor.lastrowid
-        conn.commit()
-
-        # Create directory
-        map_dir = os.path.join(app.root_path, 'static', 'maps', str(map_id))
-        os.makedirs(map_dir, exist_ok=True)
-        
-        from math import ceil, log2
-        
-        # Calculate levels
-        # We want the highest zoom level to be the original resolution.
-        # 256 * 2^z >= max(width, height)
-        max_dim = max(width, height)
-        max_zoom = ceil(log2(max_dim / 256))
-        
-        # Update max_zoom in db
-        conn.execute('UPDATE maps SET max_zoom = ? WHERE id = ?', (max_zoom, map_id))
-        conn.commit()
-
-        # Generate tiles
-        # We will generate tiles for zoom levels 0 to max_zoom
-        # At max_zoom, one pixel is one pixel.
-        # Standard Leaflet: level 0 is world. 
-        # Here we invert logic slightly or map it:
-        # Let's say we generate standard XYZ tiles.
-        # For zoom level z, we resize image to 256 * 2^z? No.
-        # At max_zoom (let's call it Z), the image is its full size.
-        # At Z-1, it is half size.
-        # ...
-        # At 0, it is smallest.
-        
-        # Let's iterate downwards
-        current_img = img
-        for z in range(max_zoom, -1, -1):
-            # Create directory for zoom level
-            z_dir = os.path.join(map_dir, str(z))
-            os.makedirs(z_dir, exist_ok=True)
-            
-            # Tile current image
-            w, h = current_img.size
-            cols = ceil(w / 256)
-            rows = ceil(h / 256)
-            
-            for y in range(rows):
-                for x in range(cols):
-                    # Crop
-                    left = x * 256
-                    upper = y * 256
-                    right = min(left + 256, w)
-                    lower = min(upper + 256, h)
-                    
-                    tile = current_img.crop((left, upper, right, lower))
-                    
-                    # If tile is smaller than 256x256, we might want to pad it or just save it.
-                    # Leaflet handles partial tiles fine usually.
-                    
-                    tile_path = os.path.join(z_dir, f"{x}_{y}.jpg")
-                    tile.save(tile_path, "JPEG", quality=85)
-            
-            # Prepare next level (downsample)
-            if z > 0:
-                new_w = w // 2
-                new_h = h // 2
-                current_img = current_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
-        
-        return {'success': True, 'id': map_id}
-        
-    except Exception as e:
-        print(f"Error processing map: {e}")
-        return {'success': False, 'error': str(e)}, 500
 
 @app.route('/api/maps/<int:id>', methods=['DELETE'])
 def delete_map(id):
@@ -1220,19 +1121,43 @@ def delete_player_character(id):
     db.commit()
     return {'success': True}
 
-# --- Inventory API Endpoints ---
-
-@app.route('/api/inventory', methods=['GET'])
-def get_inventory():
+@app.route('/api/maps', methods=['GET'])
+def get_maps():
     db = get_db()
-    cursor = db.execute('SELECT * FROM inventory ORDER BY tipo, inventario')
+    cursor = db.execute('''
+        SELECT m.*, p.name as center_poi_name, p.x as center_x, p.y as center_y 
+        FROM maps m 
+        LEFT JOIN pois p ON m.center_poi_id = p.id
+    ''')
     items = [dict(row) for row in cursor.fetchall()]
-    return {'success': True, 'items': items}
+    return {'success': True, 'maps': items}
 
-
-MAPS_FOLDER = os.path.join('static', 'maps')
-if not os.path.exists(MAPS_FOLDER):
-    os.makedirs(MAPS_FOLDER)
+@app.route('/api/maps', methods=['POST'])
+def upload_map():
+    name = request.form.get('name')
+    file = request.files.get('image')
+    
+    if not name or not file:
+        return {'success': False, 'error': 'Name and image are required'}, 400
+        
+    try:
+        db = get_db()
+        cursor = db.execute('INSERT INTO maps (name) VALUES (?)', (name,))
+        map_id = cursor.lastrowid
+        db.commit()
+        
+        # Process image
+        width, height, max_zoom, ppi = process_map_image(file, map_id)
+        
+        # Update map details
+        db.execute('UPDATE maps SET width=?, height=?, max_zoom=?, tile_format=?, min_zoom=0, pixels_per_inch=? WHERE id=?',
+                   (width, height, max_zoom, 'jpg', ppi, map_id))
+        db.commit()
+        
+        return {'success': True, 'id': map_id}
+    except Exception as e:
+        print(f"Error processing map: {e}")
+        return {'success': False, 'error': str(e)}, 500
 
 def process_map_image(file, map_id):
     """
@@ -1305,6 +1230,40 @@ def process_map_image(file, map_id):
         return width, height, max_zoom, ppi
 
 
+# --- Map Center & POI Updates ---
+
+@app.route('/api/maps/<int:map_id>/center', methods=['POST'])
+def set_map_center(map_id):
+    data = request.json
+    poi_id = data.get('poi_id')
+    db = get_db()
+    db.execute('UPDATE maps SET center_poi_id = ? WHERE id = ?', (poi_id, map_id))
+    db.commit()
+    return {'success': True}
+
+@app.route('/api/pois/<int:poi_id>', methods=['PUT'])
+def update_poi(poi_id):
+    data = request.json
+    db = get_db()
+    
+    # Check if POI exists
+    cursor = db.execute('SELECT id FROM pois WHERE id = ?', (poi_id,))
+    if not cursor.fetchone():
+        return {'success': False, 'error': 'POI not found'}, 404
+
+    sql = '''UPDATE pois SET name=?, type=?, population=?, description=? WHERE id=?'''
+    values = (
+        data.get('name'), 
+        data.get('type'), 
+        data.get('population'), 
+        data.get('description'), 
+        poi_id
+    )
+    
+    db.execute(sql, values)
+    db.commit()
+    return {'success': True}
+
 # --- Segments Management ---
 
 @app.route('/api/maps/<int:map_id>/segments', methods=['GET'])
@@ -1330,9 +1289,14 @@ def add_segment(map_id):
     # We expect start_poi_id OR (start_x, start_y)
     # And end_poi_id OR (end_x, end_y)
     # And distance (optional)
+    # And points (optional list of [lat, lng])
     
-    sql = '''INSERT INTO segments (map_id, start_poi_id, end_poi_id, start_x, start_y, end_x, end_y, distance, description)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'''
+    points_json = None
+    if 'points' in data:
+        points_json = json.dumps(data['points'])
+    
+    sql = '''INSERT INTO segments (map_id, start_poi_id, end_poi_id, start_x, start_y, end_x, end_y, distance, description, points, transport)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''
     
     values = (
         map_id,
@@ -1343,7 +1307,9 @@ def add_segment(map_id):
         data.get('end_x'),
         data.get('end_y'),
         data.get('distance'),
-        data.get('description', '')
+        data.get('description', ''),
+        points_json,
+        data.get('transport', 'piedi')
     )
     
     cursor = db.execute(sql, values)
@@ -1356,6 +1322,27 @@ def delete_segment(id):
     db.execute('DELETE FROM segments WHERE id = ?', (id,))
     db.commit()
     return {'success': True}
+
+@app.route('/api/generate_event', methods=['POST'])
+def generate_event():
+    if not GEMINI_API_KEY:
+        return {'success': False, 'error': 'API Key non configurata (GEMINI_API_KEY)'}, 500
+        
+    try:
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        response = model.generate_content(
+            "Sei un Game Master per Warhammer Fantasy Roleplay. "
+            "Genera un breve evento casuale di viaggio. "
+            "L'evento può essere comico o tragico. "
+            "Rispondi solo con la descrizione dell'evento."
+            "Descrivi nel dettaglio cosa vedono e anche i fatti dietro che deve sapere solo il GM."
+            "Se ci sono personaggi, descrivili brevemente."
+            "Se ci sono oggetti, descrivili brevemente."
+        )
+        return {'success': True, 'event': response.text}
+    except Exception as e:
+        print(f"Gemini Error: {e}")
+        return {'success': False, 'error': str(e)}, 500
 
 
 @app.route('/travel')

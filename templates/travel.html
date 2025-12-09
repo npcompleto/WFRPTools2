@@ -104,6 +104,25 @@
             <!-- List of Routes will serve here -->
         </div>
     </div>
+
+    <hr style="border-color: #444; margin: 10px 0;">
+
+    <div id="eventSection">
+        <h4 style="margin: 0 0 10px 0;">Eventi Casuali</h4>
+        <button id="generateEventBtn" class="btn btn-primary" style="width: 100%; background-color: #6c5ce7;">Genera
+            Evento (Gemini)</button>
+    </div>
+</div>
+
+<!-- Event Modal -->
+<div id="eventModal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="closeEventModal">&times;</span>
+        <h2>Evento Casuale</h2>
+        <div id="eventContent" style="margin: 20px 0; font-style: italic; line-height: 1.5;"></div>
+        <button class="btn btn-secondary"
+            onclick="document.getElementById('eventModal').style.display='none'">Chiudi</button>
+    </div>
 </div>
 
 <!-- Upload Modal -->
@@ -201,6 +220,16 @@
             <div class="form-group">
                 <label for="segmentDescription">Descrizione (Opzionale)</label>
                 <input type="text" id="segmentDescription" name="description">
+            </div>
+
+            <div class="form-group">
+                <label for="segmentTransport">Mezzo di Trasporto</label>
+                <select id="segmentTransport" name="transport" required>
+                    <option value="piedi">A Piedi (4 km/h)</option>
+                    <option value="cavallo">A Cavallo (8 km/h)</option>
+                    <option value="carrozza">Carrozza (6 km/h)</option>
+                    <option value="barca">Barca (5 km/h)</option>
+                </select>
             </div>
 
             <button type="submit" class="btn btn-success">Salva</button>

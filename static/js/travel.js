@@ -12,11 +12,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let poiLayerGroup = L.layerGroup().addTo(map);
     let segmentLayerGroup = L.layerGroup().addTo(map);
 
+
     let isAddingPoi = false;
     let isAddingSegment = false;
-    let segmentStartPoint = null;
-    let tempPolyline = null;
+    let routePoints = []; // Array of points {latlng, type, id, name}
+    let tempPolyline = null; // Dashed line to cursor
+    let finishedPolyline = null; // Solid line for established segments
     let startMarker = null;
+    let currentRouteMarkers = [];
 
     // --- Modal Logic ---
     const uploadModal = document.getElementById("uploadModal");
@@ -48,6 +51,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (event.target == poiModal) poiModal.style.display = "none";
         if (event.target == segmentModal) segmentModal.style.display = "none";
     }
+
+    // --- API Logic ---
+    // ... existing loadMaps ... (omitted from start of file for brevity in this replace, but needed context)
+    // Wait, I cannot omit context unless I match exactly.
+    // Let's just fix the variables at top.
+
 
     // --- API Logic ---
 
@@ -172,7 +181,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         currentLayer.addTo(map);
-        map.fitBounds(bounds);
+
+        // Center Map Logic
+        if (mapData.center_poi_id) {
+            // If we have a center POI, we need its coordinates.
+            // But mapData only gives us ID. 
+            // We can wait for loadPois OR we can fetch it now.
+            // Actually, get_maps returns center_x and center_y! 
+            // Let's check get_maps query in app.py. Yes: p.x as center_x, p.y as center_y
+            // BUT loadMap is called with either the result of get_maps OR a manually constructed object (unlikely here).
+            // Let's assume mapData has center_x/y if get_maps populated it.
+            if (mapData.center_x !== null && mapData.center_y !== null) {
+                map.setView([mapData.center_y, mapData.center_x], 0);
+            } else {
+                map.fitBounds(bounds);
+            }
+        } else {
+            map.fitBounds(bounds);
+        }
 
         // Load POIs for this map
         loadPois(mapData.id);
@@ -308,8 +334,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     map.on('click', (e) => {
         if (isAddingPoi && currentMapId) {
+            // If we were adding a POI, open modal for NEW poi
+            editingPoiId = null;
+            document.getElementById('poiForm').reset();
             document.getElementById('poiX').value = e.latlng.lng;
             document.getElementById('poiY').value = e.latlng.lat;
+            document.getElementById('poiModal').querySelector('h2').textContent = 'Aggiungi Punto di Interesse';
             document.getElementById('poiModal').style.display = "block";
 
             // Reset mode
@@ -323,6 +353,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Variable to track if we are editing
+    let editingPoiId = null;
+
     document.getElementById('poiForm').onsubmit = async (e) => {
         e.preventDefault();
         if (!currentMapId) return;
@@ -330,9 +363,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const formData = new FormData(e.target);
         const data = Object.fromEntries(formData.entries());
 
+        const method = editingPoiId ? 'PUT' : 'POST';
+        const url = editingPoiId ? `/api/pois/${editingPoiId}` : `/api/maps/${currentMapId}/pois`;
+
         try {
-            const response = await fetch(`/api/maps/${currentMapId}/pois`, {
-                method: 'POST',
+            const response = await fetch(url, {
+                method: method,
                 headers: {
                     'Content-Type': 'application/json'
                 },
@@ -343,84 +379,118 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.success) {
                 document.getElementById('poiModal').style.display = "none";
                 e.target.reset();
+                editingPoiId = null; // Reset
                 loadPois(currentMapId);
             } else {
                 alert('Errore: ' + result.error);
             }
         } catch (error) {
-            console.error('Error adding POI:', error);
+            console.error('Error saving POI:', error);
         }
     };
 
     function handleRouteSelection(point) {
-        if (!segmentStartPoint) {
-            // Set Start Point
-            segmentStartPoint = point;
+        // Add point to list
+        routePoints.push(point);
 
-            // Visual feedback
-            if (startMarker) map.removeLayer(startMarker);
-            startMarker = L.circleMarker([point.latlng.lat, point.latlng.lng], {
-                color: 'green',
-                radius: 8
-            }).addTo(map);
+        // Marker for this point
+        const marker = L.circleMarker([point.latlng.lat, point.latlng.lng], {
+            color: 'green',
+            radius: 4
+        }).addTo(map);
+        currentRouteMarkers.push(marker);
 
-            // Hint for user
-            document.getElementById('addRouteBtn').textContent = 'Seleziona fine...';
-
-            // Mouse move listener to draw line
+        if (routePoints.length === 1) {
+            // First point
+            startMarker = marker; // Keep reference to first
+            startMarker.setRadius(8);
+            document.getElementById('addRouteBtn').textContent = 'Seleziona prossimo...';
             map.on('mousemove', drawTempLine);
-
         } else {
-            // Set End Point and Open Modal
-            map.off('mousemove', drawTempLine);
-            if (tempPolyline) map.removeLayer(tempPolyline);
-            if (startMarker) map.removeLayer(startMarker);
-            startMarker = null;
+            // Update finished polyline
+            const latlngs = routePoints.map(p => [p.latlng.lat, p.latlng.lng]);
+            if (finishedPolyline) map.removeLayer(finishedPolyline);
+            finishedPolyline = L.polyline(latlngs, { color: 'blue', weight: 3 }).addTo(map);
 
-            // Open Modal
-            document.getElementById('segmentStartName').textContent = segmentStartPoint.name || `Punto (${segmentStartPoint.latlng.lng.toFixed(1)}, ${segmentStartPoint.latlng.lat.toFixed(1)})`;
-            document.getElementById('segmentEndName').textContent = point.name || `Punto (${point.latlng.lng.toFixed(1)}, ${point.latlng.lat.toFixed(1)})`;
-
-            // Store data for submission
-            segmentModal.dataset.startData = JSON.stringify(segmentStartPoint);
-            segmentModal.dataset.endData = JSON.stringify(point);
-
-
-            // Calculate Distance
-            const dx = segmentStartPoint.latlng.lng - point.latlng.lng;
-            const dy = segmentStartPoint.latlng.lat - point.latlng.lat;
-            const distPixels = Math.sqrt(dx * dx + dy * dy);
-
-            // 1 inch = 15 km
-            const ppi = currentMapPPI || 96;
-            const inches = distPixels / ppi;
-            const km = inches * 15;
-
-            document.getElementById('segmentDistance').value = km.toFixed(2);
-
-            segmentModal.style.display = "block";
-
-            // Reset mode UI but wait for save to clear variables
-            resetRouteMode();
+            // Check if this point is a POI (and not the first one, which we just handled)
+            // If it is a POI, we finish.
+            if (point.type === 'poi') {
+                finishRouteCreation();
+            } else {
+                document.getElementById('addRouteBtn').textContent = 'Seleziona POI per finire...';
+            }
         }
     }
 
+    function finishRouteCreation() {
+        if (routePoints.length < 2) return;
+
+        const startPoint = routePoints[0];
+        const endPoint = routePoints[routePoints.length - 1];
+
+        // Cleanup temporary
+        map.off('mousemove', drawTempLine);
+        if (tempPolyline) map.removeLayer(tempPolyline);
+        // Don't remove finishedPolyline yet, wait for save
+
+        // Open Modal
+        document.getElementById('segmentStartName').textContent = startPoint.name || 'Punto Iniziale';
+        document.getElementById('segmentEndName').textContent = endPoint.name || 'Punto Finale';
+
+        // Calculate Total Distance
+        let totalDistancePixels = 0;
+        for (let i = 0; i < routePoints.length - 1; i++) {
+            const p1 = routePoints[i].latlng;
+            const p2 = routePoints[i + 1].latlng;
+
+            const dx = p1.lng - p2.lng;
+            const dy = p1.lat - p2.lat;
+            totalDistancePixels += Math.sqrt(dx * dx + dy * dy);
+        }
+
+        const ppi = currentMapPPI || 96;
+        const inches = totalDistancePixels / ppi;
+        const km = inches * 15;
+
+        document.getElementById('segmentDistance').value = km.toFixed(2);
+
+        // Store data
+        segmentModal.dataset.startData = JSON.stringify(startPoint);
+        segmentModal.dataset.endData = JSON.stringify(endPoint);
+        segmentModal.dataset.points = JSON.stringify(routePoints);
+
+        segmentModal.style.display = "block";
+
+        // Reset mode internally but UI stays until save/cancel
+        isAddingSegment = false;
+        document.getElementById('map').style.cursor = '';
+        addRouteBtn.classList.remove('btn-primary');
+        addRouteBtn.classList.add('btn-secondary');
+        addRouteBtn.textContent = '+';
+        map.off('mousemove', drawTempLine);
+    }
+
     function drawTempLine(e) {
-        if (!segmentStartPoint) return;
+        if (routePoints.length === 0) return;
+
+        const lastPoint = routePoints[routePoints.length - 1];
 
         if (tempPolyline) map.removeLayer(tempPolyline);
 
         tempPolyline = L.polyline([
-            [segmentStartPoint.latlng.lat, segmentStartPoint.latlng.lng],
+            [lastPoint.latlng.lat, lastPoint.latlng.lng],
             [e.latlng.lat, e.latlng.lng]
         ], { color: 'red', dashArray: '5, 10' }).addTo(map);
     }
 
     function resetRouteMode() {
         isAddingSegment = false;
-        segmentStartPoint = null;
+        routePoints = [];
         if (tempPolyline) map.removeLayer(tempPolyline);
-        if (startMarker) map.removeLayer(startMarker);
+        if (finishedPolyline) map.removeLayer(finishedPolyline);
+        currentRouteMarkers.forEach(m => map.removeLayer(m));
+        currentRouteMarkers = [];
+        startMarker = null;
         map.off('mousemove', drawTempLine);
 
         const btn = document.getElementById('addRouteBtn');
@@ -458,20 +528,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 <em>${poi.type}</em><br>
                 ${poi.population ? `Pop: ${poi.population}<br>` : ''}
                 <p>${poi.description || ''}</p>
-                <button onclick="deletePoi(${poi.id})" style="color:red; font-size:0.8em;">Elimina</button>
+                <div style="margin-top:5px; display:flex; gap:5px; flex-wrap:wrap;">
+                    <button onclick="editPoi(${poi.id}, '${poi.name.replace(/'/g, "\\'")}', '${poi.type}', '${poi.population}', '${(poi.description || '').replace(/'/g, "\\'")}', ${poi.x}, ${poi.y})" style="font-size:0.8em;">Modifica</button>
+                    <button onclick="setMapCenter(${poi.id})" style="font-size:0.8em;">Imposta Centro</button>
+                    <button onclick="deletePoi(${poi.id})" style="color:red; font-size:0.8em;">Elimina</button>
+                </div>
             `;
+
+            marker.bindPopup(popupContent);
 
             marker.on('click', (e) => {
                 if (isAddingSegment) {
                     // Stop event from propagating to map click
                     L.DomEvent.stopPropagation(e);
+                    // Prevent/Close popup if we are just selecting a point
+                    e.target.closePopup();
                     handleRouteSelection({ type: 'poi', id: poi.id, name: poi.name, latlng: e.latlng });
-                } else {
-                    marker.openPopup();
                 }
             });
 
-            // marker.bindPopup(popupContent); // Manually handle popup
             poiLayerGroup.addLayer(marker);
 
             // Add List Item
@@ -525,7 +600,9 @@ document.addEventListener('DOMContentLoaded', () => {
             addRouteBtn.classList.add('btn-primary');
             addRouteBtn.textContent = 'Seleziona inizio...';
             document.getElementById('map').style.cursor = 'crosshair';
-            segmentStartPoint = null;
+            routePoints = [];
+            currentRouteMarkers = [];
+            if (finishedPolyline) map.removeLayer(finishedPolyline);
         } else {
             resetRouteMode();
         }
@@ -536,8 +613,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const startData = JSON.parse(segmentModal.dataset.startData);
         const endData = JSON.parse(segmentModal.dataset.endData);
+        const points = JSON.parse(segmentModal.dataset.points || "[]");
         const distance = document.getElementById('segmentDistance').value;
         const description = document.getElementById('segmentDescription').value;
+
+        // Simplify points for payload [ [lng, lat], ... ]
+        // Note: Backend expects start_x, start_y ... 
+        // We will send start/end too for compatibility but also 'points' list
+        const pointsArray = points.map(p => [p.latlng.lat, p.latlng.lng]); // Leaflet format is [lat, lng]
 
         const payload = {
             start_x: startData.latlng.lng,
@@ -545,7 +628,9 @@ document.addEventListener('DOMContentLoaded', () => {
             end_x: endData.latlng.lng,
             end_y: endData.latlng.lat,
             distance: distance,
-            description: description
+            description: description,
+            points: pointsArray,
+            transport: document.getElementById('segmentTransport').value
         };
 
         if (startData.type === 'poi') payload.start_poi_id = startData.id;
@@ -590,22 +675,54 @@ document.addEventListener('DOMContentLoaded', () => {
         list.innerHTML = '';
 
         segments.forEach(seg => {
+            // Parse Points if available
+            let latlngs = [];
+            if (seg.points) {
+                try {
+                    const points = JSON.parse(seg.points);
+                    // stored as [lat, lng] array
+                    latlngs = points.map(p => {
+                        if (p.latlng) return [p.latlng.lat, p.latlng.lng];
+                        return p;
+                    });
+                } catch (e) { console.error("Error parsing segment points", e); }
+            }
+
+            // Fallback for old segments
+            if (latlngs.length === 0) {
+                latlngs = [
+                    [seg.start_y, seg.start_x],
+                    [seg.end_y, seg.end_x]
+                ];
+            }
+
             // Draw Line
-            const polyline = L.polyline([
-                [seg.start_y, seg.start_x],
-                [seg.end_y, seg.end_x]
-            ], {
-                color: 'blue',
-                weight: 4,
-                opacity: 0.6
+            const polyline = L.polyline(latlngs, {
+                color: 'red',
+                weight: 5,
+                opacity: 0.8,
             }).addTo(segmentLayerGroup);
+
+            // Calculate time
+            const speed = {
+                'piedi': 4.8,
+                'cavallo': 12.8,
+                'carrozza': 3.75,
+                'diligenza': 5.25,
+                'barca': 3.75
+            }[seg.transport || 'piedi'] || 4.8;
+
+            const hours = parseFloat(seg.distance) / speed;
+            const timeStr = hours < 1 ? `${Math.round(hours * 60)} min` : `${hours.toFixed(1)} ore`;
+
 
             // Popup on line?
             const label = `${seg.start_poi_name || 'Punto'} ↔ ${seg.end_poi_name || 'Punto'}`;
             polyline.bindPopup(`
                 <strong>Itinerario</strong><br>
                 ${label}<br>
-                Distanza: ${seg.distance}<br>
+                Distanza: ${seg.distance} km<br>
+                Tempo: ${timeStr} (${seg.transport || 'piedi'})<br>
                 ${seg.description ? `<em>${seg.description}</em><br>` : ''}
                 <button onclick="deleteSegment(${seg.id})" style="color:red; font-size:0.8em;">Elimina</button>
             `);
@@ -615,7 +732,10 @@ document.addEventListener('DOMContentLoaded', () => {
             div.className = 'map-list-item';
             div.innerHTML = `
                 <div><strong>${label}</strong></div>
-                <div style="font-size: 0.85em; color: #aaa;">${seg.distance} - ${seg.description || ''}</div>
+                <div style="font-size: 0.85em; color: #aaa;">
+                    ${seg.distance} km - ${timeStr} (${seg.transport || 'piedi'})<br>
+                    ${seg.description || ''}
+                </div>
             `;
 
             div.onclick = () => {
@@ -643,6 +763,70 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    window.editPoi = function (id, name, type, population, description, x, y) {
+        editingPoiId = id;
+        document.getElementById('poiX').value = x;
+        document.getElementById('poiY').value = y;
+        document.getElementById('poiName').value = name;
+        document.getElementById('poiType').value = type;
+        document.getElementById('poiPopulation').value = population;
+        document.getElementById('poiDescription').value = description;
+
+        document.getElementById('poiModal').querySelector('h2').textContent = 'Modifica Punto di Interesse';
+        document.getElementById('poiModal').style.display = "block";
+    };
+
+    window.setMapCenter = async function (id) {
+        if (!currentMapId) return;
+        try {
+            const response = await fetch(`/api/maps/${currentMapId}/center`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ poi_id: id })
+            });
+            const result = await response.json();
+            if (result.success) {
+                alert('Centro mappa aggiornato!');
+            } else {
+                alert('Errore: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Error setting center:', error);
+        }
+    };
+
+    // --- Gemini Event Generator ---
+    const generateEventBtn = document.getElementById('generateEventBtn');
+    const eventModal = document.getElementById('eventModal');
+    const closeEventModal = document.getElementById('closeEventModal');
+
+    if (generateEventBtn) {
+        generateEventBtn.onclick = async () => {
+            const contentDiv = document.getElementById('eventContent');
+            contentDiv.innerHTML = '<em>Consultando gli oracoli...</em>';
+            eventModal.style.display = 'block';
+
+            try {
+                const response = await fetch('/api/generate_event', { method: 'POST' });
+                const result = await response.json();
+
+                if (result.success) {
+                    contentDiv.innerHTML = result.event.replace(/\n/g, '<br>');
+                } else {
+                    contentDiv.innerHTML = `<span style="color:red">Errore: ${result.error}</span>`;
+                }
+            } catch (error) {
+                console.error('Error generating event:', error);
+                contentDiv.innerHTML = `<span style="color:red">Errore di connessione.</span>`;
+            }
+        };
+    }
+
+    if (closeEventModal) {
+        closeEventModal.onclick = () => {
+            eventModal.style.display = 'none';
+        };
+    }
 });
 
 
