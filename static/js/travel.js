@@ -8,23 +8,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentMapId = null;
     let currentLayer = null;
+    let poiLayerGroup = L.layerGroup().addTo(map);
+    let isAddingPoi = false;
 
     // --- Modal Logic ---
-    const modal = document.getElementById("uploadModal");
+    const uploadModal = document.getElementById("uploadModal");
+    const poiModal = document.getElementById("poiModal"); // New POI Modal
     const btn = document.getElementById("uploadBtn");
     const span = document.getElementsByClassName("close")[0];
 
     btn.onclick = function () {
-        modal.style.display = "block";
+        uploadModal.style.display = "block";
     }
 
     span.onclick = function () {
-        modal.style.display = "none";
+        uploadModal.style.display = "none";
+    }
+
+    const closePoiModal = document.getElementById("closePoiModal");
+    if (closePoiModal) {
+        closePoiModal.onclick = function () {
+            poiModal.style.display = "none";
+        }
     }
 
     window.onclick = function (event) {
-        if (event.target == modal) {
-            modal.style.display = "none";
+        if (event.target == uploadModal) {
+            uploadModal.style.display = "none";
+        }
+        if (event.target == poiModal) {
+            poiModal.style.display = "none";
         }
     }
 
@@ -151,6 +164,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         currentLayer.addTo(map);
         map.fitBounds(bounds);
+
+        // Load POIs for this map
+        loadPois(mapData.id);
+        document.getElementById('poiSection').style.display = 'block';
     }
 
     // Upload Map
@@ -167,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
         progressBar.style.width = '0%';
         progressText.textContent = 'Caricamento in corso...';
 
-        // Simulate progress for UX (since fetch doesn't support upload progress easily without XHR)
+        // Simulate progress
         let progress = 0;
         const interval = setInterval(() => {
             if (progress < 90) {
@@ -190,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (result.success) {
                 setTimeout(() => {
-                    modal.style.display = "none";
+                    uploadModal.style.display = "none";
                     progressContainer.style.display = 'none';
                     progressBar.style.width = '0%';
                     e.target.reset();
@@ -254,4 +271,134 @@ document.addEventListener('DOMContentLoaded', () => {
             sidebarToggle.style.display = 'none';
         };
     }
+
+    // --- POI Logic ---
+    const addPoiBtn = document.getElementById('addPoiBtn');
+
+    addPoiBtn.onclick = () => {
+        isAddingPoi = !isAddingPoi;
+        if (isAddingPoi) {
+            addPoiBtn.classList.remove('btn-secondary');
+            addPoiBtn.classList.add('btn-primary');
+            addPoiBtn.textContent = 'Annulla';
+            document.getElementById('map').style.cursor = 'crosshair';
+        } else {
+            addPoiBtn.classList.remove('btn-primary');
+            addPoiBtn.classList.add('btn-secondary');
+            addPoiBtn.textContent = '+';
+            document.getElementById('map').style.cursor = '';
+        }
+    };
+
+    map.on('click', (e) => {
+        if (isAddingPoi && currentMapId) {
+            document.getElementById('poiX').value = e.latlng.lng;
+            document.getElementById('poiY').value = e.latlng.lat;
+            document.getElementById('poiModal').style.display = "block";
+
+            // Reset mode
+            isAddingPoi = false;
+            addPoiBtn.classList.remove('btn-primary');
+            addPoiBtn.classList.add('btn-secondary');
+            addPoiBtn.textContent = '+';
+            document.getElementById('map').style.cursor = '';
+        }
+    });
+
+    document.getElementById('poiForm').onsubmit = async (e) => {
+        e.preventDefault();
+        if (!currentMapId) return;
+
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+
+        try {
+            const response = await fetch(`/api/maps/${currentMapId}/pois`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                document.getElementById('poiModal').style.display = "none";
+                e.target.reset();
+                loadPois(currentMapId);
+            } else {
+                alert('Errore: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Error adding POI:', error);
+        }
+    };
+
+    async function loadPois(mapId) {
+        try {
+            const response = await fetch(`/api/maps/${mapId}/pois`);
+            const data = await response.json();
+
+            if (data.success) {
+                renderPois(data.pois);
+            }
+        } catch (error) {
+            console.error('Error loading POIs:', error);
+        }
+    }
+
+    function renderPois(pois) {
+        poiLayerGroup.clearLayers();
+        const list = document.getElementById('poiList');
+        list.innerHTML = '';
+
+        pois.forEach(poi => {
+            // Add Marker
+            // Leaflet standard marker
+            const marker = L.marker([poi.y, poi.x]);
+
+            const popupContent = `
+                <strong>${poi.name}</strong><br>
+                <em>${poi.type}</em><br>
+                ${poi.population ? `Pop: ${poi.population}<br>` : ''}
+                <p>${poi.description || ''}</p>
+                <button onclick="deletePoi(${poi.id})" style="color:red; font-size:0.8em;">Elimina</button>
+            `;
+
+            marker.bindPopup(popupContent);
+            poiLayerGroup.addLayer(marker);
+
+            // Add List Item
+            const div = document.createElement('div');
+            div.className = 'map-list-item'; // Reuse styling
+            div.innerHTML = `
+                <div><strong>${poi.name}</strong> <small>(${poi.type})</small></div>
+                <div style="font-size: 0.85em; color: #aaa;">${poi.description || ''}</div>
+            `;
+
+            div.onclick = () => {
+                map.setView([poi.y, poi.x], map.getZoom() > 0 ? map.getZoom() : 0);
+                marker.openPopup();
+            };
+
+            list.appendChild(div);
+        });
+    }
+
+    // Make deletePoi globally accessible for popup button
+    window.deletePoi = async function (id) {
+        if (!confirm('Eliminare questo POI?')) return;
+
+        try {
+            const response = await fetch(`/api/pois/${id}`, {
+                method: 'DELETE'
+            });
+            const result = await response.json();
+            if (result.success) {
+                loadPois(currentMapId);
+            }
+        } catch (error) {
+            console.error('Error deleting POI:', error);
+        }
+    };
 });
