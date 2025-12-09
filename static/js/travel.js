@@ -7,13 +7,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     let currentMapId = null;
+    let currentMapPPI = 96;
     let currentLayer = null;
     let poiLayerGroup = L.layerGroup().addTo(map);
+    let segmentLayerGroup = L.layerGroup().addTo(map);
+
     let isAddingPoi = false;
+    let isAddingSegment = false;
+    let segmentStartPoint = null;
+    let tempPolyline = null;
+    let startMarker = null;
 
     // --- Modal Logic ---
     const uploadModal = document.getElementById("uploadModal");
-    const poiModal = document.getElementById("poiModal"); // New POI Modal
+    const poiModal = document.getElementById("poiModal");
+    const segmentModal = document.getElementById("segmentModal");
     const btn = document.getElementById("uploadBtn");
     const span = document.getElementsByClassName("close")[0];
 
@@ -27,18 +35,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const closePoiModal = document.getElementById("closePoiModal");
     if (closePoiModal) {
-        closePoiModal.onclick = function () {
-            poiModal.style.display = "none";
-        }
+        closePoiModal.onclick = () => poiModal.style.display = "none";
+    }
+
+    const closeSegmentModal = document.getElementById("closeSegmentModal");
+    if (closeSegmentModal) {
+        closeSegmentModal.onclick = () => segmentModal.style.display = "none";
     }
 
     window.onclick = function (event) {
-        if (event.target == uploadModal) {
-            uploadModal.style.display = "none";
-        }
-        if (event.target == poiModal) {
-            poiModal.style.display = "none";
-        }
+        if (event.target == uploadModal) uploadModal.style.display = "none";
+        if (event.target == poiModal) poiModal.style.display = "none";
+        if (event.target == segmentModal) segmentModal.style.display = "none";
     }
 
     // --- API Logic ---
@@ -95,6 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load specific map
     function loadMap(mapData) {
         currentMapId = mapData.id;
+        currentMapPPI = mapData.pixels_per_inch || 96;
 
         // Remove existing layer
         if (currentLayer) {
@@ -167,7 +176,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Load POIs for this map
         loadPois(mapData.id);
+        // Load POIs for this map
+        loadPois(mapData.id);
+        loadSegments(mapData.id);
+
         document.getElementById('poiSection').style.display = 'block';
+        document.getElementById('routeSection').style.display = 'block';
     }
 
     // Upload Map
@@ -276,6 +290,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const addPoiBtn = document.getElementById('addPoiBtn');
 
     addPoiBtn.onclick = () => {
+        if (isAddingSegment) resetRouteMode();
+
         isAddingPoi = !isAddingPoi;
         if (isAddingPoi) {
             addPoiBtn.classList.remove('btn-secondary');
@@ -302,6 +318,8 @@ document.addEventListener('DOMContentLoaded', () => {
             addPoiBtn.classList.add('btn-secondary');
             addPoiBtn.textContent = '+';
             document.getElementById('map').style.cursor = '';
+        } else if (isAddingSegment && currentMapId) {
+            handleRouteSelection({ type: 'point', latlng: e.latlng });
         }
     });
 
@@ -334,6 +352,84 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    function handleRouteSelection(point) {
+        if (!segmentStartPoint) {
+            // Set Start Point
+            segmentStartPoint = point;
+
+            // Visual feedback
+            if (startMarker) map.removeLayer(startMarker);
+            startMarker = L.circleMarker([point.latlng.lat, point.latlng.lng], {
+                color: 'green',
+                radius: 8
+            }).addTo(map);
+
+            // Hint for user
+            document.getElementById('addRouteBtn').textContent = 'Seleziona fine...';
+
+            // Mouse move listener to draw line
+            map.on('mousemove', drawTempLine);
+
+        } else {
+            // Set End Point and Open Modal
+            map.off('mousemove', drawTempLine);
+            if (tempPolyline) map.removeLayer(tempPolyline);
+            if (startMarker) map.removeLayer(startMarker);
+            startMarker = null;
+
+            // Open Modal
+            document.getElementById('segmentStartName').textContent = segmentStartPoint.name || `Punto (${segmentStartPoint.latlng.lng.toFixed(1)}, ${segmentStartPoint.latlng.lat.toFixed(1)})`;
+            document.getElementById('segmentEndName').textContent = point.name || `Punto (${point.latlng.lng.toFixed(1)}, ${point.latlng.lat.toFixed(1)})`;
+
+            // Store data for submission
+            segmentModal.dataset.startData = JSON.stringify(segmentStartPoint);
+            segmentModal.dataset.endData = JSON.stringify(point);
+
+
+            // Calculate Distance
+            const dx = segmentStartPoint.latlng.lng - point.latlng.lng;
+            const dy = segmentStartPoint.latlng.lat - point.latlng.lat;
+            const distPixels = Math.sqrt(dx * dx + dy * dy);
+
+            // 1 inch = 15 km
+            const ppi = currentMapPPI || 96;
+            const inches = distPixels / ppi;
+            const km = inches * 15;
+
+            document.getElementById('segmentDistance').value = km.toFixed(2);
+
+            segmentModal.style.display = "block";
+
+            // Reset mode UI but wait for save to clear variables
+            resetRouteMode();
+        }
+    }
+
+    function drawTempLine(e) {
+        if (!segmentStartPoint) return;
+
+        if (tempPolyline) map.removeLayer(tempPolyline);
+
+        tempPolyline = L.polyline([
+            [segmentStartPoint.latlng.lat, segmentStartPoint.latlng.lng],
+            [e.latlng.lat, e.latlng.lng]
+        ], { color: 'red', dashArray: '5, 10' }).addTo(map);
+    }
+
+    function resetRouteMode() {
+        isAddingSegment = false;
+        segmentStartPoint = null;
+        if (tempPolyline) map.removeLayer(tempPolyline);
+        if (startMarker) map.removeLayer(startMarker);
+        map.off('mousemove', drawTempLine);
+
+        const btn = document.getElementById('addRouteBtn');
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-secondary');
+        btn.textContent = '+';
+        document.getElementById('map').style.cursor = '';
+    }
+
     async function loadPois(mapId) {
         try {
             const response = await fetch(`/api/maps/${mapId}/pois`);
@@ -365,7 +461,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 <button onclick="deletePoi(${poi.id})" style="color:red; font-size:0.8em;">Elimina</button>
             `;
 
-            marker.bindPopup(popupContent);
+            marker.on('click', (e) => {
+                if (isAddingSegment) {
+                    // Stop event from propagating to map click
+                    L.DomEvent.stopPropagation(e);
+                    handleRouteSelection({ type: 'poi', id: poi.id, name: poi.name, latlng: e.latlng });
+                } else {
+                    marker.openPopup();
+                }
+            });
+
+            // marker.bindPopup(popupContent); // Manually handle popup
             poiLayerGroup.addLayer(marker);
 
             // Add List Item
@@ -401,4 +507,142 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error deleting POI:', error);
         }
     };
+    // --- Route/Segment Logic ---
+    const addRouteBtn = document.getElementById('addRouteBtn');
+
+    addRouteBtn.onclick = () => {
+        // If adding POI, cancel that
+        if (isAddingPoi) {
+            isAddingPoi = false;
+            addPoiBtn.classList.remove('btn-primary');
+            addPoiBtn.classList.add('btn-secondary');
+            addPoiBtn.textContent = '+';
+        }
+
+        isAddingSegment = !isAddingSegment;
+        if (isAddingSegment) {
+            addRouteBtn.classList.remove('btn-secondary');
+            addRouteBtn.classList.add('btn-primary');
+            addRouteBtn.textContent = 'Seleziona inizio...';
+            document.getElementById('map').style.cursor = 'crosshair';
+            segmentStartPoint = null;
+        } else {
+            resetRouteMode();
+        }
+    };
+
+    document.getElementById('segmentForm').onsubmit = async (e) => {
+        e.preventDefault();
+
+        const startData = JSON.parse(segmentModal.dataset.startData);
+        const endData = JSON.parse(segmentModal.dataset.endData);
+        const distance = document.getElementById('segmentDistance').value;
+        const description = document.getElementById('segmentDescription').value;
+
+        const payload = {
+            start_x: startData.latlng.lng,
+            start_y: startData.latlng.lat,
+            end_x: endData.latlng.lng,
+            end_y: endData.latlng.lat,
+            distance: distance,
+            description: description
+        };
+
+        if (startData.type === 'poi') payload.start_poi_id = startData.id;
+        if (endData.type === 'poi') payload.end_poi_id = endData.id;
+
+        try {
+            const response = await fetch(`/api/maps/${currentMapId}/segments`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                segmentModal.style.display = "none";
+                e.target.reset();
+                loadSegments(currentMapId);
+            } else {
+                alert('Errore: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Error adding segment:', error);
+        }
+    };
+
+    async function loadSegments(mapId) {
+        try {
+            const response = await fetch(`/api/maps/${mapId}/segments`);
+            const data = await response.json();
+
+            if (data.success) {
+                renderSegments(data.segments);
+            }
+        } catch (error) {
+            console.error('Error loading segments:', error);
+        }
+    }
+
+    function renderSegments(segments) {
+        segmentLayerGroup.clearLayers();
+        const list = document.getElementById('routeList');
+        list.innerHTML = '';
+
+        segments.forEach(seg => {
+            // Draw Line
+            const polyline = L.polyline([
+                [seg.start_y, seg.start_x],
+                [seg.end_y, seg.end_x]
+            ], {
+                color: 'blue',
+                weight: 4,
+                opacity: 0.6
+            }).addTo(segmentLayerGroup);
+
+            // Popup on line?
+            const label = `${seg.start_poi_name || 'Punto'} ↔ ${seg.end_poi_name || 'Punto'}`;
+            polyline.bindPopup(`
+                <strong>Itinerario</strong><br>
+                ${label}<br>
+                Distanza: ${seg.distance}<br>
+                ${seg.description ? `<em>${seg.description}</em><br>` : ''}
+                <button onclick="deleteSegment(${seg.id})" style="color:red; font-size:0.8em;">Elimina</button>
+            `);
+
+            // List Item
+            const div = document.createElement('div');
+            div.className = 'map-list-item';
+            div.innerHTML = `
+                <div><strong>${label}</strong></div>
+                <div style="font-size: 0.85em; color: #aaa;">${seg.distance} - ${seg.description || ''}</div>
+            `;
+
+            div.onclick = () => {
+                map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+                polyline.openPopup();
+            };
+
+            list.appendChild(div);
+        });
+    }
+
+    window.deleteSegment = async function (id) {
+        if (!confirm('Eliminare questo segmento?')) return;
+
+        try {
+            const response = await fetch(`/api/segments/${id}`, {
+                method: 'DELETE'
+            });
+            const result = await response.json();
+            if (result.success) {
+                loadSegments(currentMapId);
+            }
+        } catch (error) {
+            console.error('Error deleting segment:', error);
+        }
+    };
+
 });
+
+

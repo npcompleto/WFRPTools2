@@ -138,9 +138,39 @@ def create_table():
             name TEXT NOT NULL,
             width INTEGER,
             height INTEGER,
-            max_zoom INTEGER,
-            tile_format TEXT,
-            min_zoom INTEGER DEFAULT 0
+
+            min_zoom INTEGER DEFAULT 0,
+            pixels_per_inch INTEGER DEFAULT 96
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS pois (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            map_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            type TEXT NOT NULL,
+            description TEXT,
+            population TEXT,
+            x REAL NOT NULL,
+            y REAL NOT NULL,
+            FOREIGN KEY (map_id) REFERENCES maps (id)
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS segments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            map_id INTEGER NOT NULL,
+            start_poi_id INTEGER,
+            end_poi_id INTEGER,
+            start_x REAL,
+            start_y REAL,
+            end_x REAL,
+            end_y REAL,
+            distance REAL,
+            description TEXT,
+            FOREIGN KEY (map_id) REFERENCES maps (id),
+            FOREIGN KEY (start_poi_id) REFERENCES pois (id),
+            FOREIGN KEY (end_poi_id) REFERENCES pois (id)
         )
     ''')
     c.execute('''
@@ -1199,35 +1229,6 @@ def get_inventory():
     items = [dict(row) for row in cursor.fetchall()]
     return {'success': True, 'items': items}
 
-@app.route('/api/inventory', methods=['POST'])
-def add_inventory():
-    data = request.json
-    db = get_db()
-    sql = 'INSERT INTO inventory (inventario, descrizione, ingombro, disponibilita, costo, tipo, shop_types) VALUES (?, ?, ?, ?, ?, ?, ?)'
-    values = (data.get('inventario'), data.get('descrizione'), data.get('ingombro'), 
-              data.get('disponibilita'), data.get('costo'), data.get('tipo'), data.get('shop_types'))
-    cursor = db.execute(sql, values)
-    db.commit()
-    return {'success': True, 'id': cursor.lastrowid}
-
-@app.route('/api/inventory/<int:id>', methods=['PUT'])
-def update_inventory(id):
-    data = request.json
-    db = get_db()
-    sql = 'UPDATE inventory SET inventario=?, descrizione=?, ingombro=?, disponibilita=?, costo=?, tipo=?, shop_types=? WHERE id=?'
-    values = (data.get('inventario'), data.get('descrizione'), data.get('ingombro'),
-              data.get('disponibilita'), data.get('costo'), data.get('tipo'), data.get('shop_types'), id)
-    db.execute(sql, values)
-    db.commit()
-    return {'success': True}
-
-@app.route('/api/inventory/<int:id>', methods=['DELETE'])
-def delete_inventory(id):
-    db = get_db()
-    db.execute('DELETE FROM inventory WHERE id = ?', (id,))
-    db.commit()
-    return {'success': True}
-
 
 MAPS_FOLDER = os.path.join('static', 'maps')
 if not os.path.exists(MAPS_FOLDER):
@@ -1253,6 +1254,12 @@ def process_map_image(file, map_id):
     
     with Image.open(original_path) as img:
         width, height = img.size
+        
+        # Try to get DPI
+        ppi = 96 # Default
+        if 'dpi' in img.info:
+            # DPI is usually a tuple (x, y)
+            ppi = int(img.info['dpi'][0])
         
         # Calculate max zoom
         # Leaflet's CRS.Simple:
@@ -1295,7 +1302,60 @@ def process_map_image(file, map_id):
                     tile_path = os.path.join(z_dir, f"{x}_{y}.jpg")
                     tile.save(tile_path, quality=85)
                     
-        return width, height, max_zoom
+        return width, height, max_zoom, ppi
+
+
+# --- Segments Management ---
+
+@app.route('/api/maps/<int:map_id>/segments', methods=['GET'])
+def get_map_segments(map_id):
+    db = get_db()
+    cursor = db.execute('''
+        SELECT s.*, 
+               p1.name as start_poi_name, p1.type as start_poi_type,
+               p2.name as end_poi_name, p2.type as end_poi_type
+        FROM segments s
+        LEFT JOIN pois p1 ON s.start_poi_id = p1.id
+        LEFT JOIN pois p2 ON s.end_poi_id = p2.id
+        WHERE s.map_id = ?
+    ''', (map_id,))
+    segments = [dict(row) for row in cursor.fetchall()]
+    return {'success': True, 'segments': segments}
+
+@app.route('/api/maps/<int:map_id>/segments', methods=['POST'])
+def add_segment(map_id):
+    data = request.json
+    db = get_db()
+    
+    # We expect start_poi_id OR (start_x, start_y)
+    # And end_poi_id OR (end_x, end_y)
+    # And distance (optional)
+    
+    sql = '''INSERT INTO segments (map_id, start_poi_id, end_poi_id, start_x, start_y, end_x, end_y, distance, description)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'''
+    
+    values = (
+        map_id,
+        data.get('start_poi_id'),
+        data.get('end_poi_id'),
+        data.get('start_x'),
+        data.get('start_y'),
+        data.get('end_x'),
+        data.get('end_y'),
+        data.get('distance'),
+        data.get('description', '')
+    )
+    
+    cursor = db.execute(sql, values)
+    db.commit()
+    return {'success': True, 'id': cursor.lastrowid}
+
+@app.route('/api/segments/<int:id>', methods=['DELETE'])
+def delete_segment(id):
+    db = get_db()
+    db.execute('DELETE FROM segments WHERE id = ?', (id,))
+    db.commit()
+    return {'success': True}
 
 
 @app.route('/travel')

@@ -92,6 +92,18 @@
             <!-- List of POIs will serve here -->
         </div>
     </div>
+
+    <hr style="border-color: #444; margin: 10px 0;">
+
+    <div id="routeSection" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h4 style="margin: 0;">Itinerario</h4>
+            <button id="addRouteBtn" class="btn btn-sm btn-secondary" title="Collega due punti">+</button>
+        </div>
+        <div id="routeList" style="max-height: 300px; overflow-y: auto;">
+            <!-- List of Routes will serve here -->
+        </div>
+    </div>
 </div>
 
 <!-- Upload Modal -->
@@ -160,6 +172,35 @@
             <div class="form-group">
                 <label for="poiDescription">Descrizione</label>
                 <textarea id="poiDescription" name="description" rows="3"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-success">Salva</button>
+        </form>
+    </div>
+</div>
+</div>
+
+<!-- Add Segment Modal -->
+<div id="segmentModal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="closeSegmentModal">&times;</span>
+        <h2>Salva Segmento</h2>
+        <form id="segmentForm">
+            <div class="form-group">
+                <label>Da: <span id="segmentStartName"></span></label>
+            </div>
+            <div class="form-group">
+                <label>A: <span id="segmentEndName"></span></label>
+            </div>
+
+            <div class="form-group">
+                <label for="segmentDistance">Distanza (km/miles)</label>
+                <input type="number" step="0.1" id="segmentDistance" name="distance" required>
+            </div>
+
+            <div class="form-group">
+                <label for="segmentDescription">Descrizione (Opzionale)</label>
+                <input type="text" id="segmentDescription" name="description">
             </div>
 
             <button type="submit" class="btn btn-success">Salva</button>

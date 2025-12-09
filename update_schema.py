@@ -1,6 +1,5 @@
 
 import sqlite3
-import os
 
 DATABASE = 'wfrp.db'
 
@@ -8,24 +7,16 @@ def update_db_schema():
     conn = sqlite3.connect(DATABASE)
     c = conn.cursor()
     
-    # Create POIs table
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS pois (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            map_id INTEGER NOT NULL,
-            name TEXT NOT NULL,
-            type TEXT NOT NULL,
-            description TEXT,
-            population TEXT,
-            x REAL NOT NULL,
-            y REAL NOT NULL,
-            FOREIGN KEY (map_id) REFERENCES maps (id)
-        )
-    ''')
+    # Check if 'pixels_per_inch' column exists in 'maps' table
+    try:
+        c.execute('SELECT pixels_per_inch FROM maps LIMIT 1')
+    except sqlite3.OperationalError:
+        print("Adding 'pixels_per_inch' column to 'maps' table...")
+        c.execute('ALTER TABLE maps ADD COLUMN pixels_per_inch INTEGER DEFAULT 96')
     
     conn.commit()
     conn.close()
-    print("Database schema updated with POIs table.")
+    print("Database schema check complete.")
 
 if __name__ == "__main__":
     update_db_schema()
