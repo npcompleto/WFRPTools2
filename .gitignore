@@ -77,3 +77,4 @@ ENV/
 
 # Maps
 static/maps/
+.vscode/

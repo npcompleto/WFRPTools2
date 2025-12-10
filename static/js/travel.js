@@ -21,7 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let startMarker = null;
     let currentRouteMarkers = [];
     let currentPois = []; // Store POIs for easy access
-    let quill = null; // Quill instance
+    let quill = null; // Quill instance for POI
+    let eventQuill = null; // Quill instance for Events
+    let isPlacingEvent = false; // Flag for placing event on map
 
     // --- Modal Logic ---
     const uploadModal = document.getElementById("uploadModal");
@@ -215,6 +217,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 theme: 'snow'
             });
         }
+
+        // Initialize Event Quill if not already done
+        if (!eventQuill) {
+            eventQuill = new Quill('#eventContentEditor', {
+                theme: 'snow'
+            });
+        }
     }
 
     // Upload Map
@@ -356,8 +365,13 @@ document.addEventListener('DOMContentLoaded', () => {
             addPoiBtn.classList.add('btn-secondary');
             addPoiBtn.textContent = '+';
             document.getElementById('map').style.cursor = '';
+            addPoiBtn.textContent = '+';
+            document.getElementById('map').style.cursor = '';
         } else if (isAddingSegment && currentMapId) {
             handleRouteSelection({ type: 'point', latlng: e.latlng });
+        } else if (isPlacingEvent && currentMapId) {
+            // Place Event Logic
+            placeEventOnMap(e.latlng);
         }
     });
 
@@ -534,7 +548,20 @@ document.addEventListener('DOMContentLoaded', () => {
         pois.forEach(poi => {
             // Add Marker
             // Leaflet standard marker
-            const marker = L.marker([poi.y, poi.x]);
+            let markerOptions = {};
+            if (poi.type === 'Evento') {
+                // Red icon for events
+                var redIcon = new L.Icon({
+                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34],
+                    shadowSize: [41, 41]
+                });
+                markerOptions = { icon: redIcon };
+            }
+            const marker = L.marker([poi.y, poi.x], markerOptions);
 
             const popupContent = `
                 <strong>${poi.name}</strong><br>
@@ -544,7 +571,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${poi.description || ''}
                 </div>
                 <div style="margin-top:5px; display:flex; gap:5px; flex-wrap:wrap;">
-                    <button onclick="editPoi(${poi.id})" style="font-size:0.8em;">Modifica</button>
+                    ${poi.type !== 'Evento' ? `<button onclick="editPoi(${poi.id})" style="font-size:0.8em;">Modifica</button>` : `<button onclick="editPoi(${poi.id})" style="font-size:0.8em;">Modifica</button>`}
                     <button onclick="setMapCenter(${poi.id})" style="font-size:0.8em;">Imposta Centro</button>
                     <button onclick="deletePoi(${poi.id})" style="color:red; font-size:0.8em;">Elimina</button>
                 </div>
@@ -793,9 +820,51 @@ document.addEventListener('DOMContentLoaded', () => {
             quill.root.innerHTML = poi.description || '';
         }
 
+        // If it's an event, we might want to use the Event Editor? 
+        // For simplicity, we use the standard POI editor which now supports Rich Text.
+        // The user can edit "Evento" type POIs just like regular ones.
+
         document.getElementById('poiModal').querySelector('h2').textContent = 'Modifica Punto di Interesse';
         document.getElementById('poiModal').style.display = "block";
     };
+
+    async function placeEventOnMap(latlng) {
+        if (!currentEventContent && !eventQuill) return;
+
+        const content = eventQuill ? eventQuill.root.innerHTML : currentEventContent;
+        // Strip tags for name?
+        const name = "Evento: " + (eventQuill ? eventQuill.getText().substring(0, 20) : "Nuovo") + "...";
+
+        const payload = {
+            map_id: currentMapId,
+            name: name,
+            type: 'Evento',
+            description: content,
+            population: '',
+            x: latlng.lng,
+            y: latlng.lat
+        };
+
+        try {
+            const response = await fetch(`/api/maps/${currentMapId}/pois`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                //alert('Evento piazzato!'); // User said "not alert"
+                isPlacingEvent = false;
+                document.getElementById('map').style.cursor = '';
+                loadPois(currentMapId);
+            } else {
+                alert('Errore: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Error placing event:', error);
+        }
+    }
 
     window.setMapCenter = async function (id) {
         if (!currentMapId) return;
@@ -821,14 +890,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Event Logic with Save ---
     const eventModal = document.getElementById('eventModal');
     const closeEventModal = document.getElementById('closeEventModal');
-    const saveEventBtn = document.getElementById('saveEventBtn');
+    const placeEventBtn = document.getElementById('placeEventBtn');
     let currentEventContent = '';
     let currentEventType = 'Generico';
 
     async function generateEvent(url, type) {
-        const contentDiv = document.getElementById('eventContent');
-        contentDiv.innerHTML = '<em>Consultando gli oracoli...</em>';
+        // Clear editor
+        if (eventQuill) eventQuill.setContents([]);
+        else return; // Should allow fallback?
+
+        eventQuill.root.innerHTML = '<em>Consultando gli oracoli...</em>';
         saveEventBtn.style.display = 'none';
+        placeEventBtn.style.display = 'none';
         eventModal.style.display = 'block';
 
         try {
@@ -836,16 +909,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
 
             if (result.success) {
-                currentEventContent = result.event;
+                currentEventContent = result.event; // Raw text (maybe markdown?)
                 currentEventType = type;
-                contentDiv.innerHTML = result.event.replace(/\n/g, '<br>');
+
+                // Assuming result.event is text, convert newlines to BR if needed, 
+                // but Quill handles HTML. 
+                // If the generator returns Markdown, we might want to parse it. 
+                // For now, let's treat it as text with line breaks.
+                const formatted = result.event.replace(/\n/g, '<br>');
+                eventQuill.root.innerHTML = formatted;
+
                 saveEventBtn.style.display = 'inline-block';
+                placeEventBtn.style.display = 'inline-block';
             } else {
-                contentDiv.innerHTML = `<span style="color:red">Errore: ${result.error}</span>`;
+                eventQuill.root.innerHTML = `<span style="color:red">Errore: ${result.error}</span>`;
             }
         } catch (error) {
             console.error('Error generating event:', error);
-            contentDiv.innerHTML = `<span style="color:red">Errore di connessione.</span>`;
+            eventQuill.root.innerHTML = `<span style="color:red">Errore di connessione.</span>`;
         }
     }
 
@@ -860,15 +941,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (saveEventBtn) {
         saveEventBtn.onclick = async () => {
             try {
+                // Use Quill content
+                const content = eventQuill ? eventQuill.root.innerHTML : currentEventContent;
                 const response = await fetch('/api/saved_events', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content: currentEventContent, type: currentEventType })
+                    body: JSON.stringify({ content: content, type: currentEventType })
                 });
                 const result = await response.json();
                 if (result.success) {
                     alert('Evento salvato!');
-                    eventModal.style.display = 'none';
+                    // Do not close modal automatically, allow placing too?
+                    // eventModal.style.display = 'none';
                     loadSavedEvents();
                 } else {
                     alert('Errore salvataggio: ' + result.error);
@@ -879,9 +963,30 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    if (placeEventBtn) {
+        placeEventBtn.onclick = () => {
+            if (!currentMapId) {
+                alert("Seleziona prima una mappa!");
+                return;
+            }
+            // updates current content from quill before placing
+            currentEventContent = eventQuill.root.innerHTML;
+
+            eventModal.style.display = 'none';
+            isPlacingEvent = true;
+            document.getElementById('map').style.cursor = 'crosshair';
+
+            // Show a toast or small info?
+            // For now just cursor change.
+        };
+    }
+
     if (closeEventModal) {
         closeEventModal.onclick = () => {
             eventModal.style.display = 'none';
+            isPlacingEvent = false; // Cancel placement if they close modal? 
+            // Actually they close modal to cancel generation. 
+            // If they clicked "Place", modal is already closed.
         };
     }
 

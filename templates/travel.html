@@ -143,14 +143,21 @@
 
 <!-- Event Modal -->
 <div id="eventModal" class="modal">
-    <div class="modal-content">
+    <div class="modal-content" style="max-width: 800px; width: 90%;">
         <span class="close" id="closeEventModal">&times;</span>
         <h2>Evento Casuale</h2>
-        <div id="eventContent" style="margin: 20px 0; font-style: italic; line-height: 1.5;"></div>
-        <button id="saveEventBtn" class="btn btn-success" style="display:none; margin-right: 10px;">Salva
-            Evento</button>
-        <button class="btn btn-secondary"
-            onclick="document.getElementById('eventModal').style.display='none'">Chiudi</button>
+        <!-- Quill Editor for Event -->
+        <div id="eventContentEditor" style="height: 300px;"></div>
+
+        <div style="margin-top: 20px;">
+            <button id="saveEventBtn" class="btn btn-success" style="display:none; margin-right: 10px;">Salva in
+                Lista</button>
+            <button id="placeEventBtn" class="btn btn-primary"
+                style="display:none; margin-right: 10px; background-color: #fab1a0; color: #2d3436;">Piazza sulla
+                Mappa</button>
+            <button class="btn btn-secondary"
+                onclick="document.getElementById('eventModal').style.display='none'">Chiudi</button>
+        </div>
     </div>
 </div>
 
