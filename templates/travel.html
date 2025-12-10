@@ -184,7 +184,7 @@
 
 <!-- Add POI Modal -->
 <div id="poiModal" class="modal">
-    <div class="modal-content">
+    <div class="modal-content" style="max-width: 800px; width: 90%;">
         <span class="close" id="closePoiModal">&times;</span>
         <h2>Aggiungi Punto di Interesse</h2>
         <form id="poiForm">
@@ -219,10 +219,12 @@
 
             <div class="form-group">
                 <label for="poiDescription">Descrizione</label>
-                <textarea id="poiDescription" name="description" rows="3"></textarea>
+                <!-- Container for Quill -->
+                <div id="poiDescriptionEditor" style="height: 300px;"></div>
+                <input type="hidden" id="poiDescription" name="description">
             </div>
 
-            <button type="submit" class="btn btn-success">Salva</button>
+            <button type="submit" class="btn btn-success" style="margin-top: 20px;">Salva</button>
         </form>
     </div>
 </div>
@@ -270,5 +272,8 @@
 {% block scripts %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<!-- Quill JS -->
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 <script src="{{ url_for('static', filename='js/travel.js') }}"></script>
 {% endblock %}

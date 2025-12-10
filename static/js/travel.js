@@ -20,6 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let finishedPolyline = null; // Solid line for established segments
     let startMarker = null;
     let currentRouteMarkers = [];
+    let currentPois = []; // Store POIs for easy access
+    let quill = null; // Quill instance
 
     // --- Modal Logic ---
     const uploadModal = document.getElementById("uploadModal");
@@ -202,12 +204,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Load POIs for this map
         loadPois(mapData.id);
-        // Load POIs for this map
-        loadPois(mapData.id);
         loadSegments(mapData.id);
 
         document.getElementById('poiSection').style.display = 'block';
         document.getElementById('routeSection').style.display = 'block';
+
+        // Initialize Quill if not already done
+        if (!quill) {
+            quill = new Quill('#poiDescriptionEditor', {
+                theme: 'snow'
+            });
+        }
     }
 
     // Upload Map
@@ -340,6 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('poiX').value = e.latlng.lng;
             document.getElementById('poiY').value = e.latlng.lat;
             document.getElementById('poiModal').querySelector('h2').textContent = 'Aggiungi Punto di Interesse';
+            if (quill) quill.setContents([]); // Clear Quill
             document.getElementById('poiModal').style.display = "block";
 
             // Reset mode
@@ -361,6 +369,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentMapId) return;
 
         const formData = new FormData(e.target);
+        // Get content from Quill
+        if (quill) {
+            formData.set('description', quill.root.innerHTML);
+        }
         const data = Object.fromEntries(formData.entries());
 
         const method = editingPoiId ? 'PUT' : 'POST';
@@ -506,6 +518,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (data.success) {
+                currentPois = data.pois;
                 renderPois(data.pois);
             }
         } catch (error) {
@@ -527,15 +540,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 <strong>${poi.name}</strong><br>
                 <em>${poi.type}</em><br>
                 ${poi.population ? `Pop: ${poi.population}<br>` : ''}
-                <p>${poi.description || ''}</p>
+                <div class="poi-description-content" style="max-height: 200px; overflow-y: auto;">
+                    ${poi.description || ''}
+                </div>
                 <div style="margin-top:5px; display:flex; gap:5px; flex-wrap:wrap;">
-                    <button onclick="editPoi(${poi.id}, '${poi.name.replace(/'/g, "\\'")}', '${poi.type}', '${poi.population}', '${(poi.description || '').replace(/'/g, "\\'")}', ${poi.x}, ${poi.y})" style="font-size:0.8em;">Modifica</button>
+                    <button onclick="editPoi(${poi.id})" style="font-size:0.8em;">Modifica</button>
                     <button onclick="setMapCenter(${poi.id})" style="font-size:0.8em;">Imposta Centro</button>
                     <button onclick="deletePoi(${poi.id})" style="color:red; font-size:0.8em;">Elimina</button>
                 </div>
             `;
 
-            marker.bindPopup(popupContent);
+            marker.bindPopup(popupContent, { maxWidth: 400 });
 
             marker.on('click', (e) => {
                 if (isAddingSegment) {
@@ -763,14 +778,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    window.editPoi = function (id, name, type, population, description, x, y) {
+    window.editPoi = function (id) {
+        const poi = currentPois.find(p => p.id === id);
+        if (!poi) return;
+
         editingPoiId = id;
-        document.getElementById('poiX').value = x;
-        document.getElementById('poiY').value = y;
-        document.getElementById('poiName').value = name;
-        document.getElementById('poiType').value = type;
-        document.getElementById('poiPopulation').value = population;
-        document.getElementById('poiDescription').value = description;
+        document.getElementById('poiX').value = poi.x;
+        document.getElementById('poiY').value = poi.y;
+        document.getElementById('poiName').value = poi.name;
+        document.getElementById('poiType').value = poi.type;
+        document.getElementById('poiPopulation').value = poi.population;
+        // Set Quill content
+        if (quill) {
+            quill.root.innerHTML = poi.description || '';
+        }
 
         document.getElementById('poiModal').querySelector('h2').textContent = 'Modifica Punto di Interesse';
         document.getElementById('poiModal').style.display = "block";
