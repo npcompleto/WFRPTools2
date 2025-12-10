@@ -195,6 +195,14 @@ def create_table():
             FOREIGN KEY (map_id) REFERENCES maps (id)
         )
     ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS saved_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            content TEXT NOT NULL,
+            type TEXT DEFAULT 'Generico',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
     conn.commit()
     conn.close()
 
@@ -1335,7 +1343,7 @@ def generate_event():
             "Genera un breve evento casuale di viaggio. "
             "L'evento può essere comico o tragico. "
             "Rispondi solo con la descrizione dell'evento."
-            "Descrivi nel dettaglio cosa vedono e anche i fatti dietro che deve sapere solo il GM."
+            "Descrivi cosa vedono e anche i fatti dietro che deve sapere solo il GM."
             "Se ci sono personaggi, descrivili brevemente."
             "Se ci sono oggetti, descrivili brevemente."
         )
@@ -1343,6 +1351,67 @@ def generate_event():
     except Exception as e:
         print(f"Gemini Error: {e}")
         return {'success': False, 'error': str(e)}, 500
+
+@app.route('/api/generate_night_event', methods=['POST'])
+def generate_night_event():
+    if not GEMINI_API_KEY:
+        return {'success': False, 'error': 'API Key non configurata (GEMINI_API_KEY)'}, 500
+        
+    try:
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        response = model.generate_content(
+            "Sei un Game Master per Warhammer Fantasy Roleplay. "
+            "Genera un breve evento casuale che accade durante la notte mentre i personaggi sono accampati. "
+            "L'evento può essere inquietante, magico, di combattimento o banale ma interessante. "
+            "Potrebbe riguardare sogni, rumori, visitatori o fenomeni atmosferici. "
+            "Rispondi solo con la descrizione dell'evento. "
+            "Descrivi cosa succede, eventuali tiri di dado richiesti e le conseguenze e anche i fatti dietro che deve sapere solo il GM."
+        )
+        return {'success': True, 'event': response.text}
+    except Exception as e:
+        print(f"Gemini Error: {e}")
+        return {'success': False, 'error': str(e)}, 500
+
+@app.route('/api/saved_events', methods=['GET'])
+def get_saved_events():
+    try:
+        db = get_db()
+        cursor = db.execute('SELECT * FROM saved_events ORDER BY created_at DESC')
+        events = [dict(row) for row in cursor.fetchall()]
+        return {'success': True, 'events': events}
+    except Exception as e:
+        print(f"Error fetching saved events: {e}")
+        return {'success': False, 'error': str(e)}, 500
+
+@app.route('/api/saved_events', methods=['POST'])
+def save_event():
+    data = request.json
+    content = data.get('content')
+    event_type = data.get('type', 'Generico')
+    
+    if not content:
+        return {'success': False, 'error': 'Content is required'}, 400
+        
+    try:
+        db = get_db()
+        cursor = db.execute('INSERT INTO saved_events (content, type) VALUES (?, ?)', (content, event_type))
+        db.commit()
+        return {'success': True, 'id': cursor.lastrowid}
+    except Exception as e:
+        print(f"Error saving event: {e}")
+        return {'success': False, 'error': str(e)}, 500
+
+@app.route('/api/saved_events/<int:id>', methods=['DELETE'])
+def delete_saved_event(id):
+    try:
+        db = get_db()
+        db.execute('DELETE FROM saved_events WHERE id = ?', (id,))
+        db.commit()
+        return {'success': True}
+    except Exception as e:
+        print(f"Error deleting saved event: {e}")
+        return {'success': False, 'error': str(e)}, 500
+
 
 
 @app.route('/travel')

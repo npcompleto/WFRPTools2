@@ -797,27 +797,63 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Gemini Event Generator ---
     const generateEventBtn = document.getElementById('generateEventBtn');
+    // --- Event Logic with Save ---
     const eventModal = document.getElementById('eventModal');
     const closeEventModal = document.getElementById('closeEventModal');
+    const saveEventBtn = document.getElementById('saveEventBtn');
+    let currentEventContent = '';
+    let currentEventType = 'Generico';
+
+    async function generateEvent(url, type) {
+        const contentDiv = document.getElementById('eventContent');
+        contentDiv.innerHTML = '<em>Consultando gli oracoli...</em>';
+        saveEventBtn.style.display = 'none';
+        eventModal.style.display = 'block';
+
+        try {
+            const response = await fetch(url, { method: 'POST' });
+            const result = await response.json();
+
+            if (result.success) {
+                currentEventContent = result.event;
+                currentEventType = type;
+                contentDiv.innerHTML = result.event.replace(/\n/g, '<br>');
+                saveEventBtn.style.display = 'inline-block';
+            } else {
+                contentDiv.innerHTML = `<span style="color:red">Errore: ${result.error}</span>`;
+            }
+        } catch (error) {
+            console.error('Error generating event:', error);
+            contentDiv.innerHTML = `<span style="color:red">Errore di connessione.</span>`;
+        }
+    }
 
     if (generateEventBtn) {
-        generateEventBtn.onclick = async () => {
-            const contentDiv = document.getElementById('eventContent');
-            contentDiv.innerHTML = '<em>Consultando gli oracoli...</em>';
-            eventModal.style.display = 'block';
+        generateEventBtn.onclick = () => generateEvent('/api/generate_event', 'Generico');
+    }
 
+    if (generateNightEventBtn) {
+        generateNightEventBtn.onclick = () => generateEvent('/api/generate_night_event', 'Notte');
+    }
+
+    if (saveEventBtn) {
+        saveEventBtn.onclick = async () => {
             try {
-                const response = await fetch('/api/generate_event', { method: 'POST' });
+                const response = await fetch('/api/saved_events', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: currentEventContent, type: currentEventType })
+                });
                 const result = await response.json();
-
                 if (result.success) {
-                    contentDiv.innerHTML = result.event.replace(/\n/g, '<br>');
+                    alert('Evento salvato!');
+                    eventModal.style.display = 'none';
+                    loadSavedEvents();
                 } else {
-                    contentDiv.innerHTML = `<span style="color:red">Errore: ${result.error}</span>`;
+                    alert('Errore salvataggio: ' + result.error);
                 }
             } catch (error) {
-                console.error('Error generating event:', error);
-                contentDiv.innerHTML = `<span style="color:red">Errore di connessione.</span>`;
+                console.error('Error saving event:', error);
             }
         };
     }
@@ -827,6 +863,67 @@ document.addEventListener('DOMContentLoaded', () => {
             eventModal.style.display = 'none';
         };
     }
+
+    // --- Saved Events Sidebar ---
+    async function loadSavedEvents() {
+        try {
+            const response = await fetch('/api/saved_events');
+            const data = await response.json();
+            if (data.success) {
+                renderSavedEvents(data.events);
+            }
+        } catch (error) {
+            console.error('Error loading saved events:', error);
+        }
+    }
+
+    function renderSavedEvents(events) {
+        const list = document.getElementById('savedEventsList');
+        if (!list) return;
+        list.innerHTML = '';
+
+        events.forEach(event => {
+            const div = document.createElement('div');
+            div.className = 'map-list-item'; // Reuse style
+            div.style.cursor = 'default';
+
+            // Format content preview
+            const preview = event.content.length > 100 ? event.content.substring(0, 100) + '...' : event.content;
+
+            div.innerHTML = `
+                <div style="font-size: 0.8em; color: var(--accent-color); margin-bottom: 5px;">
+                    ${event.type} - ${new Date(event.created_at).toLocaleDateString()}
+                    <span style="float:right; cursor:pointer; color:red;" onclick="deleteSavedEvent(${event.id})">&times;</span>
+                </div>
+                <div style="font-size: 0.9em; white-space: pre-wrap;">${preview}</div>
+            `;
+
+            // Allow expanding on click (optional, but good for UX)
+            div.onclick = (e) => {
+                if (e.target.tagName !== 'SPAN') { // Don't trigger on delete
+                    alert(event.content); // Simple way to show full content
+                }
+            };
+
+            list.appendChild(div);
+        });
+    }
+
+    window.deleteSavedEvent = async function (id) {
+        if (!confirm('Eliminare questo evento salvato?')) return;
+        try {
+            const response = await fetch(`/api/saved_events/${id}`, { method: 'DELETE' });
+            if (response.ok) {
+                loadSavedEvents();
+            }
+        } catch (error) {
+            console.error('Error deleting event:', error);
+        }
+    };
+
+    // Initial Load
+    loadSavedEvents();
+
 });
 
 

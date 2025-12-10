@@ -60,6 +60,19 @@
     .sidebar.hidden {
         display: none;
     }
+
+    .sidebar-right {
+        position: absolute;
+        top: 80px;
+        right: 20px;
+        z-index: 1000;
+        background: rgba(30, 30, 30, 0.9);
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        width: 300px;
+        color: var(--text-color);
+    }
 </style>
 {% endblock %}
 
@@ -109,8 +122,22 @@
 
     <div id="eventSection">
         <h4 style="margin: 0 0 10px 0;">Eventi Casuali</h4>
-        <button id="generateEventBtn" class="btn btn-primary" style="width: 100%; background-color: #6c5ce7;">Genera
+        <button id="generateEventBtn" class="btn btn-primary"
+            style="width: 100%; background-color: #6c5ce7; margin-bottom: 5px;">Genera
             Evento (Gemini)</button>
+        <button id="generateNightEventBtn" class="btn btn-primary"
+            style="width: 100%; background-color: #2d3436;">Genera
+            Evento Notturno (Accampamento)</button>
+    </div>
+</div>
+
+<div class="sidebar-right" id="sidebarRight">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0;">Eventi Salvati</h3>
+    </div>
+    <hr style="border-color: #444; margin: 10px 0;">
+    <div id="savedEventsList" style="max-height: calc(100vh - 150px); overflow-y: auto;">
+        <!-- List of Saved Events will serve here -->
     </div>
 </div>
 
@@ -120,6 +147,8 @@
         <span class="close" id="closeEventModal">&times;</span>
         <h2>Evento Casuale</h2>
         <div id="eventContent" style="margin: 20px 0; font-style: italic; line-height: 1.5;"></div>
+        <button id="saveEventBtn" class="btn btn-success" style="display:none; margin-right: 10px;">Salva
+            Evento</button>
         <button class="btn btn-secondary"
             onclick="document.getElementById('eventModal').style.display='none'">Chiudi</button>
     </div>
