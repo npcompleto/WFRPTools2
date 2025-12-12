@@ -3,11 +3,281 @@
 {% block title %}Home - RPG Tools{% endblock %}
 
 {% block content %}
-<div class="card text-center">
-    <h1>Benvenuto, Master</h1>
-    <p>Gestisci le tue sessioni di gioco con facilità.</p>
-    <div class="mt-4">
-        <a href="{{ url_for('shop') }}" class="btn">Apri Simulatore Negozio</a>
+<div class="dashboard-container">
+    <div class="text-center mt-4">
+        <a href="{{ url_for('calendar') }}" class="btn">Vai al Calendario</a>
+        <a href="{{ url_for('shop') }}" class="btn btn-secondary" style="margin-left: 10px;">Simulatore Negozio</a>
+
+        <div style="display: inline-block; margin-left: 10px; position: relative;">
+            <button id="open-pg-btn" class="btn btn-accent" onclick="openPGTabs()">Apri schede PG</button>
+            <span onclick="openPGSettings()"
+                style="cursor: pointer; position: absolute; top: -10px; right: -10px; background: #2c3e50; border-radius: 50%; padding: 2px 5px; font-size: 0.8em; border: 1px solid #7f8c8d;"
+                title="Configura Link">⚙️</span>
+        </div>
     </div>
+
+    <div class="banner-container">
+        <img src="{{ url_for('static', filename='img/home_banner.jpg') }}" alt="WFRP Banner" class="home-banner">
+    </div>
+
+    <div class="text-center mb-4">
+        <h1 class="current-date">{{ date }}</h1>
+    </div>
+
+    {% if holidays %}
+    <div class="holidays-section mb-4">
+        {% for holiday in holidays %}
+        <div class="card holiday-card">
+            <h2 class="holiday-title">🎉 {{ holiday.name }} 🎉</h2>
+            <p>{{ holiday.description }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="grid-2-cols">
+        <!-- Note Section -->
+        <div class="card note-card">
+            <h3>Diario del Giorno</h3>
+            <div class="note-content">
+                {{ note | safe }}
+            </div>
+        </div>
+
+        <!-- Weather Section -->
+        <div class="card weather-card">
+            <h3>Meteo</h3>
+            {% if weather %}
+            <div class="weather-grid">
+                {% for period in ['Mattino', 'Pomeriggio', 'Sera', 'Notte'] %}
+                {% set w = weather[period] %}
+                <div class="weather-period">
+                    <h4>{{ period }}</h4>
+                    <div class="weather-details">
+                        <p><span class="label">Temp:</span> {{ w.temperature_c }}°C</p>
+                        <p><span class="label">Vento:</span> {{ w.wind_kmh }} km/h</p>
+                        <p><span class="label">Pioggia:</span> {{ w.rain_mm }} mm</p>
+                        {% if w.snow_cm > 0 %}<p><span class="label">Neve:</span> {{ w.snow_cm }} cm</p>{% endif %}
+                        <p><span class="label">Nubi:</span> {{ w.cloudiness_pct }}%</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p>Dati meteo non disponibili.</p>
+            {% endif %}
+        </div>
+    </div>
+
+
+
+    <!-- PG Links Configuration Modal -->
+    <div id="pgSettingsModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close" onclick="closePGSettings()">&times;</span>
+            <h2 style="color: #d4a017; font-family: 'Cinzel', serif;">Configura Link Schede PG</h2>
+            <p style="font-size: 0.9em; color: #bdc3c7;">Inserisci gli URL delle schede dei personaggi.</p>
+
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+                <input type="text" id="pg-link-1" placeholder="Link PG 1 (es. Google Drive/PDF)" class="pg-input">
+                <input type="text" id="pg-link-2" placeholder="Link PG 2" class="pg-input">
+                <input type="text" id="pg-link-3" placeholder="Link PG 3" class="pg-input">
+                <input type="text" id="pg-link-4" placeholder="Link PG 4" class="pg-input">
+            </div>
+
+            <button class="btn" style="margin-top: 20px; width: 100%;" onclick="savePGLinks()">Salva
+                Configurazione</button>
+        </div>
+    </div>
+
+    <script>
+        function openPGSettings() {
+            document.getElementById('pgSettingsModal').style.display = 'block';
+            // Load existing
+            const links = JSON.parse(localStorage.getItem('pg_links') || '["","","",""]');
+            document.getElementById('pg-link-1').value = links[0] || '';
+            document.getElementById('pg-link-2').value = links[1] || '';
+            document.getElementById('pg-link-3').value = links[2] || '';
+            document.getElementById('pg-link-4').value = links[3] || '';
+        }
+
+        function closePGSettings() {
+            document.getElementById('pgSettingsModal').style.display = 'none';
+        }
+
+        function savePGLinks() {
+            const links = [
+                document.getElementById('pg-link-1').value.trim(),
+                document.getElementById('pg-link-2').value.trim(),
+                document.getElementById('pg-link-3').value.trim(),
+                document.getElementById('pg-link-4').value.trim()
+            ];
+            localStorage.setItem('pg_links', JSON.stringify(links));
+            closePGSettings();
+            alert('Link salvati!');
+        }
+
+        function openPGTabs() {
+            const links = JSON.parse(localStorage.getItem('pg_links') || '[]');
+            const validLinks = links.filter(l => l && l.length > 0);
+
+            if (validLinks.length === 0) {
+                openPGSettings();
+                return;
+            }
+
+            let blocked = false;
+
+            validLinks.forEach((link, index) => {
+                // Ensure protocol
+                let url = link;
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    url = 'https://' + url;
+                }
+
+                // Open tab
+                const win = window.open(url, '_blank');
+
+                // Check if blocked (win is null or undefined immediately after)
+                if (!win) {
+                    blocked = true;
+                }
+            });
+
+            if (blocked) {
+                alert("Attenzione: Il browser ha bloccato l'apertura di alcune schede. \n\nPer favore, consenti i pop-up per questo sito (icona nella barra degli indirizzi) e riprova.");
+            }
+        }
+    </script>
 </div>
+
+<style>
+    .current-date {
+        color: #d4a017;
+        font-family: 'Cinzel', serif;
+        font-size: 2.5em;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        margin-bottom: 0.5em;
+    }
+
+    .holiday-card {
+        background: linear-gradient(135deg, #c0392b, #8e44ad);
+        color: white;
+        border: 2px solid #f1c40f;
+        text-align: center;
+        padding: 20px;
+    }
+
+    .holiday-title {
+        color: #f1c40f;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+        font-family: 'Cinzel', serif;
+    }
+
+    .grid-2-cols {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+        .grid-2-cols {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .weather-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    @media (max-width: 500px) {
+        .weather-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .weather-period {
+        background: rgba(0, 0, 0, 0.2);
+        padding: 10px;
+        border-radius: 5px;
+    }
+
+    .weather-period h4 {
+        margin-top: 0;
+        color: #d4a017;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 5px;
+        margin-bottom: 5px;
+    }
+
+    .weather-details p {
+        margin: 2px 0;
+        font-size: 0.9em;
+    }
+
+    .label {
+        font-weight: bold;
+        color: #bdc3c7;
+    }
+
+    .note-content {
+        white-space: pre-wrap;
+        /* Preserve formatting */
+        line-height: 1.6;
+        min-height: 100px;
+    }
+
+    .btn-secondary {
+        background-color: #7f8c8d;
+    }
+
+    .btn-secondary:hover {
+        background-color: #95a5a6;
+    }
+
+    .btn-accent {
+        background-color: #d35400;
+        /* Burned Orange */
+        color: white;
+    }
+
+    .btn-accent:hover {
+        background-color: #e67e22;
+    }
+
+    .pg-input {
+        background: #34495e;
+        border: 1px solid #555;
+        color: white;
+        padding: 8px;
+        border-radius: 4px;
+        font-family: inherit;
+    }
+
+    .pg-input:focus {
+        border-color: #d4a017;
+        outline: none;
+    }
+
+    .banner-container {
+        margin: 20px auto;
+        text-align: center;
+        max-width: 100%;
+        overflow: hidden;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        border: 2px solid #d4a017;
+    }
+
+    .home-banner {
+        width: 100%;
+        height: auto;
+        max-height: 400px;
+        object-fit: cover;
+        display: block;
+    }
+</style>
 {% endblock %}

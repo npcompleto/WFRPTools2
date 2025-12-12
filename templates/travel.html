@@ -95,11 +95,17 @@
     </div>
 
     <hr style="border-color: #444; margin: 10px 0;">
-
+    <button id="addGroupPoiBtn" class="btn btn-sm btn-secondary"
+        style="background-color: #09e326; border-color: #0984e3; width: 100%;" title="Aggiungi/Sposta Gruppo">Pin del
+        Gruppo</button>
+    <hr style="border-color: #444; margin: 10px 0;">
     <div id="poiSection" style="display: none;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <h4 style="margin: 0;">Punti di Interesse</h4>
-            <button id="addPoiBtn" class="btn btn-sm btn-secondary" title="Clicca sulla mappa per aggiungere">+</button>
+            <div>
+                <button id="addPoiBtn" class="btn btn-sm btn-secondary"
+                    title="Clicca sulla mappa per aggiungere">+</button>
+            </div>
         </div>
         <div id="poiList" style="max-height: 300px; overflow-y: auto;">
             <!-- List of POIs will serve here -->
@@ -146,6 +152,29 @@
     <div class="modal-content" style="max-width: 800px; width: 90%;">
         <span class="close" id="closeEventModal">&times;</span>
         <h2>Evento Casuale</h2>
+        <div class="form-group">
+            <label for="eventTitle">Titolo Evento</label>
+            <input type="text" id="eventTitle" placeholder="Titolo dell'evento..."
+                style="width: 100%; margin-bottom: 10px; padding: 5px;">
+        </div>
+
+        <div class="form-group"
+            style="margin-bottom: 10px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px;">
+            <label style="display:block; margin-bottom:5px;">Immagine (Opzionale)</label>
+            <div style="display:flex; align-items:center; gap: 10px;">
+                <input type="file" id="eventImageInput" accept="image/*" style="display:none"
+                    onchange="previewEventImage(this)">
+                <label for="eventImageInput" class="btn btn-sm btn-secondary"
+                    style="cursor:pointer; display:inline-block;">📂 Scegli Immagine</label>
+                <span id="eventImageName" style="font-size:0.8em; color:#bdc3c7;">Nessuna immagine</span>
+                <button id="removeEventImageBtn" class="btn btn-sm btn-danger" style="display:none;"
+                    onclick="removeEventImage()">❌</button>
+            </div>
+            <div id="eventImagePreviewContainer" style="margin-top:10px; display:none;">
+                <img id="eventImagePreview" src=""
+                    style="max-width: 150px; border: 1px solid #444; border-radius: 4px;">
+            </div>
+        </div>
         <!-- Quill Editor for Event -->
         <div id="eventContentEditor" style="height: 300px;"></div>
 

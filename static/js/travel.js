@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     let isAddingPoi = false;
+    let isAddingGroupPoi = false;
     let isAddingSegment = false;
     let routePoints = []; // Array of points {latlng, type, id, name}
     let tempPolyline = null; // Dashed line to cursor
@@ -24,6 +25,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let quill = null; // Quill instance for POI
     let eventQuill = null; // Quill instance for Events
     let isPlacingEvent = false; // Flag for placing event on map
+    let eventToPlace = null; // {title, content} explicit object for placement
+    let savedEventsCache = []; // Cache for saved events
+    let currentSegments = []; // Store Segments
+    let editingSegmentId = null; // Track if we are editing a segment
 
     // --- Modal Logic ---
     const uploadModal = document.getElementById("uploadModal");
@@ -329,10 +334,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- POI Logic ---
+    const addGroupPoiBtn = document.getElementById('addGroupPoiBtn');
+    if (addGroupPoiBtn) {
+        addGroupPoiBtn.onclick = () => {
+            // Toggle off others
+            if (isAddingPoi) document.getElementById('addPoiBtn').click();
+            if (isAddingSegment) document.getElementById('addRouteBtn').click();
+
+            isAddingGroupPoi = !isAddingGroupPoi;
+            if (isAddingGroupPoi) {
+                addGroupPoiBtn.classList.remove('btn-secondary');
+                addGroupPoiBtn.classList.add('btn-primary');
+                document.getElementById('map').style.cursor = 'crosshair';
+            } else {
+                addGroupPoiBtn.classList.remove('btn-primary');
+                addGroupPoiBtn.classList.add('btn-secondary');
+                document.getElementById('map').style.cursor = '';
+            }
+        };
+    }
+
     const addPoiBtn = document.getElementById('addPoiBtn');
 
     addPoiBtn.onclick = () => {
         if (isAddingSegment) resetRouteMode();
+        if (isAddingGroupPoi) document.getElementById('addGroupPoiBtn').click();
 
         isAddingPoi = !isAddingPoi;
         if (isAddingPoi) {
@@ -367,6 +393,8 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('map').style.cursor = '';
             addPoiBtn.textContent = '+';
             document.getElementById('map').style.cursor = '';
+        } else if (isAddingGroupPoi && currentMapId) {
+            createGroupPoi(e.latlng);
         } else if (isAddingSegment && currentMapId) {
             handleRouteSelection({ type: 'point', latlng: e.latlng });
         } else if (isPlacingEvent && currentMapId) {
@@ -374,6 +402,40 @@ document.addEventListener('DOMContentLoaded', () => {
             placeEventOnMap(e.latlng);
         }
     });
+
+    async function createGroupPoi(latlng) {
+        // Check if exists
+        const existing = currentPois.find(p => p.type === 'Gruppo');
+        if (existing) {
+            if (confirm("Spostare il segnalino Gruppo qui?")) {
+                try {
+                    await fetch(`/api/pois/${existing.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ x: latlng.lng, y: latlng.lat })
+                    });
+                    loadPois(currentMapId);
+                } catch (e) { console.error(e); }
+            }
+        } else {
+            try {
+                await fetch(`/api/maps/${currentMapId}/pois`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: 'Gruppo',
+                        type: 'Gruppo',
+                        x: latlng.lng,
+                        y: latlng.lat,
+                        description: 'Posizione del gruppo'
+                    })
+                });
+                loadPois(currentMapId);
+            } catch (e) { console.error(e); }
+        }
+        // Reset mode
+        document.getElementById('addGroupPoiBtn').click();
+    }
 
     // Variable to track if we are editing
     let editingPoiId = null;
@@ -546,6 +608,46 @@ document.addEventListener('DOMContentLoaded', () => {
         list.innerHTML = '';
 
         pois.forEach(poi => {
+            if (poi.type === 'Gruppo') {
+                // Special Group Marker
+                var greenIcon = new L.Icon({
+                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34],
+                    shadowSize: [41, 41]
+                });
+
+                const groupMarker = L.marker([poi.y, poi.x], {
+                    icon: greenIcon,
+                    draggable: true,
+                    zIndexOffset: 1000 // Ensure it's on top
+                });
+
+                groupMarker.on('dragend', async (event) => {
+                    const newPos = event.target.getLatLng();
+                    try {
+                        await fetch(`/api/pois/${poi.id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ x: newPos.lng, y: newPos.lat })
+                        });
+                        // Don't need full reload, just update local model if needed
+                        poi.x = newPos.lng;
+                        poi.y = newPos.lat;
+                    } catch (e) { console.error("Error updating group pos", e); }
+                });
+
+                const popupContent = `
+                    <strong>Gruppo</strong><br>
+                    <button onclick="deletePoi(${poi.id})" style="color:red; font-size:0.8em; cursor:pointer;">Rimuovi Gruppo</button>
+                `;
+                groupMarker.bindPopup(popupContent);
+                poiLayerGroup.addLayer(groupMarker);
+                return; // Do not add to list
+            }
+
             // Add Marker
             // Leaflet standard marker
             let markerOptions = {};
@@ -596,7 +698,6 @@ document.addEventListener('DOMContentLoaded', () => {
             div.className = 'map-list-item'; // Reuse styling
             div.innerHTML = `
                 <div><strong>${poi.name}</strong> <small>(${poi.type})</small></div>
-                <div style="font-size: 0.85em; color: #aaa;">${poi.description || ''}</div>
             `;
 
             div.onclick = () => {
@@ -635,6 +736,7 @@ document.addEventListener('DOMContentLoaded', () => {
             addPoiBtn.classList.add('btn-secondary');
             addPoiBtn.textContent = '+';
         }
+        if (isAddingGroupPoi) document.getElementById('addGroupPoiBtn').click();
 
         isAddingSegment = !isAddingSegment;
         if (isAddingSegment) {
@@ -645,6 +747,10 @@ document.addEventListener('DOMContentLoaded', () => {
             routePoints = [];
             currentRouteMarkers = [];
             if (finishedPolyline) map.removeLayer(finishedPolyline);
+
+            // Reset Edit State just in case
+            editingSegmentId = null;
+            document.getElementById('segmentModal').querySelector('h2').textContent = 'Salva Segmento';
         } else {
             resetRouteMode();
         }
@@ -653,11 +759,40 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('segmentForm').onsubmit = async (e) => {
         e.preventDefault();
 
+        const distance = document.getElementById('segmentDistance').value;
+        const description = document.getElementById('segmentDescription').value;
+        const transport = document.getElementById('segmentTransport').value;
+
+        if (editingSegmentId) {
+            // Update existing
+            try {
+                const response = await fetch(`/api/segments/${editingSegmentId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        distance: distance,
+                        description: description,
+                        transport: transport
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    segmentModal.style.display = "none";
+                    e.target.reset();
+                    editingSegmentId = null;
+                    loadSegments(currentMapId);
+                } else {
+                    alert('Errore: ' + result.error);
+                }
+            } catch (error) { console.error("Error updating segment", error); }
+            return;
+        }
+
+        // Create New
         const startData = JSON.parse(segmentModal.dataset.startData);
         const endData = JSON.parse(segmentModal.dataset.endData);
         const points = JSON.parse(segmentModal.dataset.points || "[]");
-        const distance = document.getElementById('segmentDistance').value;
-        const description = document.getElementById('segmentDescription').value;
+        // ... continue existing creation logic
 
         // Simplify points for payload [ [lng, lat], ... ]
         // Note: Backend expects start_x, start_y ... 
@@ -672,7 +807,9 @@ document.addEventListener('DOMContentLoaded', () => {
             distance: distance,
             description: description,
             points: pointsArray,
-            transport: document.getElementById('segmentTransport').value
+            description: description,
+            points: pointsArray,
+            transport: transport
         };
 
         if (startData.type === 'poi') payload.start_poi_id = startData.id;
@@ -704,6 +841,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (data.success) {
+                currentSegments = data.segments;
                 renderSegments(data.segments);
             }
         } catch (error) {
@@ -766,7 +904,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 Distanza: ${seg.distance} km<br>
                 Tempo: ${timeStr} (${seg.transport || 'piedi'})<br>
                 ${seg.description ? `<em>${seg.description}</em><br>` : ''}
-                <button onclick="deleteSegment(${seg.id})" style="color:red; font-size:0.8em;">Elimina</button>
+                <div style="margin-top:5px; display:flex; gap:5px;">
+                    <button onclick="editSegment(${seg.id})" style="font-size:0.8em;">Modifica</button>
+                    <button onclick="deleteSegment(${seg.id})" style="color:red; font-size:0.8em;">Elimina</button>
+                </div>
             `);
 
             // List Item
@@ -805,6 +946,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    window.editSegment = function (id) {
+        const seg = currentSegments.find(s => s.id === id);
+        if (!seg) return;
+
+        editingSegmentId = id;
+        document.getElementById('segmentDistance').value = seg.distance;
+        document.getElementById('segmentDescription').value = seg.description || '';
+        document.getElementById('segmentTransport').value = seg.transport || 'piedi';
+
+        const startName = seg.start_poi_name || 'Punto';
+        const endName = seg.end_poi_name || 'Punto';
+        document.getElementById('segmentStartName').textContent = startName;
+        document.getElementById('segmentEndName').textContent = endName;
+
+        document.getElementById('segmentModal').querySelector('h2').textContent = 'Modifica Segmento';
+        segmentModal.style.display = "block";
+    };
+
     window.editPoi = function (id) {
         const poi = currentPois.find(p => p.id === id);
         if (!poi) return;
@@ -829,15 +988,23 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     async function placeEventOnMap(latlng) {
-        if (!currentEventContent && !eventQuill) return;
+        let content = '';
+        let title = '';
 
-        const content = eventQuill ? eventQuill.root.innerHTML : currentEventContent;
-        // Strip tags for name?
-        const name = "Evento: " + (eventQuill ? eventQuill.getText().substring(0, 20) : "Nuovo") + "...";
+        if (eventToPlace) {
+            content = eventToPlace.content;
+            title = eventToPlace.title;
+        } else {
+            // Placing from modal
+            if ((!currentEventContent && !eventQuill)) return;
+            content = eventQuill ? eventQuill.root.innerHTML : currentEventContent;
+            const inputTitle = document.getElementById('eventTitle').value;
+            title = inputTitle || ("Evento: " + (eventQuill ? eventQuill.getText().substring(0, 20) : "Nuovo") + "...");
+        }
 
         const payload = {
             map_id: currentMapId,
-            name: name,
+            name: title,
             type: 'Evento',
             description: content,
             population: '',
@@ -856,6 +1023,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.success) {
                 //alert('Evento piazzato!'); // User said "not alert"
                 isPlacingEvent = false;
+                eventToPlace = null; // Reset
                 document.getElementById('map').style.cursor = '';
                 loadPois(currentMapId);
             } else {
@@ -893,6 +1061,39 @@ document.addEventListener('DOMContentLoaded', () => {
     const placeEventBtn = document.getElementById('placeEventBtn');
     let currentEventContent = '';
     let currentEventType = 'Generico';
+    let editingSavedEventId = null; // Track if we are editing an existing saved event
+    // eventToPlace declared globally
+    let currentEventImageFilename = null; // Track current image filename
+
+    // Image Handling Functions
+    window.previewEventImage = function (input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            document.getElementById('eventImageName').textContent = file.name;
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                document.getElementById('eventImagePreview').src = e.target.result;
+                document.getElementById('eventImagePreviewContainer').style.display = 'block';
+                document.getElementById('removeEventImageBtn').style.display = 'block';
+            }
+            reader.readAsDataURL(file);
+        }
+    };
+
+    window.removeEventImage = function () {
+        document.getElementById('eventImageInput').value = '';
+        document.getElementById('eventImageName').textContent = 'Nessuna immagine';
+        document.getElementById('eventImagePreview').src = '';
+        document.getElementById('eventImagePreviewContainer').style.display = 'none';
+        document.getElementById('removeEventImageBtn').style.display = 'none';
+        currentEventImageFilename = null; // Mark as removed
+    };
+
+    function resetEventImageInput() {
+        window.removeEventImage();
+        currentEventImageFilename = null;
+    }
+
 
     async function generateEvent(url, type) {
         // Clear editor
@@ -900,7 +1101,11 @@ document.addEventListener('DOMContentLoaded', () => {
         else return; // Should allow fallback?
 
         eventQuill.root.innerHTML = '<em>Consultando gli oracoli...</em>';
+        document.getElementById('eventTitle').value = "Evento " + type; // Default title
+        resetEventImageInput(); // Reset image
         saveEventBtn.style.display = 'none';
+        saveEventBtn.textContent = 'Salva in Lista';
+        editingSavedEventId = null; // Reset editing state
         placeEventBtn.style.display = 'none';
         eventModal.style.display = 'block';
 
@@ -943,11 +1148,59 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 // Use Quill content
                 const content = eventQuill ? eventQuill.root.innerHTML : currentEventContent;
-                const response = await fetch('/api/saved_events', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content: content, type: currentEventType })
-                });
+                const title = document.getElementById('eventTitle').value || 'Evento';
+
+                // Handle Image Upload First
+                let finalImageFilename = currentEventImageFilename;
+                const imageInput = document.getElementById('eventImageInput');
+
+                if (imageInput.files && imageInput.files[0]) {
+                    const formData = new FormData();
+                    formData.append('image', imageInput.files[0]);
+
+                    try {
+                        const upRes = await fetch('/api/events/upload_image', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const upData = await upRes.json();
+                        if (upData.success) {
+                            finalImageFilename = upData.filename;
+                        } else {
+                            alert('Errore caricamento immagine: ' + upData.error);
+                            return; // Stop saving if upload fails
+                        }
+                    } catch (e) {
+                        alert('Errore caricamento immagine.');
+                        console.error(e);
+                        return;
+                    }
+                }
+
+                const payload = {
+                    title: title,
+                    content: content,
+                    type: currentEventType,
+                    image_filename: finalImageFilename
+                };
+
+                let response;
+                if (editingSavedEventId) {
+                    // Update existing
+                    response = await fetch(`/api/saved_events/${editingSavedEventId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    // Create new
+                    response = await fetch('/api/saved_events', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                }
+
                 const result = await response.json();
                 if (result.success) {
                     alert('Evento salvato!');
@@ -971,6 +1224,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             // updates current content from quill before placing
             currentEventContent = eventQuill.root.innerHTML;
+            const title = document.getElementById('eventTitle').value;
+            // We set eventToPlace so logic knows we are placing this specific one
+            eventToPlace = { title: title, content: currentEventContent };
 
             eventModal.style.display = 'none';
             isPlacingEvent = true;
@@ -996,6 +1252,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/saved_events');
             const data = await response.json();
             if (data.success) {
+                savedEventsCache = data.events;
                 renderSavedEvents(data.events);
             }
         } catch (error) {
@@ -1017,23 +1274,46 @@ document.addEventListener('DOMContentLoaded', () => {
             const preview = event.content.length > 100 ? event.content.substring(0, 100) + '...' : event.content;
 
             div.innerHTML = `
-                <div style="font-size: 0.8em; color: var(--accent-color); margin-bottom: 5px;">
-                    ${event.type} - ${new Date(event.created_at).toLocaleDateString()}
-                    <span style="float:right; cursor:pointer; color:red;" onclick="deleteSavedEvent(${event.id})">&times;</span>
+                <div style="font-size: 0.8em; color: var(--accent-color); margin-bottom: 5px; display:flex; justify-content:space-between;">
+                   <span>${event.type} - ${new Date(event.created_at).toLocaleDateString()}</span>
+                   <div>
+                        <span title="Piazza sulla Mappa" style="cursor:pointer; margin-right:8px;" onclick="placeSavedEventOnMap(${event.id})">📍</span>
+                        <span style="cursor:pointer; color:red;" onclick="deleteSavedEvent(${event.id})">&times;</span>
+                   </div>
                 </div>
+                ${event.image_filename ?
+                    `<div style="margin-bottom:5px; text-align:center;">
+                        <img src="/static/uploads/events/${event.image_filename}" style="max-width:100%; max-height:100px; border-radius:4px; border:1px solid #444;">
+                     </div>` : ''
+                }
+                <div style="font-weight:bold; margin-bottom: 5px;">${event.title || 'Senza Titolo'}</div>
                 <div style="font-size: 0.9em; white-space: pre-wrap;">${preview}</div>
             `;
 
-            // Allow expanding on click (optional, but good for UX)
+            // Allow expanding/editing on click
             div.onclick = (e) => {
-                if (e.target.tagName !== 'SPAN') { // Don't trigger on delete
-                    alert(event.content); // Simple way to show full content
+                if (e.target.tagName !== 'SPAN') { // Don't trigger on delete/place listeners
+                    editSavedEvent(event.id);
                 }
             };
 
             list.appendChild(div);
         });
     }
+
+    window.placeSavedEventOnMap = function (id) {
+        const event = savedEventsCache.find(e => e.id === id);
+        if (!event) return;
+
+        if (!currentMapId) {
+            alert("Seleziona prima una mappa!");
+            return;
+        }
+
+        eventToPlace = { title: event.title || 'Evento', content: event.content };
+        isPlacingEvent = true;
+        document.getElementById('map').style.cursor = 'crosshair';
+    };
 
     window.deleteSavedEvent = async function (id) {
         if (!confirm('Eliminare questo evento salvato?')) return;
@@ -1045,6 +1325,35 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Error deleting event:', error);
         }
+    };
+
+    window.editSavedEvent = function (id) {
+        const event = savedEventsCache.find(e => e.id === id);
+        if (!event) return;
+
+        editingSavedEventId = id;
+        currentEventType = event.type;
+        currentEventContent = event.content;
+
+        document.getElementById('eventTitle').value = event.title;
+        if (eventQuill) eventQuill.root.innerHTML = event.content;
+
+        // Load existing image if any
+        currentEventImageFilename = event.image_filename || null;
+        if (currentEventImageFilename) {
+            document.getElementById('eventImageName').textContent = currentEventImageFilename;
+            document.getElementById('eventImagePreview').src = `/static/uploads/events/${currentEventImageFilename}`;
+            document.getElementById('eventImagePreviewContainer').style.display = 'block';
+            document.getElementById('removeEventImageBtn').style.display = 'block';
+        } else {
+            resetEventImageInput();
+        }
+
+        saveEventBtn.textContent = 'Aggiorna';
+        saveEventBtn.style.display = 'inline-block';
+        placeEventBtn.style.display = 'inline-block'; // Allow placing while editing
+
+        eventModal.style.display = 'block';
     };
 
     // Initial Load

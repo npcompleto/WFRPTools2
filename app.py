@@ -198,16 +198,174 @@ def create_table():
     c.execute('''
         CREATE TABLE IF NOT EXISTS saved_events (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT,
             content TEXT NOT NULL,
             type TEXT DEFAULT 'Generico',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS xp_catalog (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            reason TEXT NOT NULL,
+            amount INTEGER NOT NULL
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS xp_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pg_id INTEGER NOT NULL,
+            amount INTEGER NOT NULL,
+            reason TEXT NOT NULL,
+            date_assigned TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (pg_id) REFERENCES player_characters (id)
+        )
+    ''')
+    
+    
+    # Force update of Catalog to user's new specification
+    # We clear the table first to ensure it matches exactly the requested list
+    c.execute('DELETE FROM xp_catalog')
+    
+    presets = [
+        ("Combattimento Molto Facile", 5),
+        ("Combattimento Facile", 10),
+        ("Combattimento Abituale", 15),
+        ("Combattimento Normale", 20),
+        ("Combattimento Impegnativo", 30),
+        ("Combattimento Difficile", 40),
+        ("Combattimento Molto Difficile", 50),
+        ("Bonus Leadership", 5),
+        ("Bonus Riassunto", 5),
+        ("Bonus Inventiva", 5),
+        ("Bonus Memoria trama", 5),
+        ("Bonus Interpretazione", 5),
+        ("Bonus Risoluzione Problema", 5),
+        ("Bonus Scoperta", 5),
+        ("Bonus Indagine", 5),
+        ("Bonus Furtività", 5),
+        ("Sessione di gioco", 30),
+        ("Obiettivo di trama raggiunto", 50),
+        ("Obiettivo di trama secondario", 15),
+        ("Obiettivo di trama accessorio", 5)
+    ]
+    c.executemany('INSERT INTO xp_catalog (reason, amount) VALUES (?, ?)', presets)
+    
+    # Migration for title column
+    try:
+        c.execute('SELECT title FROM saved_events LIMIT 1')
+    except sqlite3.OperationalError:
+        print("Migrating saved_events table: adding title column")
+        c.execute('ALTER TABLE saved_events ADD COLUMN title TEXT')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS diary_photos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date_iso TEXT NOT NULL,
+            filename TEXT NOT NULL,
+            caption TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # Migration for image_filename column
+    try:
+        c.execute('SELECT image_filename FROM saved_events LIMIT 1')
+    except sqlite3.OperationalError:
+        print("Migrating saved_events table: adding image_filename column")
+        c.execute('ALTER TABLE saved_events ADD COLUMN image_filename TEXT')
+
     conn.commit()
     conn.close()
 
 # Create table on startup
 create_table()
+
+# Configure Upload Folder for Diary Photos
+DIARY_UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'diary_photos')
+if not os.path.exists(DIARY_UPLOAD_FOLDER):
+    os.makedirs(DIARY_UPLOAD_FOLDER)
+
+# Configure Upload Folder for Events
+EVENTS_UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'events')
+if not os.path.exists(EVENTS_UPLOAD_FOLDER):
+    os.makedirs(EVENTS_UPLOAD_FOLDER)
+
+from werkzeug.utils import secure_filename
+
+@app.route('/api/events/upload_image', methods=['POST'])
+def upload_event_image():
+    if 'image' not in request.files:
+        return {'success': False, 'error': 'No file part'}, 400
+    
+    file = request.files['image']
+    if file.filename == '':
+        return {'success': False, 'error': 'No selected file'}, 400
+        
+    if file:
+        try:
+            filename = secure_filename(f"event_{int(datetime.now().timestamp())}_{file.filename}")
+            file.save(os.path.join(EVENTS_UPLOAD_FOLDER, filename))
+            return {'success': True, 'filename': filename}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}, 500
+
+@app.route('/api/diary/photos/<date_iso>')
+def get_diary_photos(date_iso):
+    db = get_db()
+    cursor = db.execute('SELECT * FROM diary_photos WHERE date_iso = ? ORDER BY created_at DESC', (date_iso,))
+    photos = [dict(row) for row in cursor.fetchall()]
+    return {'success': True, 'photos': photos}
+
+@app.route('/api/diary/upload_photo', methods=['POST'])
+def upload_diary_photo():
+    if 'photo' not in request.files:
+        return {'success': False, 'error': 'No file part'}, 400
+    
+    file = request.files['photo']
+    date_iso = request.form.get('date_iso')
+    caption = request.form.get('caption', '')
+    
+    if file.filename == '':
+        return {'success': False, 'error': 'No selected file'}, 400
+        
+    if file and date_iso:
+        try:
+            filename = secure_filename(f"{date_iso}_{int(datetime.now().timestamp())}_{file.filename}")
+            file.save(os.path.join(DIARY_UPLOAD_FOLDER, filename))
+            
+            db = get_db()
+            db.execute('INSERT INTO diary_photos (date_iso, filename, caption) VALUES (?, ?, ?)',
+                       (date_iso, filename, caption))
+            db.commit()
+            
+            return {'success': True}
+        except Exception as e:
+            print(f"Photo upload error: {e}")
+            return {'success': False, 'error': str(e)}, 500
+            
+    return {'success': False, 'error': 'Missing data'}, 400
+
+@app.route('/api/diary/delete_photo/<int:photo_id>', methods=['POST'])
+def delete_diary_photo(photo_id):
+    try:
+        db = get_db()
+        cursor = db.execute('SELECT filename FROM diary_photos WHERE id = ?', (photo_id,))
+        row = cursor.fetchone()
+        
+        if row:
+            filename = row['filename']
+            file_path = os.path.join(DIARY_UPLOAD_FOLDER, filename)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            
+            db.execute('DELETE FROM diary_photos WHERE id = ?', (photo_id,))
+            db.commit()
+            return {'success': True}
+        else:
+            return {'success': False, 'error': 'Photo not found'}, 404
+    except Exception as e:
+        return {'success': False, 'error': str(e)}, 500
 
 def migrate_diary_csv_to_db():
     """Migrates diary data from diario.csv to the diary table if the table is empty."""
@@ -399,7 +557,56 @@ def load_shop_types():
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    db = get_db()
+    
+    # Init default values
+    current_date_display = "Nessuna data registrata"
+    weather_data = None
+    note = "Nessuna nota per questa giornata."
+    holidays = []
+    
+    # Get the latest diary entry
+    cursor = db.execute('SELECT * FROM diary ORDER BY date_iso DESC LIMIT 1')
+    last_entry = cursor.fetchone()
+    
+    if last_entry:
+        date_iso = last_entry['date_iso']
+        note = last_entry['note'] if last_entry['note'] else "Nessuna nota."
+        if last_entry['weather_json']:
+            try:
+                weather_data = json.loads(last_entry['weather_json'])
+            except:
+                pass
+        
+        # Parse date for display and holidays
+        try:
+            parts = date_iso.split('-')
+            year = parts[0]
+            month_idx = int(parts[1])
+            day = int(parts[2])
+            
+            cal_data = load_calendar_data()
+            if cal_data and 'months' in cal_data:
+                # Validate month index
+                if 1 <= month_idx <= len(cal_data['months']):
+                    month_data = cal_data['months'][month_idx-1]
+                    month_name = month_data['name']
+                    season = month_data.get('season', '')
+                    current_date_display = f"{day} {month_name} {year} ({season})"
+                
+                # Check holidays (DD-MM)
+                check_str = f"{day:02d}-{month_idx:02d}"
+                if 'holidays' in cal_data:
+                    for h in cal_data['holidays']:
+                        if h['date'] == check_str:
+                            holidays.append(h)
+            else:
+                 current_date_display = date_iso
+        except Exception as e:
+            print(f"Date parsing error: {e}")
+            current_date_display = date_iso
+            
+    return render_template('index.html', date=current_date_display, weather=weather_data, note=note, holidays=holidays)
 
 @app.route('/shop')
 def shop():
@@ -926,6 +1133,48 @@ def delete_poi(id):
     db.commit()
     return {'success': True}
 
+@app.route('/api/saved_events', methods=['GET'])
+def get_saved_events():
+    db = get_db()
+    cursor = db.execute('SELECT * FROM saved_events ORDER BY created_at DESC')
+    events = [dict(row) for row in cursor.fetchall()]
+    return {'success': True, 'events': events}
+
+@app.route('/api/saved_events', methods=['POST'])
+def save_event():
+    data = request.json
+    db = get_db()
+    db.execute('INSERT INTO saved_events (title, content, type, image_filename) VALUES (?, ?, ?, ?)', 
+               (data.get('title', 'Evento'), data.get('content'), data.get('type'), data.get('image_filename')))
+    db.commit()
+    return {'success': True}
+
+@app.route('/api/saved_events/<int:id>', methods=['PUT'])
+def update_saved_event(id):
+    data = request.json
+    db = get_db()
+    db.execute('UPDATE saved_events SET title = ?, content = ?, type = ?, image_filename = ? WHERE id = ?', 
+               (data.get('title'), data.get('content'), data.get('type'), data.get('image_filename'), id))
+    db.commit()
+    return {'success': True}
+
+@app.route('/api/saved_events/<int:id>', methods=['DELETE'])
+def delete_saved_event(id):
+    db = get_db()
+    
+    # Get filename to delete file
+    cursor = db.execute('SELECT image_filename FROM saved_events WHERE id = ?', (id,))
+    row = cursor.fetchone()
+    if row and row['image_filename']:
+        try:
+            os.remove(os.path.join(EVENTS_UPLOAD_FOLDER, row['image_filename']))
+        except Exception:
+            pass # Ignore errors if file doesn't exist
+
+    db.execute('DELETE FROM saved_events WHERE id = ?', (id,))
+    db.commit()
+    return {'success': True}
+
 @app.route('/api/talents', methods=['GET'])
 def get_talents():
     db = get_db()
@@ -1259,16 +1508,37 @@ def update_poi(poi_id):
     if not cursor.fetchone():
         return {'success': False, 'error': 'POI not found'}, 404
 
-    sql = '''UPDATE pois SET name=?, type=?, population=?, description=? WHERE id=?'''
-    values = (
-        data.get('name'), 
-        data.get('type'), 
-        data.get('population'), 
-        data.get('description'), 
-        poi_id
-    )
+    # Support updating position if provided
+    updates = []
+    values = []
     
-    db.execute(sql, values)
+    if 'name' in data:
+        updates.append("name=?")
+        values.append(data['name'])
+    if 'type' in data:
+        updates.append("type=?")
+        values.append(data['type'])
+    if 'population' in data:
+        updates.append("population=?")
+        values.append(data['population'])
+    if 'description' in data:
+        updates.append("description=?")
+        values.append(data['description'])
+    if 'x' in data:
+        updates.append("x=?")
+        values.append(data['x'])
+    if 'y' in data:
+        updates.append("y=?")
+        values.append(data['y'])
+        
+    if not updates:
+        return {'success': True} # Nothing to update
+        
+    values.append(poi_id)
+    
+    sql = f'''UPDATE pois SET {', '.join(updates)} WHERE id=?'''
+    
+    db.execute(sql, tuple(values))
     db.commit()
     return {'success': True}
 
@@ -1324,6 +1594,27 @@ def add_segment(map_id):
     db.commit()
     return {'success': True, 'id': cursor.lastrowid}
 
+@app.route('/api/segments/<int:id>', methods=['PUT'])
+def update_segment(id):
+    data = request.json
+    db = get_db()
+    
+    # We only allow updating transport, distance, and description for now as geometry edits are complex
+    # unless we want to allow it. The user specifically asked for "modifica il mezzo", 
+    # but likely wants to edit other simple fields triggers.
+    
+    sql = '''UPDATE segments SET transport=?, distance=?, description=? WHERE id=?'''
+    values = (
+        data.get('transport'),
+        data.get('distance'),
+        data.get('description'),
+        id
+    )
+    
+    db.execute(sql, values)
+    db.commit()
+    return {'success': True}
+
 @app.route('/api/segments/<int:id>', methods=['DELETE'])
 def delete_segment(id):
     db = get_db()
@@ -1372,46 +1663,98 @@ def generate_night_event():
         print(f"Gemini Error: {e}")
         return {'success': False, 'error': str(e)}, 500
 
-@app.route('/api/saved_events', methods=['GET'])
-def get_saved_events():
-    try:
-        db = get_db()
-        cursor = db.execute('SELECT * FROM saved_events ORDER BY created_at DESC')
-        events = [dict(row) for row in cursor.fetchall()]
-        return {'success': True, 'events': events}
-    except Exception as e:
-        print(f"Error fetching saved events: {e}")
-        return {'success': False, 'error': str(e)}, 500
 
-@app.route('/api/saved_events', methods=['POST'])
-def save_event():
-    data = request.json
-    content = data.get('content')
-    event_type = data.get('type', 'Generico')
+
+
+
+    return {'success': True}
+
+# --- XP Widget APIs ---
+
+@app.route('/api/xp/catalog', methods=['GET'])
+def get_xp_catalog():
+    db = get_db()
+    cursor = db.execute('SELECT * FROM xp_catalog ORDER BY reason')
+    return {'success': True, 'catalog': [dict(row) for row in cursor.fetchall()]}
+
+@app.route('/api/public/pgs', methods=['GET'])
+def get_public_pgs():
+    # Get PG List with Total XP
+    db = get_db()
+    cursor = db.execute('''
+        SELECT p.id, p.name, COALESCE(SUM(x.amount), 0) as total_xp
+        FROM player_characters p
+        LEFT JOIN xp_log x ON p.id = x.pg_id
+        GROUP BY p.id, p.name
+        ORDER BY p.name
+    ''')
+    return {'success': True, 'pgs': [dict(row) for row in cursor.fetchall()]}
+
+@app.route('/api/xp/export/<int:pg_id>', methods=['GET'])
+def get_xp_export(pg_id):
+    db = get_db()
+    # Get Total
+    cursor = db.execute('SELECT COALESCE(SUM(amount), 0) as total FROM xp_log WHERE pg_id = ?', (pg_id,))
+    total = cursor.fetchone()['total']
     
-    if not content:
-        return {'success': False, 'error': 'Content is required'}, 400
+    # Get Log
+    cursor = db.execute('''
+        SELECT reason, amount, date_assigned 
+        FROM xp_log 
+        WHERE pg_id = ? 
+        ORDER BY date_assigned DESC
+    ''', (pg_id,))
+    log = [dict(row) for row in cursor.fetchall()]
+    
+    return {'success': True, 'total': total, 'log': log}
+
+@app.route('/api/xp/assign', methods=['POST'])
+def assign_xp():
+    data = request.json
+    pg_ids = data.get('pg_ids', [])
+    amount = data.get('amount')
+    reason = data.get('reason')
+    
+    if not pg_ids or not amount or not reason:
+        return {'success': False, 'error': 'Missing data'}, 400
         
-    try:
-        db = get_db()
-        cursor = db.execute('INSERT INTO saved_events (content, type) VALUES (?, ?)', (content, event_type))
-        db.commit()
-        return {'success': True, 'id': cursor.lastrowid}
-    except Exception as e:
-        print(f"Error saving event: {e}")
-        return {'success': False, 'error': str(e)}, 500
+    db = get_db()
+    
+    for pg_id in pg_ids:
+        db.execute('INSERT INTO xp_log (pg_id, amount, reason) VALUES (?, ?, ?)',
+                   (pg_id, amount, reason))
+    
+    db.commit()
+    return {'success': True}
 
-@app.route('/api/saved_events/<int:id>', methods=['DELETE'])
-def delete_saved_event(id):
-    try:
-        db = get_db()
-        db.execute('DELETE FROM saved_events WHERE id = ?', (id,))
-        db.commit()
-        return {'success': True}
-    except Exception as e:
-        print(f"Error deleting saved event: {e}")
-        return {'success': False, 'error': str(e)}, 500
+@app.route('/api/xp/reset', methods=['POST'])
+def reset_xp():
+    data = request.json
+    pg_ids = data.get('pg_ids', [])
+    
+    if not pg_ids:
+        return {'success': False, 'error': 'No PGs selected'}, 400
+        
+    db = get_db()
+    # Delete logs for selected PGs
+    # Using 'IN' clause safely with placeholders
+    placeholders = ', '.join('?' for _ in pg_ids)
+    db.execute(f'DELETE FROM xp_log WHERE pg_id IN ({placeholders})', pg_ids)
+    db.commit()
+    return {'success': True}
 
+@app.route('/api/xp/session_stats', methods=['GET'])
+def get_session_stats():
+    db = get_db()
+    # Assuming "Session" is "Today"
+    cursor = db.execute('''
+        SELECT SUM(amount) as total 
+        FROM xp_log 
+        WHERE date(date_assigned) = date('now')
+    ''')
+    row = cursor.fetchone()
+    total = row['total'] if row and row['total'] else 0
+    return {'success': True, 'total': total}
 
 
 @app.route('/travel')

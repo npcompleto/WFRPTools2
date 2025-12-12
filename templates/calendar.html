@@ -4,7 +4,104 @@
 
 {% block content %}
 {% block extra_css %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/calendar.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/calendar.css') }}">
+<style>
+    .photos-section {
+        margin: 15px 0;
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 5px;
+    }
+
+    .photos-section h3 {
+        margin-top: 0;
+        color: #d4a017;
+        font-size: 1.1em;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 10px;
+    }
+
+    .photo-gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 10px;
+        margin-bottom: 10px;
+        padding-bottom: 5px;
+    }
+
+    .photo-item {
+        position: relative;
+        background: #2c3e50;
+        padding: 5px;
+        border-radius: 5px;
+        text-align: center;
+    }
+
+    .photo-item img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 3px;
+        cursor: pointer;
+        aspect-ratio: 1;
+        object-fit: cover;
+    }
+
+    .photo-caption {
+        font-size: 0.7em;
+        color: #bdc3c7;
+        margin-top: 3px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .btn-delete-photo {
+        position: absolute;
+        top: 0;
+        right: 0;
+        background: rgba(192, 57, 43, 0.8);
+        color: white;
+        border: none;
+        border-radius: 0 0 0 5px;
+        cursor: pointer;
+        font-size: 0.8em;
+        padding: 2px 5px;
+    }
+
+    .upload-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn-select-file {
+        background-color: #3498db;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9em;
+    }
+
+    .caption-input {
+        background: #34495e;
+        border: 1px solid #555;
+        color: white;
+        padding: 5px;
+        border-radius: 4px;
+        flex-grow: 1;
+    }
+
+    .btn-upload {
+        background-color: #27ae60;
+        color: white;
+        border: none;
+        padding: 5px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+</style>
 {% endblock %}
 
 <!-- Quill CSS -->
@@ -74,7 +171,7 @@
                     {% endif %}
 
                     {% if day_ns.holiday_name and day_ns.diary_note %}
-                    <hr class="margin-735066" >
+                    <hr class="margin-735066">
                     {% endif %}
 
                     {% if day_ns.diary_note %}
@@ -101,6 +198,23 @@
         <!-- Weather Widget -->
         <div id="weather-widget" class="weather-container display-9c7663">
             <!-- Populated by JS -->
+        </div>
+
+        <!-- Photo Gallery Section -->
+        <div class="photos-section">
+            <h3>Ricordi Fotografici</h3>
+            <div id="photo-gallery" class="photo-gallery">
+                <!-- JS injected photos -->
+            </div>
+            <div class="upload-controls">
+                <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="updateFileName()">
+                <label for="photo-input" class="btn-select-file">📸 Scegli Foto</label>
+                <span id="file-name" style="font-size:0.8em; margin-left:5px;">Nessun file</span>
+
+                <input type="text" id="photo-caption" placeholder="Didascalia..." class="caption-input">
+                <button onclick="uploadPhoto()" class="btn-upload">Carica</button>
+            </div>
+            <div id="upload-status" style="font-size:0.8em; color: #bdc3c7; margin-top:5px;"></div>
         </div>
 
         <div id="editor-container"></div>
