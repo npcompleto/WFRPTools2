@@ -1837,6 +1837,32 @@ def get_session_stats():
     return {'success': True, 'total': total}
 
 
+# --- COMBAT STATE SYNC ---
+# Simple in-memory state for real-time synchronization between DM and Player View
+# In a production app, use Redis or a Database
+COMBAT_STATE = {
+    'map_filename': None,
+    'rows': 10,
+    'cols': 10,
+    'tokens': [],
+    'arrows': []
+}
+
+@app.route('/api/combat/state', methods=['GET'])
+def get_combat_state():
+    return {'success': True, 'state': COMBAT_STATE}
+
+@app.route('/api/combat/state', methods=['POST'])
+def update_combat_state():
+    global COMBAT_STATE
+    data = request.json
+    COMBAT_STATE = data.get('state', COMBAT_STATE)
+    return {'success': True}
+
+@app.route('/combat_view')
+def combat_view():
+    return render_template('combat_view.html')
+
 @app.route('/travel')
 def travel():
     return render_template('travel.html')

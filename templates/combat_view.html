@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WFRP Combat View</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/combat.css') }}">
+    <style>
+        body {
+            background-color: #000;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            /* Hide scrollbars */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        /* Override generic styles to hide nav if it leaks, though we didn't include header */
+
+        .tactical-map-container {
+            margin: 0;
+            border: none;
+            background: #000;
+            max-width: 100vw;
+            max-height: 100vh;
+            /* Scale to fit screen logic will be in JS or simplified here */
+            width: auto;
+            height: auto;
+        }
+
+        #tacticalMapImage {
+            max-width: 100vw;
+            max-height: 100vh;
+            display: block;
+        }
+
+        /* Hide non-map elements if they accidentally appear */
+        .map-controls,
+        .section-header {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="tactical-map-container" id="tacticalMapContainer" style="display:none;">
+        <div style="position: relative; display: inline-block;">
+            <img id="tacticalMapImage" src="" alt="Mappa Tattica">
+            <div id="tacticalMapGrid" class="grid-overlay"></div>
+            <div id="mapTokensContainer" class="tokens-layer"></div>
+            <svg id="mapArrowsLayer" class="arrows-layer"></svg>
+        </div>
+    </div>
+
+    <div id="waitMessage" style="color: #666; font-size: 1.5rem;">In attesa della mappa...</div>
+
+    <!-- Hidden inputs for grid update compatibility -->
+    <input type="hidden" id="mapRows" value="10">
+    <input type="hidden" id="mapCols" value="10">
+
+    <script src="{{ url_for('static', filename='js/combat_view.js') }}"></script>
+</body>
+
+</html>
