@@ -291,6 +291,55 @@ EVENTS_UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'upload
 if not os.path.exists(EVENTS_UPLOAD_FOLDER):
     os.makedirs(EVENTS_UPLOAD_FOLDER)
 
+# Configure Upload Folder for Badges
+BADGES_UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'badges')
+if not os.path.exists(BADGES_UPLOAD_FOLDER):
+    os.makedirs(BADGES_UPLOAD_FOLDER)
+
+def migrate_tables_add_images():
+    conn = sqlite3.connect(DATABASE)
+    c = conn.cursor()
+    
+    tables = ['npcs', 'modified_npcs', 'player_characters']
+    for table in tables:
+        try:
+            c.execute(f'SELECT image_filename FROM {table} LIMIT 1')
+        except sqlite3.OperationalError:
+            print(f"Migrating {table} table: adding image_filename column")
+            c.execute(f'ALTER TABLE {table} ADD COLUMN image_filename TEXT')
+
+    # Migration for size column
+    tables_size = ['npcs', 'modified_npcs']
+    for table in tables_size:
+        try:
+            c.execute(f'SELECT size FROM {table} LIMIT 1')
+        except sqlite3.OperationalError:
+            print(f"Migrating {table} table: adding size column")
+            c.execute(f'ALTER TABLE {table} ADD COLUMN size TEXT DEFAULT "1x1"')
+            
+    # New table for Tactical Maps
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS tactical_maps (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            image_filename TEXT NOT NULL,
+            rows INTEGER DEFAULT 10,
+            cols INTEGER DEFAULT 10,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+            
+    conn.commit()
+    conn.close()
+
+# Run migrations
+migrate_tables_add_images()
+
+# Configure Upload Folder for Tactical Maps
+TACTICAL_MAPS_UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'tactical_maps')
+if not os.path.exists(TACTICAL_MAPS_UPLOAD_FOLDER):
+    os.makedirs(TACTICAL_MAPS_UPLOAD_FOLDER)
+
 from werkzeug.utils import secure_filename
 
 @app.route('/api/events/upload_image', methods=['POST'])
@@ -306,6 +355,23 @@ def upload_event_image():
         try:
             filename = secure_filename(f"event_{int(datetime.now().timestamp())}_{file.filename}")
             file.save(os.path.join(EVENTS_UPLOAD_FOLDER, filename))
+            return {'success': True, 'filename': filename}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}, 500
+
+@app.route('/api/upload_badge', methods=['POST'])
+def upload_badge():
+    if 'image' not in request.files:
+        return {'success': False, 'error': 'No file part'}, 400
+    
+    file = request.files['image']
+    if file.filename == '':
+        return {'success': False, 'error': 'No selected file'}, 400
+        
+    if file:
+        try:
+            filename = secure_filename(f"badge_{int(datetime.now().timestamp())}_{file.filename}")
+            file.save(os.path.join(BADGES_UPLOAD_FOLDER, filename))
             return {'success': True, 'filename': filename}
         except Exception as e:
             return {'success': False, 'error': str(e)}, 500
@@ -957,15 +1023,17 @@ def get_npcs():
 def add_npc():
     data = request.json
     db = get_db()
-    sql = '''INSERT INTO npcs (name, traits, ws, bs, s, t, ag, int, wp, fel, a, w, m, mag, ip, fp, armor_head, armor_arms, armor_body, armor_legs, description, special_rules, talents, skills, armor, weapons, equipment)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''
+    sql = '''INSERT INTO npcs (name, traits, ws, bs, s, t, ag, int, wp, fel, a, w, m, mag, ip, fp, armor_head, armor_arms, armor_body, armor_legs, description, special_rules, talents, skills, armor, weapons, equipment, image_filename, size)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''
     values = (
         data.get('name'), data.get('traits'),
         data.get('ws'), data.get('bs'), data.get('s'), data.get('t'), data.get('ag'), data.get('int'), data.get('wp'), data.get('fel'),
         data.get('a'), data.get('w'), data.get('m'), data.get('mag'), data.get('ip'), data.get('fp'),
         data.get('armor_head'), data.get('armor_arms'), data.get('armor_body'), data.get('armor_legs'),
         data.get('description'), data.get('special_rules'),
-        data.get('talents'), data.get('skills'), data.get('armor'), data.get('weapons'), data.get('equipment')
+        data.get('talents'), data.get('skills'), data.get('armor'), data.get('weapons'), data.get('equipment'),
+        data.get('image_filename'),
+        data.get('size', '1x1')
     )
     cursor = db.execute(sql, values)
     db.commit()
@@ -975,7 +1043,7 @@ def add_npc():
 def update_npc(id):
     data = request.json
     db = get_db()
-    sql = '''UPDATE npcs SET name=?, traits=?, ws=?, bs=?, s=?, t=?, ag=?, int=?, wp=?, fel=?, a=?, w=?, m=?, mag=?, ip=?, fp=?, armor_head=?, armor_arms=?, armor_body=?, armor_legs=?, description=?, special_rules=?, talents=?, skills=?, armor=?, weapons=?, equipment=?
+    sql = '''UPDATE npcs SET name=?, traits=?, ws=?, bs=?, s=?, t=?, ag=?, int=?, wp=?, fel=?, a=?, w=?, m=?, mag=?, ip=?, fp=?, armor_head=?, armor_arms=?, armor_body=?, armor_legs=?, description=?, special_rules=?, talents=?, skills=?, armor=?, weapons=?, equipment=?, image_filename=?, size=?
              WHERE id=?'''
     values = (
         data.get('name'), data.get('traits'),
@@ -984,6 +1052,8 @@ def update_npc(id):
         data.get('armor_head'), data.get('armor_arms'), data.get('armor_body'), data.get('armor_legs'),
         data.get('description'), data.get('special_rules'),
         data.get('talents'), data.get('skills'), data.get('armor'), data.get('weapons'), data.get('equipment'),
+        data.get('image_filename'),
+        data.get('size'),
         id
     )
     db.execute(sql, values)
@@ -1222,8 +1292,8 @@ def add_modified_npc():
     db = get_db()
     sql = '''INSERT INTO modified_npcs (base_npc_id, name, traits, ws, bs, s, t, ag, int, wp, fel, 
              a, w, m, mag, ip, fp, armor_head, armor_arms, armor_body, armor_legs, 
-             description, special_rules, talents, skills, armor, weapons, equipment) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''
+             description, special_rules, talents, skills, armor, weapons, equipment, image_filename, size) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''
     values = (
         data.get('base_npc_id'), data.get('name'), data.get('traits'),
         data.get('ws'), data.get('bs'), data.get('s'), data.get('t'),
@@ -1234,7 +1304,9 @@ def add_modified_npc():
         data.get('armor_body'), data.get('armor_legs'),
         data.get('description'), data.get('special_rules'),
         data.get('talents'), data.get('skills'),
-        data.get('armor'), data.get('weapons'), data.get('equipment')
+        data.get('armor'), data.get('weapons'), data.get('equipment'),
+        data.get('image_filename'),
+        data.get('size', '1x1')
     )
     cursor = db.execute(sql, values)
     db.commit()
@@ -1246,7 +1318,7 @@ def update_modified_npc(id):
     db = get_db()
     sql = '''UPDATE modified_npcs SET base_npc_id=?, name=?, traits=?, ws=?, bs=?, s=?, t=?, ag=?, int=?, wp=?, fel=?,
              a=?, w=?, m=?, mag=?, ip=?, fp=?, armor_head=?, armor_arms=?, armor_body=?, armor_legs=?,
-             description=?, special_rules=?, talents=?, skills=?, armor=?, weapons=?, equipment=? WHERE id=?'''
+             description=?, special_rules=?, talents=?, skills=?, armor=?, weapons=?, equipment=?, image_filename=?, size=? WHERE id=?'''
     values = (
         data.get('base_npc_id'), data.get('name'), data.get('traits'),
         data.get('ws'), data.get('bs'), data.get('s'), data.get('t'),
@@ -1257,7 +1329,10 @@ def update_modified_npc(id):
         data.get('armor_body'), data.get('armor_legs'),
         data.get('description'), data.get('special_rules'),
         data.get('talents'), data.get('skills'),
-        data.get('armor'), data.get('weapons'), data.get('equipment'), id
+        data.get('armor'), data.get('weapons'), data.get('equipment'), 
+        data.get('image_filename'),
+        data.get('size'),
+        id
     )
     db.execute(sql, values)
     db.commit()
@@ -1339,15 +1414,16 @@ def add_player_character():
     data = request.json
     db = get_db()
     sql = '''INSERT INTO player_characters (name, description, ws, bs, s, t, ag, int, wp, fel,
-             a, w, m, armor_head, armor_arms, armor_body, armor_legs)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''
+             a, w, m, armor_head, armor_arms, armor_body, armor_legs, image_filename)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''
     values = (
         data.get('name'), data.get('description'),
         data.get('ws'), data.get('bs'), data.get('s'), data.get('t'),
         data.get('ag'), data.get('int'), data.get('wp'), data.get('fel'),
         data.get('a'), data.get('w'), data.get('m'),
         data.get('armor_head'), data.get('armor_arms'),
-        data.get('armor_body'), data.get('armor_legs')
+        data.get('armor_body'), data.get('armor_legs'),
+        data.get('image_filename')
     )
     cursor = db.execute(sql, values)
     db.commit()
@@ -1358,14 +1434,16 @@ def update_player_character(id):
     data = request.json
     db = get_db()
     sql = '''UPDATE player_characters SET name=?, description=?, ws=?, bs=?, s=?, t=?, ag=?, int=?, wp=?, fel=?,
-             a=?, w=?, m=?, armor_head=?, armor_arms=?, armor_body=?, armor_legs=? WHERE id=?'''
+             a=?, w=?, m=?, armor_head=?, armor_arms=?, armor_body=?, armor_legs=?, image_filename=? WHERE id=?'''
     values = (
         data.get('name'), data.get('description'),
         data.get('ws'), data.get('bs'), data.get('s'), data.get('t'),
         data.get('ag'), data.get('int'), data.get('wp'), data.get('fel'),
         data.get('a'), data.get('w'), data.get('m'),
         data.get('armor_head'), data.get('armor_arms'),
-        data.get('armor_body'), data.get('armor_legs'), id
+        data.get('armor_body'), data.get('armor_legs'),
+        data.get('image_filename'),
+        id
     )
     db.execute(sql, values)
     db.commit()
@@ -1637,6 +1715,7 @@ def generate_event():
             "Descrivi cosa vedono e anche i fatti dietro che deve sapere solo il GM."
             "Se ci sono personaggi, descrivili brevemente."
             "Se ci sono oggetti, descrivili brevemente."
+            "Crea un prompt per una immagine che sia rappresentativa dell'evento."
         )
         return {'success': True, 'event': response.text}
     except Exception as e:
@@ -1657,6 +1736,7 @@ def generate_night_event():
             "Potrebbe riguardare sogni, rumori, visitatori o fenomeni atmosferici. "
             "Rispondi solo con la descrizione dell'evento. "
             "Descrivi cosa succede, eventuali tiri di dado richiesti e le conseguenze e anche i fatti dietro che deve sapere solo il GM."
+            "Crea un prompt per una immagine che sia rappresentativa dell'evento."
         )
         return {'success': True, 'event': response.text}
     except Exception as e:
@@ -1760,6 +1840,65 @@ def get_session_stats():
 @app.route('/travel')
 def travel():
     return render_template('travel.html')
+
+# --- TACTICAL MAPS API ---
+
+@app.route('/api/tactical_maps', methods=['GET'])
+def get_tactical_maps():
+    db = get_db()
+    cursor = db.execute('SELECT * FROM tactical_maps ORDER BY created_at DESC')
+    maps = [dict(row) for row in cursor.fetchall()]
+    return {'success': True, 'maps': maps}
+
+@app.route('/api/tactical_maps', methods=['POST'])
+def save_tactical_map():
+    if 'image' not in request.files:
+         return {'success': False, 'error': 'No image file'}, 400
+         
+    file = request.files['image']
+    title = request.form.get('title')
+    rows = request.form.get('rows', 10)
+    cols = request.form.get('cols', 10)
+    
+    if not title:
+        return {'success': False, 'error': 'Title is required'}, 400
+
+    if file.filename == '':
+        return {'success': False, 'error': 'No selected file'}, 400
+
+    try:
+        filename = secure_filename(f"tactical_{int(datetime.now().timestamp())}_{file.filename}")
+        file.save(os.path.join(TACTICAL_MAPS_UPLOAD_FOLDER, filename))
+        
+        db = get_db()
+        cursor = db.execute(
+            'INSERT INTO tactical_maps (title, image_filename, rows, cols) VALUES (?, ?, ?, ?)',
+            (title, filename, rows, cols)
+        )
+        db.commit()
+        
+        return {'success': True, 'id': cursor.lastrowid, 'filename': filename}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}, 500
+
+@app.route('/api/tactical_maps/<int:id>', methods=['DELETE'])
+def delete_tactical_map(id):
+    db = get_db()
+    
+    # Optional: Delete file
+    cursor = db.execute('SELECT image_filename FROM tactical_maps WHERE id = ?', (id,))
+    row = cursor.fetchone()
+    if row and row['image_filename']:
+        file_path = os.path.join(TACTICAL_MAPS_UPLOAD_FOLDER, row['image_filename'])
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except Exception as e:
+                print(f"Error deleting file: {e}")
+
+    db.execute('DELETE FROM tactical_maps WHERE id = ?', (id,))
+    db.commit()
+    return {'success': True}
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

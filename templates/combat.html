@@ -8,13 +8,59 @@
 {% endblock %}
 
 <div class="combat-container">
+    <!-- Tactical Map Section -->
+    <section>
+        <div class="section-header">
+            <h2 class="section-title">Mappa Tattica</h2>
+            <div class="map-controls">
+                <input type="file" id="mapUpload" accept="image/*" class="btn" onchange="handleMapUpload(this)">
+                <label>Righe: <input type="number" id="mapRows" value="10" min="1" onchange="updateMapGrid()"></label>
+                <label>Colonne: <input type="number" id="mapCols" value="10" min="1" onchange="updateMapGrid()"></label>
+                <button class="btn btn-primary" onclick="toggleMapGrid()">Griglia ON/OFF</button>
+                <button class="btn btn-danger" onclick="clearTacticalMap()">Rimuovi</button>
+                <button class="btn btn-blue" onclick="openSaveMapModal()">Salva</button>
+                <button class="btn btn-blue" onclick="openLoadMapModal()">Carica</button>
+            </div>
+        </div>
+
+        <!-- Save/Load Modals -->
+        <div id="saveMapModal" class="modal">
+            <div class="modal-content">
+                <span class="close-btn" onclick="closeSaveMapModal()">&times;</span>
+                <h2>Salva Mappa Tattica</h2>
+                <div class="form-group">
+                    <label>Titolo Mappa</label>
+                    <input type="text" id="saveMapTitle">
+                </div>
+                <button class="btn btn-add" onclick="saveTacticalMap()">Salva</button>
+            </div>
+        </div>
+
+        <div id="loadMapModal" class="modal">
+            <div class="modal-content">
+                <span class="close-btn" onclick="closeLoadMapModal()">&times;</span>
+                <h2>Carica Mappa Tattica</h2>
+                <div id="savedMapsList" style="margin-top: 10px; max-height: 300px; overflow-y: auto;">
+                    <!-- List will be populated here -->
+                </div>
+            </div>
+        </div>
+        <div class="tactical-map-container" id="tacticalMapContainer" style="display:none;">
+            <div style="position: relative; display: inline-block;">
+                <img id="tacticalMapImage" src="" alt="Mappa Tattica">
+                <div id="tacticalMapGrid" class="grid-overlay"></div>
+                <div id="mapTokensContainer" class="tokens-layer"></div>
+            </div>
+        </div>
+    </section>
+
     <!-- Active Combatants Section -->
     <section>
         <div class="section-header">
             <h2 class="section-title">Combattenti Attivi</h2>
             <button class="btn btn-danger" onclick="clearCombat()">Svuota Tutto</button>
         </div>
-        
+
         <!-- Combat Graph Visualization -->
         <div id="combatGraph" class="combat-graph"></div>
 
@@ -123,6 +169,7 @@
             <table class="color-fa8d0a" id="npcTable">
                 <thead>
                     <tr class="background-64c1c3">
+                        <th class="color-padding-828720">Img</th>
                         <th class="color-padding-828720">ID</th>
                         <th class="color-padding-828720">Nome</th>
                         <th class="color-padding-828720">Segni</th>
@@ -167,6 +214,22 @@
             <div class="form-group">
                 <label>Nome</label>
                 <input type="text" id="name" required>
+            </div>
+
+            <div class="form-group">
+                <label>Dimensione (es. 1x1)</label>
+                <input type="text" id="npcSize" placeholder="1x1" value="1x1">
+            </div>
+
+            <div class="form-group">
+                <label>Badge / Ritratto</label>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="file" id="npcBadgeUpload" accept="image/*" class="btn"
+                        onchange="handleBadgeUpload(this, 'npcBadgePreview', 'npcBadgeFilename')">
+                    <img id="npcBadgePreview" src=""
+                        style="width: 50px; height: 50px; object-fit: cover; border-radius: 50%; border: 1px solid #555; display: none;">
+                    <input type="hidden" id="npcBadgeFilename">
+                </div>
             </div>
 
             <div class="form-group">
@@ -291,6 +354,17 @@
             <div class="form-group">
                 <label>Nome</label>
                 <input type="text" id="pgName" required>
+            </div>
+
+            <div class="form-group">
+                <label>Badge / Ritratto</label>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="file" id="pgBadgeUpload" accept="image/*" class="btn"
+                        onchange="handleBadgeUpload(this, 'pgBadgePreview', 'pgBadgeFilename')">
+                    <img id="pgBadgePreview" src=""
+                        style="width: 50px; height: 50px; object-fit: cover; border-radius: 50%; border: 1px solid #555; display: none;">
+                    <input type="hidden" id="pgBadgeFilename">
+                </div>
             </div>
 
             <div class="form-group">

@@ -20,6 +20,402 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
+// --- TACTICAL MAP FUNCTIONS ---
+
+let isGridVisible = true;
+let currentMapFile = null; // Store the file object for upload
+
+function handleMapUpload(input) {
+    if (input.files && input.files[0]) {
+        currentMapFile = input.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+            const img = document.getElementById('tacticalMapImage');
+            img.onload = function () {
+                document.getElementById('tacticalMapContainer').style.display = 'flex';
+                updateMapGrid();
+            };
+            img.src = e.target.result;
+        }
+
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function updateMapGrid() {
+    const grid = document.getElementById('tacticalMapGrid');
+    const rows = document.getElementById('mapRows').value;
+    const cols = document.getElementById('mapCols').value;
+
+    if (!rows || !cols || rows < 1 || cols < 1) return;
+
+    // Use CSS linear-gradient to draw the grid
+    // Calculate percentage for background size
+    // Note: We use 100% / cols and 100% / rows 
+
+    if (isGridVisible) {
+        grid.style.backgroundImage = `
+            linear-gradient(to right, rgba(255, 255, 255, 0.5) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.5) 1px, transparent 1px)
+        `;
+        grid.style.backgroundSize = `calc(100% / ${cols}) calc(100% / ${rows})`;
+        grid.style.border = '1px solid rgba(255, 255, 255, 0.5)';
+    } else {
+        grid.style.backgroundImage = 'none';
+        grid.style.border = 'none';
+    }
+
+    renderMapTokens();
+}
+
+function toggleMapGrid() {
+    isGridVisible = !isGridVisible;
+    updateMapGrid();
+}
+
+function clearTacticalMap() {
+    document.getElementById('tacticalMapImage').src = '';
+    document.getElementById('tacticalMapContainer').style.display = 'none';
+    document.getElementById('mapUpload').value = '';
+    currentMapFile = null;
+}
+
+// --- TACTICAL MAP SAVING/LOADING ---
+
+function openSaveMapModal() {
+    const img = document.getElementById('tacticalMapImage');
+    if (!img.src || img.src === window.location.href) {
+        alert('Nessuna mappa caricata da salvare.');
+        return;
+    }
+    document.getElementById('saveMapModal').style.display = 'block';
+}
+
+function closeSaveMapModal() {
+    document.getElementById('saveMapModal').style.display = 'none';
+}
+
+async function saveTacticalMap() {
+    if (!currentMapFile) {
+        const img = document.getElementById('tacticalMapImage');
+        if (img.src && !currentMapFile) {
+            try {
+                const response = await fetch(img.src);
+                const blob = await response.blob();
+                currentMapFile = new File([blob], "existing_map.jpg", { type: blob.type });
+            } catch (e) {
+                alert('Errore nel recupero dell\'immagine della mappa.');
+                return;
+            }
+        }
+    }
+
+    const title = document.getElementById('saveMapTitle').value;
+    const rows = document.getElementById('mapRows').value;
+    const cols = document.getElementById('mapCols').value;
+
+    if (!title) {
+        alert('Inserisci un titolo.');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('image', currentMapFile);
+    formData.append('title', title);
+    formData.append('rows', rows);
+    formData.append('cols', cols);
+
+    try {
+        const response = await fetch('/api/tactical_maps', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (data.success) {
+            alert('Mappa salvata con successo!');
+            closeSaveMapModal();
+        } else {
+            alert('Errore: ' + data.error);
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Errore durante il salvataggio.');
+    }
+}
+
+function openLoadMapModal() {
+    document.getElementById('loadMapModal').style.display = 'block';
+    loadTacticalMapsList();
+}
+
+function closeLoadMapModal() {
+    document.getElementById('loadMapModal').style.display = 'none';
+}
+
+async function loadTacticalMapsList() {
+    const list = document.getElementById('savedMapsList');
+    list.innerHTML = 'Caricamento...';
+
+    try {
+        const response = await fetch('/api/tactical_maps');
+        const data = await response.json();
+
+        if (data.success) {
+            if (data.maps.length === 0) {
+                list.innerHTML = 'Nessuna mappa salvata.';
+                return;
+            }
+
+            list.innerHTML = data.maps.map(m => `
+                <div style="border-bottom: 1px solid #444; padding: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: bold;">${m.title}</div>
+                        <div style="font-size: 0.8rem; color: #aaa;">${m.rows}x${m.cols} - ${new Date(m.created_at).toLocaleDateString()}</div>
+                    </div>
+                    <div>
+                         <button class="btn btn-add" onclick='loadMapAndSet("${m.image_filename}", ${m.rows}, ${m.cols})'>Carica</button>
+                         <button class="btn btn-danger" onclick="deleteTacticalMap(${m.id})">Elimina</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+    } catch (e) {
+        list.innerHTML = 'Errore caricamento lista.';
+    }
+}
+
+function loadMapAndSet(filename, rows, cols) {
+    const img = document.getElementById('tacticalMapImage');
+    img.onload = function () {
+        document.getElementById('tacticalMapContainer').style.display = 'flex';
+        updateMapGrid();
+    };
+    img.src = `/static/uploads/tactical_maps/${filename}`;
+
+    document.getElementById('mapRows').value = rows;
+    document.getElementById('mapCols').value = cols;
+
+    // Clear current file input as we are using a server file now
+    document.getElementById('mapUpload').value = '';
+    currentMapFile = null;
+
+    closeLoadMapModal();
+}
+
+async function deleteTacticalMap(id) {
+    if (!confirm('Sei sicuro di voler eliminare questa mappa?')) return;
+
+    try {
+        await fetch(`/api/tactical_maps/${id}`, { method: 'DELETE' });
+        loadTacticalMapsList();
+    } catch (e) {
+        alert('Errore eliminazione.');
+    }
+}
+
+// --- TOKEN MANAGEMENT ---
+
+function renderMapTokens() {
+    const container = document.getElementById('mapTokensContainer');
+    if (!container) return;
+
+    // If we are currently dragging, DO NOT re-render to avoid losing focus/state!
+    if (activeToken) return;
+
+    container.innerHTML = '';
+
+    // Only render if map is visible
+    if (document.getElementById('tacticalMapContainer').style.display === 'none') return;
+
+    const rows = parseInt(document.getElementById('mapRows').value) || 10;
+    const cols = parseInt(document.getElementById('mapCols').value) || 10;
+
+    combatants.forEach(c => {
+        const token = document.createElement('div');
+        token.className = `map-token ${c.isPG ? 'is-pg' : 'is-npc'}`;
+
+        if (c.image_filename) {
+            token.style.backgroundImage = `url('/static/uploads/badges/${c.image_filename}')`;
+        } else {
+            // Initials if no image
+            token.innerText = c.name.substring(0, 2);
+            token.style.display = 'flex';
+            token.style.alignItems = 'center';
+            token.style.justifyContent = 'center';
+            token.style.color = '#fff';
+            token.style.fontWeight = 'bold';
+            token.style.fontSize = '12px';
+        }
+
+        // Parse Size
+        let sizeW = 1;
+        let sizeH = 1;
+        if (c.size) {
+            const parts = c.size.toLowerCase().split('x');
+            if (parts.length === 2) {
+                sizeW = parseInt(parts[0]) || 1;
+                sizeH = parseInt(parts[1]) || 1;
+            }
+        }
+
+        token.style.width = `calc((100% / ${cols}) * ${sizeW})`;
+        token.style.height = `calc((100% / ${rows}) * ${sizeH})`;
+        token.style.borderRadius = (sizeW === 1 && sizeH === 1) ? '50%' : '15%';
+
+        token.style.left = `${c.x}%`;
+        token.style.top = `${c.y}%`;
+        token.title = c.name;
+        token.dataset.id = c.instanceId;
+        token.dataset.sizeW = sizeW; // Store for drag logic
+        token.dataset.sizeH = sizeH;
+
+        // Drag events
+        token.onmousedown = dragMouseDown;
+
+        container.appendChild(token);
+    });
+}
+
+// Drag Logic
+let activeToken = null;
+
+function dragMouseDown(e) {
+    e.preventDefault();
+    activeToken = e.target;
+    document.onmouseup = closeDragElement;
+    document.onmousemove = elementDrag;
+}
+
+function elementDrag(e) {
+    e.preventDefault();
+    if (!activeToken) return;
+
+    const container = document.getElementById('mapTokensContainer');
+    const rect = container.getBoundingClientRect();
+
+    let clientX = e.clientX;
+    let clientY = e.clientY;
+
+    // Limits
+    if (clientX < rect.left) clientX = rect.left;
+    if (clientX > rect.right) clientX = rect.right;
+    if (clientY < rect.top) clientY = rect.top;
+    if (clientY > rect.bottom) clientY = rect.bottom;
+
+    let x = clientX - rect.left;
+    let y = clientY - rect.top;
+
+    let xPct = (x / rect.width) * 100;
+    let yPct = (y / rect.height) * 100;
+
+    const rows = parseInt(document.getElementById('mapRows').value) || 10;
+    const cols = parseInt(document.getElementById('mapCols').value) || 10;
+
+    const cellWidthPct = 100 / cols;
+    const cellHeightPct = 100 / rows;
+
+    // Get token size in cells
+    const wCells = parseInt(activeToken.dataset.sizeW) || 1;
+    const hCells = parseInt(activeToken.dataset.sizeH) || 1;
+
+    // Calculate token dimensions in %
+    const tokenWidthPct = cellWidthPct * wCells;
+    const tokenHeightPct = cellHeightPct * hCells;
+
+    // Adjusted logic:
+    // 1. Calculate ideal top-left based on mouse - (width/2).
+    let targetX = xPct - (tokenWidthPct / 2);
+    let targetY = yPct - (tokenHeightPct / 2);
+
+    // 2. Convert to cell index
+    let targetCol = Math.round(targetX / cellWidthPct);
+    let targetRow = Math.round(targetY / cellHeightPct);
+
+    // 3. Clamp
+    targetCol = Math.max(0, Math.min(cols - wCells, targetCol));
+    targetRow = Math.max(0, Math.min(rows - hCells, targetRow));
+
+    // 4. Convert back to pct
+    const finalLeft = targetCol * cellWidthPct;
+    const finalTop = targetRow * cellHeightPct;
+
+    activeToken.style.left = finalLeft + "%";
+    activeToken.style.top = finalTop + "%";
+
+    const id = parseFloat(activeToken.dataset.id);
+    const combatant = combatants.find(c => c.instanceId === id);
+    if (combatant) {
+        combatant.x = finalLeft;
+        combatant.y = finalTop;
+    }
+}
+
+function closeDragElement() {
+    document.onmouseup = null;
+    document.onmousemove = null;
+    activeToken = null;
+}
+// --- END TOKEN MANAGEMENT ---
+
+
+// --- NPC EDIT/SAVE OVERRIDES ---
+// Need to update openModal to fill size, saveNPC/saveModified to read size
+
+// This replaces existing openModal part or we need to update it
+// Searching for key functions to update
+
+// saveNPC function update
+/*
+function saveNPC() {
+    // ...
+    const formData = {
+        // ...
+        size: document.getElementById('npcSize').value || '1x1',
+        // ...
+    };
+    // ...
+}
+*/
+// I will apply targeted edits below for saveNPC/editNPC etc.
+
+
+
+
+// --- BADGE FUNCTIONS ---
+
+async function handleBadgeUpload(input, previewId, hiddenInputId) {
+    if (input.files && input.files[0]) {
+        const formData = new FormData();
+        formData.append('image', input.files[0]);
+
+        try {
+            const response = await fetch('/api/upload_badge', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                const hiddenInput = document.getElementById(hiddenInputId);
+                const previewImg = document.getElementById(previewId);
+
+                hiddenInput.value = data.filename;
+                previewImg.src = `/static/uploads/badges/${data.filename}`;
+                previewImg.style.display = 'block';
+            } else {
+                alert('Errore caricamento badge: ' + (data.error || 'Sconosciuto'));
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Errore caricamento badge');
+        }
+    }
+}
+
+// --- END BADGE FUNCTIONS ---
+
+
 // --- CAREER FUNCTIONS ---
 
 async function loadCareers() {
@@ -548,6 +944,9 @@ function renderNPCTable() {
             '-';
 
         row.innerHTML = `
+                <td style="text-align: center;">
+                    ${npc.image_filename ? `<img src="/static/uploads/badges/${npc.image_filename}" style="width: 30px; height: 30px; object-fit: cover; border-radius: 50%;">` : '-'}
+                </td>
                 <td style="color: #ffd700; font-weight: bold;">${npc.id}</td>
                 <td style="font-weight: bold;">${npc.name}</td>
                 <td style="color: #aaa; font-size: 0.8rem;">${npc.traits || '-'}</td>
@@ -657,7 +1056,10 @@ function renderModifiedNPCs() {
 
         card.innerHTML = `
                 <div class="npc-name">
-                    ${npc.name}
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        ${npc.image_filename ? `<img src="/static/uploads/badges/${npc.image_filename}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 50%; border: 1px solid #aaa;">` : ''}
+                        ${npc.name}
+                    </div>
                     <span style="font-size:0.8rem; color:#aaa; font-weight:normal;">${npc.traits || ''}</span>
                 </div>
                 <div class="npc-stats">
@@ -901,7 +1303,10 @@ function addModifiedToCombat(modifiedNpcId) {
         currentWounds: npc.w || 0,
         isModified: true,
         initiative: initiative,
-        initiativeRoll: d10
+        initiativeRoll: d10,
+        x: 50,
+        y: 50,
+        size: npc.size || '1x1'
     };
 
     combatants.push(combatant);
@@ -976,7 +1381,10 @@ function renderCombatants() {
 
         card.innerHTML = `
             <div class="npc-name">
-                <div>${combatant.name}</div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    ${combatant.image_filename ? `<img src="/static/uploads/badges/${combatant.image_filename}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 50%; border: 1px solid #aaa;">` : ''}
+                    <div>${combatant.name}</div>
+                </div>
                 <div style="font-size: 0.9rem; color: #00ffff; border: 1px solid #00aaaa; padding: 2px 6px; border-radius: 4px;">
                     INIZ: ${combatant.initiative || 0}
                 </div>
@@ -1030,6 +1438,7 @@ function renderCombatants() {
         container.appendChild(card);
     });
     renderCombatGraph();
+    renderMapTokens();
 }
 
 function updateTarget(sourceId, targetId) {
@@ -1105,12 +1514,24 @@ function openModal(npc = null) {
     const form = document.getElementById('npcForm');
     const title = document.getElementById('modalTitle');
 
+    // Clear badge
+    document.getElementById('npcBadgeFilename').value = '';
+    document.getElementById('npcBadgePreview').src = '';
+    document.getElementById('npcBadgePreview').style.display = 'none';
+
     if (npc) {
         title.innerText = 'Modifica PNG';
         document.getElementById('npcId').value = npc.id;
         document.getElementById('name').value = npc.name;
         document.getElementById('traits').value = npc.traits || '';
         document.getElementById('description').value = npc.description || '';
+        document.getElementById('npcSize').value = npc.size || '1x1';
+
+        if (npc.image_filename) {
+            document.getElementById('npcBadgeFilename').value = npc.image_filename;
+            document.getElementById('npcBadgePreview').src = `/static/uploads/badges/${npc.image_filename}`;
+            document.getElementById('npcBadgePreview').style.display = 'block';
+        }
 
         // Stats
         ['ws', 'bs', 's', 't', 'ag', 'int', 'wp', 'fel', 'a', 'w', 'm', 'mag', 'ip', 'fp', 'armor_head', 'armor_arms', 'armor_body', 'armor_legs'].forEach(stat => {
@@ -1195,6 +1616,8 @@ async function saveNPC(event) {
         name: document.getElementById('name').value,
         traits: document.getElementById('traits').value,
         description: document.getElementById('description').value,
+        image_filename: document.getElementById('npcBadgeFilename').value,
+        size: document.getElementById('npcSize').value || '1x1'
     };
 
     // Collect stats
@@ -1426,6 +1849,11 @@ function renderPlayerCharacters() {
                 <div class="npc-name">
                     ${pg.name}
                 </div>
+                ${pg.image_filename ?
+                `<div style="text-align: center; margin-bottom: 10px;">
+                        <img src="/static/uploads/badges/${pg.image_filename}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 50%; border: 2px solid #007bff;">
+                     </div>`
+                : ''}
                 <div class="npc-stats">
                     <div class="stat-box"><div class="stat-label">AC</div><div class="stat-value">${pg.ws || '-'}</div></div>
                     <div class="stat-box"><div class="stat-label">AB</div><div class="stat-value">${pg.bs || '-'}</div></div>
@@ -1484,6 +1912,18 @@ function editPG(id) {
     document.getElementById('pgName').value = pg.name;
     document.getElementById('pgDescription').value = pg.description || '';
 
+    // Badge
+    document.getElementById('pgBadgeFilename').value = pg.image_filename || '';
+    const imgPreview = document.getElementById('pgBadgePreview');
+    if (pg.image_filename) {
+        imgPreview.src = `/static/uploads/badges/${pg.image_filename}`;
+        imgPreview.style.display = 'block';
+    } else {
+        imgPreview.src = '';
+        imgPreview.style.display = 'none';
+        document.getElementById('pgBadgeUpload').value = '';
+    }
+
     ['ws', 'bs', 's', 't', 'ag', 'int', 'wp', 'fel', 'a', 'w', 'm'].forEach(stat => {
         document.getElementById('pg' + stat.charAt(0).toUpperCase() + stat.slice(1)).value = pg[stat] || '';
     });
@@ -1503,6 +1943,7 @@ async function savePG(event) {
     const pgData = {
         name: document.getElementById('pgName').value,
         description: document.getElementById('pgDescription').value,
+        image_filename: document.getElementById('pgBadgeFilename').value,
         ws: document.getElementById('pgWs').value || null,
         bs: document.getElementById('pgBs').value || null,
         s: document.getElementById('pgS').value || null,
