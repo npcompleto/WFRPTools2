@@ -52,27 +52,20 @@ function handleMapUpload(input) {
 
 function updateMapGrid() {
     const grid = document.getElementById('tacticalMapGrid');
-    const rows = document.getElementById('mapRows').value;
-    const cols = document.getElementById('mapCols').value;
-
-    if (!rows || !cols || rows < 1 || cols < 1) return;
-
-    // Use CSS linear-gradient to draw the grid
-    // Calculate percentage for background size
-    // Note: We use 100% / cols and 100% / rows 
 
     if (isGridVisible) {
         grid.style.backgroundImage = `
             linear-gradient(to right, rgba(255, 255, 255, 0.5) 1px, transparent 1px),
             linear-gradient(to bottom, rgba(255, 255, 255, 0.5) 1px, transparent 1px)
         `;
-        grid.style.backgroundSize = `calc(100% / ${cols}) calc(100% / ${rows})`;
         grid.style.border = '1px solid rgba(255, 255, 255, 0.5)';
     } else {
         grid.style.backgroundImage = 'none';
         grid.style.border = 'none';
     }
 
+    // Update geometry (size of cells and container)
+    renderMapVisuals();
     renderMapTokens();
 }
 
@@ -119,13 +112,45 @@ function fitMapToContainer() {
 }
 
 function applyZoom() {
+    // Legacy mapping to new function if called elsewhere
+    renderMapVisuals();
+}
+
+function renderMapVisuals() {
     const img = document.getElementById('tacticalMapImage');
+    const content = document.getElementById('tacticalMapContent');
+    const grid = document.getElementById('tacticalMapGrid');
     const display = document.getElementById('zoomLevelDisplay');
 
+    // Input values
+    const rows = parseInt(document.getElementById('mapRows').value) || 10;
+    const cols = parseInt(document.getElementById('mapCols').value) || 10;
+
     if (img && img.naturalWidth) {
-        const newWidth = img.naturalWidth * currentZoom;
+        const newWidth = Math.floor(img.naturalWidth * currentZoom);
+        const newHeight = Math.floor(img.naturalHeight * currentZoom);
+
+        // 1. Set Image Size
         img.style.width = newWidth + 'px';
+        img.style.height = newHeight + 'px';
         img.style.maxWidth = 'none';
+
+        // 2. Set Wrapper Size (matches image exactly)
+        if (content) {
+            content.style.width = newWidth + 'px';
+            content.style.height = newHeight + 'px';
+        }
+
+        // 3. Set Grid Cell Size and External Size explicitly
+        if (grid) {
+            // Strictly match external size to image
+            grid.style.width = newWidth + 'px';
+            grid.style.height = newHeight + 'px';
+
+            const cellW = newWidth / cols;
+            const cellH = newHeight / rows;
+            grid.style.backgroundSize = `${cellW}px ${cellH}px`;
+        }
     }
 
     if (display) {
