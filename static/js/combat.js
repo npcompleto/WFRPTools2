@@ -7,6 +7,8 @@ let selectedSkills = [];
 
 let careersData = [];
 
+let currentZoom = 1.0;
+
 document.addEventListener('DOMContentLoaded', () => {
     loadNPCs();
     loadModifiedNPCs();
@@ -35,7 +37,11 @@ function handleMapUpload(input) {
             const img = document.getElementById('tacticalMapImage');
             img.onload = function () {
                 document.getElementById('tacticalMapContainer').style.display = 'flex';
-                updateMapGrid();
+                // Wait for display change to affect layout before fitting
+                setTimeout(() => {
+                    fitMapToContainer();
+                    updateMapGrid();
+                }, 10);
             };
             img.src = e.target.result;
         }
@@ -80,6 +86,51 @@ function clearTacticalMap() {
     document.getElementById('tacticalMapContainer').style.display = 'none';
     document.getElementById('mapUpload').value = '';
     currentMapFile = null;
+    currentZoom = 1.0;
+}
+
+function zoomMap(delta) {
+    const img = document.getElementById('tacticalMapImage');
+    if (!img || !img.naturalWidth) return;
+
+    currentZoom += delta;
+    if (currentZoom < 0.1) currentZoom = 0.1;
+    if (currentZoom > 10.0) currentZoom = 10.0;
+    applyZoom();
+}
+
+function resetZoom() {
+    currentZoom = 1.0;
+    applyZoom();
+}
+
+function fitMapToContainer() {
+    const img = document.getElementById('tacticalMapImage');
+    const container = document.getElementById('tacticalMapContainer');
+    if (!img || !container || !img.naturalWidth) return;
+
+    // Use pure container width without padding/borders if simpler, or clientWidth
+    const availableWidth = container.clientWidth;
+
+    if (availableWidth > 0) {
+        currentZoom = availableWidth / img.naturalWidth;
+        applyZoom();
+    }
+}
+
+function applyZoom() {
+    const img = document.getElementById('tacticalMapImage');
+    const display = document.getElementById('zoomLevelDisplay');
+
+    if (img && img.naturalWidth) {
+        const newWidth = img.naturalWidth * currentZoom;
+        img.style.width = newWidth + 'px';
+        img.style.maxWidth = 'none';
+    }
+
+    if (display) {
+        display.textContent = Math.round(currentZoom * 100) + '%';
+    }
 }
 
 // --- TACTICAL MAP SAVING/LOADING ---
@@ -190,7 +241,10 @@ function loadMapAndSet(filename, rows, cols) {
     const img = document.getElementById('tacticalMapImage');
     img.onload = function () {
         document.getElementById('tacticalMapContainer').style.display = 'flex';
-        updateMapGrid();
+        setTimeout(() => {
+            fitMapToContainer();
+            updateMapGrid();
+        }, 10);
     };
     img.src = `/static/uploads/tactical_maps/${filename}`;
 
@@ -536,7 +590,14 @@ async function restoreCombatState() {
 
                 img.onload = function () {
                     document.getElementById('tacticalMapContainer').style.display = 'flex';
-                    updateMapGrid();
+                    setTimeout(() => {
+                        // Optimistically try to fit, but also trust saved state if we had one?
+                        // Actually, if we just reload, fitting is good.
+                        // Or maybe we want to preserve zoom? 
+                        // For now, Fit is good default on reload.
+                        fitMapToContainer();
+                        updateMapGrid();
+                    }, 10);
                 };
 
                 // If it's a relative path from our uploads, usage matches.
@@ -2487,62 +2548,9 @@ window.addEventListener('click', function (event) {
 
 // --- END PLAYER CHARACTER FUNCTIONS ---
 // --- Graph Visualization ---
+// --- Graph Visualization (Removed) ---
 let network = null;
 
 function renderCombatGraph() {
-    const container = document.getElementById('combatGraph');
-    if (!container) return;
-
-    // Prepare nodes
-    const nodesArray = combatants.map(c => ({
-        id: c.instanceId,
-        label: c.name + '\n(Iniz: ' + (c.initiative || 0) + ')',
-        shape: 'box',
-        color: {
-            background: c.isPG ? '#007bff' : '#dc3545',
-            border: '#ffffff',
-            highlight: { background: c.isPG ? '#0056b3' : '#bd2130', border: '#ffffff' }
-        },
-        font: { color: '#ffffff' }
-    }));
-
-    const nodes = new vis.DataSet(nodesArray);
-
-    // Prepare edges
-    const edgesArray = [];
-    combatants.forEach(c => {
-        if (c.targetId) {
-            edgesArray.push({
-                from: c.instanceId,
-                to: c.targetId,
-                arrows: 'to',
-                color: { color: '#ffd700', highlight: '#ffd700' },
-                width: 2
-            });
-        }
-    });
-
-    const edges = new vis.DataSet(edgesArray);
-
-    const data = { nodes, edges };
-    const options = {
-        physics: {
-            enabled: true,
-            stabilization: { iterations: 100 }
-        },
-        layout: {
-            randomSeed: 2
-        },
-        interaction: {
-            dragNodes: true,
-            zoomView: true,
-            dragView: true
-        }
-    };
-
-    if (network) {
-        network.setData(data);
-    } else {
-        network = new vis.Network(container, data, options);
-    }
+    // Feature removed per user request
 }

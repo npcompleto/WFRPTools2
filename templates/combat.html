@@ -16,6 +16,14 @@
                 <input type="file" id="mapUpload" accept="image/*" class="btn" onchange="handleMapUpload(this)">
                 <label>Righe: <input type="number" id="mapRows" value="10" min="1" onchange="updateMapGrid()"></label>
                 <label>Colonne: <input type="number" id="mapCols" value="10" min="1" onchange="updateMapGrid()"></label>
+                <div class="zoom-controls" style="display: flex; gap: 5px; align-items: center; margin-left: 10px;">
+                    <button class="btn btn-secondary" onclick="zoomMap(-0.1)" title="Zoom Out">-</button>
+                    <span id="zoomLevelDisplay"
+                        style="color: #fff; width: 45px; text-align: center; font-size: 0.9rem;">Fit</span>
+                    <button class="btn btn-secondary" onclick="zoomMap(0.1)" title="Zoom In">+</button>
+                    <button class="btn btn-blue" onclick="fitMapToContainer()" title="Adatta allo schermo">Fit</button>
+                    <button class="btn btn-secondary" onclick="resetZoom()" title="Reset 100%">1:1</button>
+                </div>
                 <button class="btn btn-primary" onclick="toggleMapGrid()">Griglia ON/OFF</button>
                 <button class="btn btn-danger" onclick="clearTacticalMap()">Rimuovi</button>
                 <button class="btn btn-blue" onclick="openSaveMapModal()">Salva</button>
@@ -45,9 +53,11 @@
                 </div>
             </div>
         </div>
-        <div class="tactical-map-container" id="tacticalMapContainer" style="display:none;">
-            <div style="position: relative; display: inline-block;">
-                <img id="tacticalMapImage" src="" alt="Mappa Tattica">
+        <div class="tactical-map-container" id="tacticalMapContainer"
+            style="display:none; overflow: auto; max-height: 80vh; border: 1px solid #444; background: #1a1a1a; position: relative;">
+            <div id="tacticalMapContent"
+                style="position: relative; display: inline-block; min-width: 100px; min-height: 100px;">
+                <img id="tacticalMapImage" src="" alt="Mappa Tattica" style="display: block; max-width: none;">
                 <div id="tacticalMapGrid" class="grid-overlay"></div>
                 <div id="mapTokensContainer" class="tokens-layer"></div>
                 <svg id="mapArrowsLayer" class="arrows-layer"></svg>
@@ -62,8 +72,7 @@
             <button class="btn btn-danger" onclick="clearCombat()">Svuota Tutto</button>
         </div>
 
-        <!-- Combat Graph Visualization -->
-        <div id="combatGraph" class="combat-graph"></div>
+
 
         <div class="combat-grid">
             <!-- PG Column -->
@@ -430,6 +439,6 @@
 
 {% endblock %}
 {% block scripts %}
-<script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+
 <script src="{{ url_for('static', filename='js/combat.js') }}"></script>
 {% endblock %}

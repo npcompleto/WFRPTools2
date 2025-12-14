@@ -152,6 +152,16 @@
         color: #fff;
     }
 
+    .btn-secondary {
+        background: #666;
+        color: #fff;
+        min-width: 30px;
+    }
+
+    .btn-secondary:hover {
+        background: #888;
+    }
+
     /* Modal Styling */
     .modal {
         display: none;
