@@ -151,6 +151,9 @@ function renderMapVisuals() {
             const cellH = newHeight / rows;
             grid.style.backgroundSize = `${cellW}px ${cellH}px`;
         }
+
+        // 4. Force Token Re-render to update pixel sizes/positions
+        renderMapTokens();
     }
 
     if (display) {
@@ -298,9 +301,11 @@ async function deleteTacticalMap(id) {
 
 function renderMapTokens() {
     const container = document.getElementById('mapTokensContainer');
-    if (!container) return;
+    const mapContent = document.getElementById('tacticalMapContent');
+    if (!container || !mapContent) return;
 
     // If we are currently dragging, DO NOT re-render to avoid losing focus/state!
+    // UNLESS we are zooming (which shouldn't happen while dragging usually, but safety first)
     if (activeToken) return;
 
     container.innerHTML = '';
@@ -310,6 +315,10 @@ function renderMapTokens() {
 
     const rows = parseInt(document.getElementById('mapRows').value) || 10;
     const cols = parseInt(document.getElementById('mapCols').value) || 10;
+
+    // Get actual current pixel dimensions of the map content
+    const mapWidth = mapContent.offsetWidth;
+    const mapHeight = mapContent.offsetHeight;
 
     combatants.forEach(c => {
         const token = document.createElement('div');
@@ -339,13 +348,23 @@ function renderMapTokens() {
             }
         }
 
-        token.style.width = `calc((100% / ${cols}) * ${sizeW})`;
-        token.style.height = `calc((100% / ${rows}) * ${sizeH})`;
+        // Calculate Pixel Dimensions
+        const cellW = mapWidth / cols;
+        const cellH = mapHeight / rows;
+
+        const cellSize = Math.max(cellW, cellH);
+
+        token.style.width = (cellSize * sizeW) + 'px';
+        token.style.height = (cellSize * sizeH) + 'px';
+
         // If N=M (Square), make it a circle (50%). Otherwise rounded rect (15%).
         token.style.borderRadius = (sizeW === sizeH) ? '50%' : '15%';
 
-        token.style.left = `${c.x}%`;
-        token.style.top = `${c.y}%`;
+        // Calculate Top/Left in Pixels based on stored percentage
+        // c.x is percentage 0-100
+        token.style.left = ((c.x / 100) * mapWidth) + 'px';
+        token.style.top = ((c.y / 100) * mapHeight) + 'px';
+
         token.title = c.name;
         token.dataset.id = c.instanceId;
         token.dataset.sizeW = sizeW; // Store for drag logic
@@ -364,13 +383,19 @@ function renderMapTokens() {
 
 function renderMapArrows() {
     const svg = document.getElementById('mapArrowsLayer');
-    if (!svg) return;
+    const mapContent = document.getElementById('tacticalMapContent');
+    if (!svg || !mapContent) return;
+
     svg.innerHTML = ''; // Clear existing
 
+    // Explicitly size SVG to match content to ensure pixel coords work
+    const mapWidth = mapContent.offsetWidth;
+    const mapHeight = mapContent.offsetHeight;
+
+    svg.setAttribute('width', mapWidth);
+    svg.setAttribute('height', mapHeight);
+
     // Define marker if not exists
-    // We can add the marker definition dynamically or check if exists. 
-    // Easier to just re-add defs every time or check.
-    // Let's add standard defs.
     const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
     defs.innerHTML = `
         <marker id="arrowhead" markerWidth="10" markerHeight="7" 
@@ -403,22 +428,29 @@ function renderMapArrows() {
                 }
 
                 // Cell Percentages
-                const cellW = 100 / cols;
-                const cellH = 100 / rows;
+                const cellW = mapWidth / cols;
+                const cellH = mapHeight / rows;
 
-                // Center Coords (%)
-                const x1 = source.x + (sW * cellW / 2);
-                const y1 = source.y + (sH * cellH / 2);
+                // Center Coords (Pixels)
+                // x is percentage, convert to pixel first
+                const sourceX = (source.x / 100) * mapWidth;
+                const sourceY = (source.y / 100) * mapHeight;
 
-                const x2 = target.x + (tW * cellW / 2);
-                const y2 = target.y + (tH * cellH / 2);
+                const targetX = (target.x / 100) * mapWidth;
+                const targetY = (target.y / 100) * mapHeight;
+
+                const x1 = sourceX + (sW * cellW / 2);
+                const y1 = sourceY + (sH * cellH / 2);
+
+                const x2 = targetX + (tW * cellW / 2);
+                const y2 = targetY + (tH * cellH / 2);
 
                 // Draw Line
                 const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                line.setAttribute("x1", x1 + "%");
-                line.setAttribute("y1", y1 + "%");
-                line.setAttribute("x2", x2 + "%");
-                line.setAttribute("y2", y2 + "%");
+                line.setAttribute("x1", x1);
+                line.setAttribute("y1", y1);
+                line.setAttribute("x2", x2);
+                line.setAttribute("y2", y2);
                 line.setAttribute("stroke", "rgba(255, 0, 0, 0.6)");
                 line.setAttribute("stroke-width", "2");
                 line.setAttribute("marker-end", "url(#arrowhead)");
