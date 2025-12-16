@@ -2,11 +2,12 @@ import json
 import os
 import pandas as pd
 import sqlite3
-from flask import Flask, render_template, request, g, send_from_directory
+from flask import Flask, render_template, request, g, send_from_directory, session, redirect, url_for, flash
 from PIL import Image
 import math
 import shutil
 import google.generativeai as genai
+from functools import wraps
 
 # Configure Gemini
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
@@ -14,7 +15,37 @@ if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'dev_key_very_secret_wfrp') # Change this in production!
+APP_PASSWORD = os.environ.get('APP_PASSWORD', 'dariogm2025!!') # Default password
+
 DATABASE = 'wfrp.db'
+
+@app.before_request
+def require_login():
+    # Allow access to login, static files, and favicon
+    allowed_routes = ['login', 'static', 'logout']
+    if request.endpoint not in allowed_routes and 'logged_in' not in session:
+        # Also allow static file saved in other folders if served via specific routes (e.g. uploads), 
+        # but typically uploads are served via 'static' endpoint or specific routes.
+        # If uploads are served via `send_from_directory` in a route, we need to whitelist that route or check the path.
+        # The standard static folder is handled by 'static' endpoint.
+        return redirect(url_for('login'))
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        password = request.form.get('password')
+        if password == APP_PASSWORD:
+            session['logged_in'] = True
+            return redirect(url_for('index'))
+        else:
+            flash('Password errata. Riprova.')
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    return redirect(url_for('login'))
 
 def get_db():
     db = getattr(g, '_database', None)
