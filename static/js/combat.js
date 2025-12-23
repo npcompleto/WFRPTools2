@@ -8,6 +8,7 @@ let selectedSkills = [];
 let careersData = [];
 
 let currentZoom = 1.0;
+let activeCombatantId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     loadNPCs();
@@ -80,6 +81,7 @@ function clearTacticalMap() {
     document.getElementById('mapUpload').value = '';
     currentMapFile = null;
     currentZoom = 1.0;
+    clearState();
 }
 
 function zoomMap(delta) {
@@ -323,6 +325,14 @@ function renderMapTokens() {
     combatants.forEach(c => {
         const token = document.createElement('div');
         token.className = `map-token ${c.isPG ? 'is-pg' : 'is-npc'}`;
+        if (activeCombatantId && c.instanceId === activeCombatantId) {
+            token.classList.add('active');
+        }
+        if (c.isDead) { // Add dead class
+            token.classList.add('dead');
+            token.style.opacity = '0.7';
+            token.style.borderColor = '#000';
+        }
 
         if (c.image_filename) {
             token.style.backgroundImage = `url('/static/uploads/badges/${c.image_filename}')`;
@@ -596,7 +606,15 @@ function broadcastState() {
     // If user just used "file input", it's local only.
     // We should warn or only sync if src is http...
 
-    let mapSrc = img.src;
+    // Fix: Use getAttribute to avoid getting full URL for empty src
+    // Also check if map is actually visible
+    let mapSrc = null;
+    const container = document.getElementById('tacticalMapContainer');
+    if (container.style.display !== 'none') {
+        mapSrc = img.getAttribute('src');
+    }
+
+    if (!mapSrc) mapSrc = '';
     // Extract filename if it comes from our server
     if (mapSrc.includes('/static/uploads/')) {
         const parts = mapSrc.split('/static/uploads/tactical_maps/');
@@ -606,12 +624,31 @@ function broadcastState() {
     // If blob (local), we can't sync properly unless we upload it.
     // For now, let's assume user loads a saved map for best experience.
 
+    // Prepare normalized tokens with cell coordinates
+    const normalizedTokens = combatants.map(c => {
+        const cellW = 100 / cols;
+        const cellH = 100 / rows;
+        // c.x is left %, c.y is top %
+        // cell = round(pos / cellPct)
+        const cellX = Math.round(c.x / cellW);
+        const cellY = Math.round(c.y / cellH);
+
+        return {
+            ...c,
+            cellX: cellX,
+            cellY: cellY
+        };
+    });
+
     const state = {
         map_filename: mapSrc,
         rows: rows,
         cols: cols,
-        // Send FULL combatant data to persist session
-        tokens: combatants
+        rows: rows,
+        cols: cols,
+        // Send FULL combatant data with extra coords
+        tokens: normalizedTokens,
+        activeCombatantId: activeCombatantId
     };
 
     fetch('/api/combat/state', {
@@ -660,7 +697,22 @@ async function restoreCombatState() {
                 // If it's a relative path from our uploads, usage matches.
                 // If the user had a local file... we can't restore it easily unless it was uploaded.
                 // Assuming broadcastState sends what it sees.
-                img.src = state.map_filename;
+                img.src = '/static/uploads/tactical_maps/' + state.map_filename;
+            }
+
+            // 4. Restore Active Combatant
+            if (state.activeCombatantId) {
+                activeCombatantId = state.activeCombatantId;
+                // Render updates will happen automatically if we call them, 
+                // but we already called renderCombatants above.
+                // We should re-render or set class. 
+                // renderCombatants called above inside "1. Restore Combatants" block?
+                // Wait, restore logic called renderCombatants() at line 524. 
+                // That render uses activeCombatantId. 
+                // So if we set it AFTER, we need to re-render.
+                // Better set it BEFORE renderCombatants if possible, or re-render.
+                renderCombatants();
+                renderMapTokens();
             }
         }
     } catch (e) {
@@ -1579,6 +1631,17 @@ function sortCombatants() {
     renderCombatants();
 }
 
+function setActiveCombatant(instanceId) {
+    if (activeCombatantId === instanceId) {
+        activeCombatantId = null; // Toggle off if clicked again
+    } else {
+        activeCombatantId = instanceId;
+    }
+    renderCombatants(); // Re-render sidebar
+    renderMapTokens();  // Re-render tokens
+    broadcastState();
+}
+
 function addToCombat(npcId) {
     const npc = npcs.find(n => n.id === npcId);
     if (!npc) return;
@@ -1651,9 +1714,12 @@ function renderCombatants() {
     }
 
     // Render Initiative Sidebar (Sorted List)
+    // Render Initiative Sidebar (Sorted List)
     combatants.forEach(c => {
         const item = document.createElement('div');
-        item.className = `initiative-item ${c.isPG ? 'is-pg' : 'is-npc'}`;
+        const isActive = activeCombatantId && c.instanceId === activeCombatantId;
+        item.className = `initiative-item ${c.isPG ? 'is-pg' : 'is-npc'} ${isActive ? 'active' : ''}`;
+        item.onclick = () => setActiveCombatant(c.instanceId);
         item.innerHTML = `
             <span class="init-name">${c.name}</span>
             <span class="init-value">${c.initiative || 0}</span>
@@ -1747,10 +1813,14 @@ function renderCombatants() {
             <div class="npc-actions">
                 <button class="btn btn-edit" onclick="editCombatant(${combatant.instanceId})">Modifica</button>
                 <button class="btn btn-danger" onclick="removeFromCombat(${combatant.instanceId})">Rimuovi</button>
-                ${combatant.currentWounds < 0 ? `
-                    <button class="btn btn-warning" onclick="handleCriticalHit(${combatant.instanceId})" style="background: #ff6b00; color: #fff; font-weight: bold;">⚠️ Critico</button>
-                    <button class="btn btn-danger" onclick="handleDeath(${combatant.instanceId})" style="background: #8b0000; color: #fff; font-weight: bold;">💀 Morto</button>
-                ` : ''}
+                ${combatant.isDead ?
+                `<span style="color:red; font-weight:bold; margin-left:10px;">MORTO</span>`
+                :
+                (combatant.currentWounds < 0 ? `
+                        <button class="btn btn-warning" onclick="handleCriticalHit(${combatant.instanceId})" style="background: #ff6b00; color: #fff; font-weight: bold;">⚠️ Critico</button>
+                        <button class="btn btn-danger" onclick="handleDeath(${combatant.instanceId})" style="background: #8b0000; color: #fff; font-weight: bold;">💀 Morto</button>
+                    ` : '')
+            }
             </div>
         `;
         container.appendChild(card);
@@ -2347,58 +2417,58 @@ async function deletePG(id) {
 }
 
 // Critical Hit and Death handlers
-function handleCriticalHit(instanceId) {
+const criticalEffects = {
+    "head": [
+        "Disoriented by the blow. Character can only take a half action on his next turn.",
+        "Ears bashed causing ears to ring and head to spin. Character cannot take any actions for 1 round.",
+        "The blow inflicts a nasty scalp wound. Blood runs into eyes, causing character to suffer a –10% WS penalty until medical attention is received.",
+        "Armour damaged. Armour Points on this location are reduced by 1 until the armour is repaired with a successful Trade (Armourer) Skill Test. If character isn’t wearing any armour or players are using the Basic Armour system, use the #2 result instead.",
+        "Knocked to the ground and dazed. All his tests and attacks suffer a –30% penalty for one round and he must use the stand action to regain his feet.",
+        "Stunned for 1d10 rounds.",
+        "Knocked out for 1d10 minutes. Use the Sudden Death rules for any further Critical Hits on this character.",
+        "Face shattered and knocked to the ground. Character is now considered helpless. Blood loss is such that the victim has a 20% chance of dying each round until medical attention is received. Test at the start of his turn each round. Use the Sudden Death rules for any further Critical Hits on this character.",
+        "Skull pierced by a mighty blow. Death is instantaneous.",
+        "Killed in whatever spectacular and gore-drenched fashion the player or GM cares to describe."
+    ],
+    "arms": [
+        "Drops anything held in that hand. A shield, if worn, is not affected, since it’s strapped on.",
+        "Arm struck numb and cannot be used for 1 round.",
+        "Hand incapacitated until medical attention is received. Anything held in this hand is dropped(again, excepting a shield).",
+        "Armour damaged. Armour Points on this location are reduced by 1 until the armour is repaired with a successful Trade(Armourer) Skill Test.If character isn’t wearing any armour or players are using the Basic Armour system, Arm struck numb and cannot be used for 1 round.",
+        "Arm incapacitated until medical attention is received. Anything held in this hand is dropped (excepting a shield).",
+        "Arm demolished by attack. Anything held in this hand is dropped(excepting a shield).Blood loss is such that character has a 20 % chance of dying each round until medical attention is received.Test at the start of victim’s turn each round.Use the Sudden Death rules for any further Critical Hits on this opponent.",
+        "Hand turned into a bloody ruin. Anything held in this hand is dropped (excepting a shield). Blood loss is such that character has a 20% chance of dying each round until medical attention is received. Test at the start of victim’s turn each round. Use the Sudden Death rules for any further Critical Hits on this opponent. If he survives this combat, he must make a successful Toughness Test or lose the hand permanently.",
+        "Arm is now a dangling mass of bloody meat. Anything held in this hand is dropped(excepting a shield).Blood loss is such that character has a 20 % chance of dying each round until medical attention is received.Test at the start of victim’s turn each round.Use the Sudden Death rules for any further Critical Hits on this opponent.If he survives this combat, he must make a successful Toughness Test or lose the arm from the elbow down permanently",
+        "Major artery severed. After a fraction of a second, character collapses with blood pouring out of the ruins of his shoulder.Death from shock and blood loss is almost instantaneous.",
+        "Killed in whatever spectacular and gore-drenched fashion the player or GM cares to describe."
+    ],
+    "body": [
+        "The wind is knocked out of the character. All tests and attacks suffer a –20% penalty for one round.",
+        "Struck in the groin. The pain is such that the character cannot take any actions for one round.",
+        "Ribs busted by ferocity of attack. Character takes a –10% AC penalty until medical attention is received.",
+        "Armour damaged. Armour Points on this location are reduced by 1 until the armour is repaired with a successful Trade(Armourer) Skill Test.If character isn’t wearing any armour or players are using the Basic Armour system, use the #2 result instead",
+        "Knocked to the ground and badly winded. All his tests and attacks suffer a –30% penalty for one round and he must use the stand action to regain his feet.",
+        "Stunned for 1d10 rounds",
+        "The blow results in serious internal bleeding and the character is helpless.Blood loss is such that the victim has a 20 % chance of dying each round until medical attention is received.Test at the start of his turn each round.Use the Sudden Death rules for any further Critical Hits on this opponent.",
+        "Spine pulverized and character is knocked to the ground.Character may do nothing until medical attention is received and is considered helpless.Use the Sudden Death rules for any further Critical Hits on this opponent.If he survives this combat,he must make a successful Toughness Test or become permanently paralyzed from the waist down.",
+        "Several internal organs are ruptured by the violence of the blow causing death in a matter of seconds.",
+        "Killed in whatever spectacular and gore-drenched fashion the player or GM cares to describe."
+    ],
+    "legs": [
+        "Stumbles. Character can only take a half action on his next turn.",
+        "Leg struck numb by the attack. Character’s Movement Characteristic is reduced to 1 for one round and during that time he cannot dodge and suffers a –20% penalty on related Agility Tests.",
+        "Leg incapacitated until medical attention is received. Character’s Movement Characteristic is reduced to 1 and he cannot dodge. Related Agility Tests also suffer a –20 % penalty.",
+        "Armour damaged. Armour Points on this location are reduced by 1 until the armour is repaired with a successful Trade (Armourer) Skill Test. If character isn’t wearing any armour or players are using the Basic Armour system, use the #2 result instead.",
+        "Knocked to the ground and dazed. All character’s tests and attacks suffer a –30 % penalty for one round and he must use the stand action to regain his feet.",
+        "Leg demolished and character is considered helpless. Blood loss is such that the victim has a 20% chance of dying each round until medical attention is received. Test at the start of his turn each round. Use the Sudden Death rules for any further Critical Hits on this character.",
+        "Leg is turned into a bloody ruin and character is considered helpless. Blood loss is such that the victim has a 20 % chance of dying each round until medical attention is received.Test at the start of his turn each round.Use the Sudden Death rules for any further Critical Hits on this character.If he survives this combat, he must make a successful Toughness Test or lose the foot permanently",
+        "Leg turned into a dangling mass of bloody meat and character is considered helpless.Blood loss is such that the victim has a 20 % chance of dying each round until medical attention is received.Test at the start of his turn each round.Use the Sudden Death rules for any further Critical Hits on this character.If he survives this combat, he must make a successful Toughness Test or lose the leg from the knee down permanently.",
+        "Major artery severed. After a fraction of a second, character collapses with blood pouring out of the ruins of his leg. Death from shock and blood loss is almost instantaneous.",
+        "Killed in whatever spectacular and gore-drenched fashion the player or GM cares to describe."
+    ]
+};
 
-    const criticalEffects = {
-        "head": [
-            "Disoriented by the blow. Character can only take a half action on his next turn.",
-            "Ears bashed causing ears to ring and head to spin. Character cannot take any actions for 1 round.",
-            "The blow inflicts a nasty scalp wound. Blood runs into eyes, causing character to suffer a –10% WS penalty until medical attention is received.",
-            "Armour damaged. Armour Points on this location are reduced by 1 until the armour is repaired with a successful Trade (Armourer) Skill Test. If character isn’t wearing any armour or players are using the Basic Armour system, use the #2 result instead.",
-            "Knocked to the ground and dazed. All his tests and attacks suffer a –30% penalty for one round and he must use the stand action to regain his feet.",
-            "Stunned for 1d10 rounds.",
-            "Knocked out for 1d10 minutes. Use the Sudden Death rules for any further Critical Hits on this character.",
-            "Face shattered and knocked to the ground. Character is now considered helpless. Blood loss is such that the victim has a 20% chance of dying each round until medical attention is received. Test at the start of his turn each round. Use the Sudden Death rules for any further Critical Hits on this character.",
-            "Skull pierced by a mighty blow. Death is instantaneous.",
-            "Killed in whatever spectacular and gore-drenched fashion the player or GM cares to describe."
-        ],
-        "arms": [
-            "Drops anything held in that hand. A shield, if worn, is not affected, since it’s strapped on.",
-            "Arm struck numb and cannot be used for 1 round.",
-            "Hand incapacitated until medical attention is received. Anything held in this hand is dropped(again, excepting a shield).",
-            "Armour damaged. Armour Points on this location are reduced by 1 until the armour is repaired with a successful Trade(Armourer) Skill Test.If character isn’t wearing any armour or players are using the Basic Armour system, Arm struck numb and cannot be used for 1 round.",
-            "Arm incapacitated until medical attention is received. Anything held in this hand is dropped (excepting a shield).",
-            "Arm demolished by attack. Anything held in this hand is dropped(excepting a shield).Blood loss is such that character has a 20 % chance of dying each round until medical attention is received.Test at the start of victim’s turn each round.Use the Sudden Death rules for any further Critical Hits on this opponent.",
-            "Hand turned into a bloody ruin. Anything held in this hand is dropped (excepting a shield). Blood loss is such that character has a 20% chance of dying each round until medical attention is received. Test at the start of victim’s turn each round. Use the Sudden Death rules for any further Critical Hits on this opponent. If he survives this combat, he must make a successful Toughness Test or lose the hand permanently.",
-            "Arm is now a dangling mass of bloody meat. Anything held in this hand is dropped(excepting a shield).Blood loss is such that character has a 20 % chance of dying each round until medical attention is received.Test at the start of victim’s turn each round.Use the Sudden Death rules for any further Critical Hits on this opponent.If he survives this combat, he must make a successful Toughness Test or lose the arm from the elbow down permanently",
-            "Major artery severed. After a fraction of a second, character collapses with blood pouring out of the ruins of his shoulder.Death from shock and blood loss is almost instantaneous.",
-            "Killed in whatever spectacular and gore-drenched fashion the player or GM cares to describe."
-        ],
-        "body": [
-            "The wind is knocked out of the character. All tests and attacks suffer a –20% penalty for one round.",
-            "Struck in the groin. The pain is such that the character cannot take any actions for one round.",
-            "Ribs busted by ferocity of attack. Character takes a –10% AC penalty until medical attention is received.",
-            "Armour damaged. Armour Points on this location are reduced by 1 until the armour is repaired with a successful Trade(Armourer) Skill Test.If character isn’t wearing any armour or players are using the Basic Armour system, use the #2 result instead",
-            "Knocked to the ground and badly winded. All his tests and attacks suffer a –30% penalty for one round and he must use the stand action to regain his feet.",
-            "Stunned for 1d10 rounds",
-            "The blow results in serious internal bleeding and the character is helpless.Blood loss is such that the victim has a 20 % chance of dying each round until medical attention is received.Test at the start of his turn each round.Use the Sudden Death rules for any further Critical Hits on this opponent.",
-            "Spine pulverized and character is knocked to the ground.Character may do nothing until medical attention is received and is considered helpless.Use the Sudden Death rules for any further Critical Hits on this opponent.If he survives this combat,he must make a successful Toughness Test or become permanently paralyzed from the waist down.",
-            "Several internal organs are ruptured by the violence of the blow causing death in a matter of seconds.",
-            "Killed in whatever spectacular and gore-drenched fashion the player or GM cares to describe."
-        ],
-        "legs": [
-            "Stumbles. Character can only take a half action on his next turn.",
-            "Leg struck numb by the attack. Character’s Movement Characteristic is reduced to 1 for one round and during that time he cannot dodge and suffers a –20% penalty on related Agility Tests.",
-            "Leg incapacitated until medical attention is received. Character’s Movement Characteristic is reduced to 1 and he cannot dodge. Related Agility Tests also suffer a –20 % penalty.",
-            "Armour damaged. Armour Points on this location are reduced by 1 until the armour is repaired with a successful Trade (Armourer) Skill Test. If character isn’t wearing any armour or players are using the Basic Armour system, use the #2 result instead.",
-            "Knocked to the ground and dazed. All character’s tests and attacks suffer a –30 % penalty for one round and he must use the stand action to regain his feet.",
-            "Leg demolished and character is considered helpless. Blood loss is such that the victim has a 20% chance of dying each round until medical attention is received. Test at the start of his turn each round. Use the Sudden Death rules for any further Critical Hits on this character.",
-            "Leg is turned into a bloody ruin and character is considered helpless. Blood loss is such that the victim has a 20 % chance of dying each round until medical attention is received.Test at the start of his turn each round.Use the Sudden Death rules for any further Critical Hits on this character.If he survives this combat, he must make a successful Toughness Test or lose the foot permanently",
-            "Leg turned into a dangling mass of bloody meat and character is considered helpless.Blood loss is such that the victim has a 20 % chance of dying each round until medical attention is received.Test at the start of his turn each round.Use the Sudden Death rules for any further Critical Hits on this character.If he survives this combat, he must make a successful Toughness Test or lose the leg from the knee down permanently.",
-            "Major artery severed. After a fraction of a second, character collapses with blood pouring out of the ruins of his leg. Death from shock and blood loss is almost instantaneous.",
-            "Killed in whatever spectacular and gore-drenched fashion the player or GM cares to describe."
-        ]
-    };
+function handleCriticalHit(instanceId) {
     const combatant = combatants.find(c => c.instanceId === instanceId);
     if (combatant) {
         const d100 = Math.floor(Math.random() * 100) + 1;
@@ -2477,7 +2547,7 @@ function handleCriticalHit(instanceId) {
                 </div>
             </div>
             
-            <div style="background: #2a1a1a; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; border-left: 4px solid #4488ff;">
+            <div style="background: #2a1a2a; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; border-left: 4px solid #4488ff;">
                 <div style="color: #4488ff; font-weight: bold; margin-bottom: 0.5rem; font-size: 1.1rem;">
                     💪 BRACCIA
                 </div>
@@ -2486,7 +2556,7 @@ function handleCriticalHit(instanceId) {
                 </div>
             </div>
             
-            <div style="background: #2a1a1a; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; border-left: 4px solid #44ff44;">
+            <div style="background: #2a1a2a; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; border-left: 4px solid #44ff44;">
                 <div style="color: #44ff44; font-weight: bold; margin-bottom: 0.5rem; font-size: 1.1rem;">
                     🫀 CORPO
                 </div>
@@ -2495,7 +2565,7 @@ function handleCriticalHit(instanceId) {
                 </div>
             </div>
             
-            <div style="background: #2a1a1a; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; border-left: 4px solid #ffaa44;">
+            <div style="background: #2a1a2a; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; border-left: 4px solid #ffaa44;">
                 <div style="color: #ffaa44; font-weight: bold; margin-bottom: 0.5rem; font-size: 1.1rem;">
                     🦵 GAMBE
                 </div>
@@ -2512,32 +2582,36 @@ function handleCriticalHit(instanceId) {
     }
 }
 
+
+
+
 // Dead combatants list
 let deadCombatants = [];
 
 function handleDeath(instanceId) {
     const combatant = combatants.find(c => c.instanceId === instanceId);
-    if (!combatant) {
-        console.error('Combatant not found:', instanceId);
-        return;
-    }
+    if (!combatant) return;
 
-    // Confirm death
-    if (!confirm(`Confermi la morte di ${combatant.name}?`)) {
-        return;
-    }
+    if (confirm(`Confermi la morte di ${combatant.name}?`)) {
+        // Mark as dead but KEEP in combat to remain on map
+        combatant.isDead = true;
+        combatant.currentWounds = -1; // Ensure negative
 
-    // Add to dead list
+        // Add to dead list UI (Sidebar)
+        addToDeadList(combatant);
+
+        renderCombatants();
+        renderMapTokens();
+        broadcastState();
+    }
+}
+
+function addToDeadList(c) {
+    // Add to local list state
     deadCombatants.push({
-        name: combatant.name,
+        name: c.name,
         timestamp: new Date().toLocaleTimeString()
     });
-
-    // Remove from active combatants
-    combatants = combatants.filter(c => c.instanceId !== instanceId);
-
-    // Re-render both lists
-    renderCombatants();
     renderDeadList();
 }
 
@@ -2551,10 +2625,10 @@ function renderDeadList() {
     }
 
     container.innerHTML = deadCombatants.map(dead => `
-        <div style="background: #2a2a2a; border: 1px solid #444; border-radius: 4px; padding: 0.5rem 1rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+        <div style="background: #2a2a2a; border: 1px solid #444; border-radius: 4px; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 5px;">
             <span style="color: #666;">💀</span>
-            <span style="color: #999;">${dead.name}</span>
-            <span style="color: #555; font-size: 0.8rem;">(${dead.timestamp})</span>
+            <span style="color: #999; font-weight: bold;">${dead.name}</span>
+            <span style="color: #555; font-size: 0.8rem; margin-left: auto;">(${dead.timestamp})</span>
         </div>
     `).join('');
 }
@@ -2610,4 +2684,26 @@ let network = null;
 
 function renderCombatGraph() {
     // Feature removed per user request
+}
+
+function clearState() {
+    if (!confirm('ATTENZIONE: Sei sicuro di voler resettare completamente lo sessione di combattimento?\n\nQuesta azione cancellerà:\n- La mappa tattica\n- Tutti i combattenti e i token\n- L\'ordine di iniziativa\n- La lista dei caduti\n\nNon sarà possibile annullare l\'operazione.')) {
+        return;
+    }
+
+    // 1. Reset Data
+    combatants = [];
+    deadCombatants = [];
+    activeCombatantId = null;
+
+    // 3. Clear UI Listings
+    renderCombatants();
+    renderDeadList(); // Will show "Nessun caduto"
+
+    // 4. Force Broadcast to clear server state immediately
+    // Reset timestamp to ensure it runs
+    lastBroadcast = 0;
+    broadcastState();
+
+    console.log('Combat state cleared.');
 }

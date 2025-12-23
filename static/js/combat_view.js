@@ -36,7 +36,7 @@ function updateView(state) {
         if (src && src.startsWith('data:')) {
             img.src = src;
         } else if (src && (src.startsWith('http') || src.startsWith('/'))) {
-            img.src = src;
+            img.src = src; F
         } else {
             img.src = `/static/uploads/tactical_maps/${src}`;
         }
@@ -60,19 +60,27 @@ function updateView(state) {
         grid.style.display = 'block';
     }
 
-    renderTokens(state.tokens, state.rows, state.cols);
+    renderTokens(state.tokens, state.rows, state.cols, state.activeCombatantId);
     renderArrows(state.arrows, state.tokens, state.rows, state.cols);
 
     currentState = state;
 }
 
-function renderTokens(tokens, rows, cols) {
+function renderTokens(tokens, rows, cols, activeId) {
     const container = document.getElementById('mapTokensContainer');
     container.innerHTML = '';
 
     tokens.forEach(c => {
         const token = document.createElement('div');
         token.className = `map-token ${c.isPG ? 'is-pg' : 'is-npc'}`;
+        if (activeId && c.instanceId === activeId) {
+            token.classList.add('active');
+        }
+        if (c.isDead) { // Add dead class
+            token.classList.add('dead');
+            token.style.opacity = '0.7';
+            token.style.borderColor = '#000';
+        }
 
         if (c.image_filename) {
             token.style.backgroundImage = `url('/static/uploads/badges/${c.image_filename}')`;

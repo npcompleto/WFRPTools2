@@ -852,6 +852,39 @@
         border-color: #dc3545;
     }
 
+    .map-token.active {
+        border-width: 4px;
+        box-shadow: 0 0 15px #ffffff;
+        z-index: 100 !important;
+    }
+
+    .map-token.dead::after {
+        content: "X";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 2rem;
+        color: red;
+        font-weight: bold;
+        text-shadow: 2px 2px 2px black;
+        pointer-events: none;
+    }
+
+    .initiative-item {
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .initiative-item:hover {
+        background: #444;
+    }
+
+    .initiative-item.active {
+        background: #444;
+        border: 2px solid #fff;
+    }
+
     #tacticalMapImage {
         max-width: 100%;
         height: auto;

@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block title %}Accesso - RPG Tools{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: center; align-items: center; min-height: 50vh;">
+    <div class="card" style="width: 100%; max-width: 400px; text-align: center;">
+        <h2>Accesso Richiesto</h2>
+
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div
+            style="background-color: rgba(255, 0, 0, 0.2); color: #ff6b6b; padding: 10px; border-radius: 4px; margin-bottom: 20px;">
+            {% for message in messages %}
+            {{ message }}
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('login') }}">
+            <div style="margin-bottom: 20px;">
+                <label for="password"
+                    style="display: block; margin-bottom: 5px; color: var(--text-secondary);">Password</label>
+                <input type="password" id="password" name="password" required
+                    style="width: 100%; padding: 10px; background-color: #2c2c2c; border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 4px; box-sizing: border-box;">
+            </div>
+            <button type="submit" class="btn" style="width: 100%;">Entra</button>
+        </form>
+    </div>
+</div>
+
+<style>
+    /* Hide navbar on login page if not logged in - strictly speaking we can't condition CSS easily based on backend session without passing vars to base, 
+       but we can hide the nav-links via js or just accept it's there but links redirect to login. */
+</style>
+{% endblock %}
