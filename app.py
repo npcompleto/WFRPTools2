@@ -371,6 +371,61 @@ TACTICAL_MAPS_UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 
 if not os.path.exists(TACTICAL_MAPS_UPLOAD_FOLDER):
     os.makedirs(TACTICAL_MAPS_UPLOAD_FOLDER)
 
+def migrate_missions_tables():
+    conn = sqlite3.connect(DATABASE)
+    c = conn.cursor()
+    
+    # Missions Table
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS missions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            plot TEXT DEFAULT '',
+            status TEXT DEFAULT 'Attiva',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Mission Lists Tables
+    # Luoghi
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS mission_places (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            mission_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            description TEXT,
+            FOREIGN KEY (mission_id) REFERENCES missions (id) ON DELETE CASCADE
+        )
+    ''')
+    
+    # Personaggi
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS mission_characters (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            mission_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            description TEXT,
+            FOREIGN KEY (mission_id) REFERENCES missions (id) ON DELETE CASCADE
+        )
+    ''')
+    
+    # Oggetti
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS mission_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            mission_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            description TEXT,
+            FOREIGN KEY (mission_id) REFERENCES missions (id) ON DELETE CASCADE
+        )
+    ''')
+    
+    conn.commit()
+    conn.close()
+
+# Run migration
+migrate_missions_tables()
+
 from werkzeug.utils import secure_filename
 
 @app.route('/api/events/upload_image', methods=['POST'])
@@ -1046,7 +1101,7 @@ def combat():
 @app.route('/api/npcs', methods=['GET'])
 def get_npcs():
     db = get_db()
-    cursor = db.execute('SELECT * FROM npcs')
+    cursor = db.execute('SELECT * FROM npcs WHERE mission_id IS NULL')
     npcs = [dict(row) for row in cursor.fetchall()]
     return {'success': True, 'npcs': npcs}
 
@@ -1954,6 +2009,333 @@ def delete_tactical_map(id):
                 print(f"Error deleting file: {e}")
 
     db.execute('DELETE FROM tactical_maps WHERE id = ?', (id,))
+    db.commit()
+    return {'success': True}
+
+# --- MISSIONS LOGIC ---
+
+@app.route('/missions')
+def missions_list():
+    db = get_db()
+    cursor = db.execute('SELECT * FROM missions ORDER BY created_at DESC')
+    missions = [dict(row) for row in cursor.fetchall()]
+    return render_template('missions.html', missions=missions)
+
+@app.route('/missions/new', methods=['POST'])
+def create_mission():
+    title = request.form.get('title', 'Nuova Missione')
+    db = get_db()
+    cursor = db.execute('INSERT INTO missions (title) VALUES (?)', (title,))
+    db.commit()
+    return redirect(url_for('mission_detail', id=cursor.lastrowid))
+
+@app.route('/missions/<int:id>')
+def mission_detail(id):
+    db = get_db()
+    cursor = db.execute('SELECT * FROM missions WHERE id = ?', (id,))
+    mission = cursor.fetchone()
+    
+    if not mission:
+        flash('Missione non trovata')
+        return redirect(url_for('missions_list'))
+        
+    # Load lists
+    lists = {}
+    
+    # Places
+    c = db.execute('SELECT * FROM mission_places WHERE mission_id = ? ORDER BY id', (id,))
+    lists['places'] = [dict(row) for row in c.fetchall()]
+    
+    # Characters (from NPCs now)
+    # Ensure backward compatibility or migration if mission_characters still exists and has data but no mission_id in npcs?
+    # We assume migration has run.
+    c = db.execute('SELECT * FROM npcs WHERE mission_id = ? ORDER BY id', (id,))
+    lists['characters'] = [dict(row) for row in c.fetchall()]
+    
+    # Items
+    c = db.execute('SELECT * FROM mission_items WHERE mission_id = ? ORDER BY id', (id,))
+    lists['mission_items'] = [dict(row) for row in c.fetchall()]
+        
+    return render_template('mission_detail.html', mission=mission, lists=lists)
+
+@app.route('/api/missions/<int:id>/update', methods=['POST'])
+def update_mission(id):
+    data = request.json
+    field = data.get('field') # 'title' or 'plot'
+    value = data.get('value')
+    
+    if field not in ['title', 'plot', 'status']:
+         return {'success': False, 'error': 'Invalid field'}, 400
+         
+    db = get_db()
+    db.execute(f'UPDATE missions SET {field} = ? WHERE id = ?', (value, id))
+    db.commit()
+    return {'success': True}
+
+@app.route('/api/missions/<int:id>/lists/<list_type>/add', methods=['POST'])
+def add_mission_list_item(id, list_type):
+    # list_type: 'places', 'characters', 'items'
+    name = request.json.get('name')
+    if not name:
+         return {'success': False, 'error': 'Name required'}, 400
+         
+    db = get_db()
+    cursor = None
+    
+    if list_type == 'characters':
+         # Create basic NPC
+         cursor = db.execute('''
+            INSERT INTO npcs (name, mission_id, ws, bs, s, t, ag, int, wp, fel, a, w, m, mag, ip, fp)
+            VALUES (?, ?, 30, 30, 30, 30, 30, 30, 30, 30, 1, 12, 4, 0, 0, 0)
+         ''', (name, id))
+    elif list_type == 'items':
+         cursor = db.execute('INSERT INTO mission_items (mission_id, name) VALUES (?, ?)', (id, name))
+    
+    if cursor:
+        db.commit()
+        return {'success': True, 'id': cursor.lastrowid, 'name': name}
+    
+    return {'success': False, 'error': 'Invalid list type or operation'}, 400
+
+def migrate_mission_places_expanded():
+    conn = sqlite3.connect(DATABASE)
+    c = conn.cursor()
+    try:
+        c.execute('SELECT image_filename FROM mission_places LIMIT 1')
+    except sqlite3.OperationalError:
+        print("Migrating mission_places table: adding image, rows, cols")
+        c.execute('ALTER TABLE mission_places ADD COLUMN image_filename TEXT')
+        c.execute('ALTER TABLE mission_places ADD COLUMN rows INTEGER DEFAULT 10')
+        c.execute('ALTER TABLE mission_places ADD COLUMN cols INTEGER DEFAULT 10')
+    conn.commit()
+    conn.close()
+
+def migrate_mission_npcs():
+    with app.app_context():
+        db = get_db()
+        c = db.cursor()
+        try:
+            c.execute('SELECT mission_id FROM npcs LIMIT 1')
+        except sqlite3.OperationalError:
+            print("Migrating npcs table: adding mission_id column")
+            c.execute('ALTER TABLE npcs ADD COLUMN mission_id INTEGER')
+            
+            # Migrate existing mission_characters
+            print("Migrating existing mission characters to npcs table...")
+            try:
+                c.execute('SELECT * FROM mission_characters')
+                chars = c.fetchall()
+                for char in chars:
+                    c.execute('''
+                        INSERT INTO npcs (name, description, mission_id, 
+                                        ws, bs, s, t, ag, int, wp, fel, a, w, m, mag, ip, fp)
+                        VALUES (?, ?, ?, 30, 30, 30, 30, 30, 30, 30, 30, 1, 12, 4, 0, 0, 0)
+                    ''', (char['name'], char['description'], char['mission_id']))
+                    print(f"Migrated character: {char['name']}")
+                db.commit()
+            except sqlite3.OperationalError:
+                # Table might not exist yet if fresh install, or empty
+                pass
+
+if __name__ == '__main__':
+    migrate_tables_add_images()
+    # verify tables exist
+    with app.app_context():
+        create_table()
+    migrate_mission_places_expanded()
+    migrate_mission_npcs()
+    app.run(debug=True)
+
+migrate_mission_places_expanded()
+
+@app.route('/api/missions/<int:id>/places/upload', methods=['POST'])
+def add_mission_place_with_image(id):
+    if 'image' not in request.files:
+         return {'success': False, 'error': 'No image file'}, 400
+    
+    file = request.files['image']
+    name = request.form.get('name')
+    rows = request.form.get('rows', 10)
+    cols = request.form.get('cols', 10)
+    description = request.form.get('description', '')
+    
+    if not name or file.filename == '':
+        return {'success': False, 'error': 'Name and Image required'}, 400
+        
+    try:
+        filename = secure_filename(f"mission_place_{id}_{int(datetime.now().timestamp())}_{file.filename}")
+        file.save(os.path.join(TACTICAL_MAPS_UPLOAD_FOLDER, filename))
+        
+        db = get_db()
+        c = db.execute('''
+            INSERT INTO mission_places (mission_id, name, description, image_filename, rows, cols)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (id, name, description, filename, rows, cols))
+        db.commit()
+        
+        return {'success': True, 'id': c.lastrowid, 'name': name, 'image_filename': filename}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}, 500
+
+@app.route('/api/missions/places/<int:place_id>/update_description', methods=['POST'])
+def update_mission_place_description(place_id):
+    description = request.json.get('description')
+    db = get_db()
+    db.execute('UPDATE mission_places SET description = ? WHERE id = ?', (description, place_id))
+    db.commit()
+    return {'success': True}
+
+@app.route('/api/missions/places/<int:place_id>/update', methods=['POST'])
+def update_mission_place(place_id):
+    db = get_db()
+    
+    # Get current place data
+    c = db.execute('SELECT * FROM mission_places WHERE id = ?', (place_id,))
+    place = c.fetchone()
+    if not place:
+        return {'success': False, 'error': 'Place not found'}, 404
+
+    name = request.form.get('name')
+    rows = request.form.get('rows')
+    cols = request.form.get('cols')
+    
+    if not name or not rows or not cols:
+         return {'success': False, 'error': 'Missing required fields'}, 400
+
+    image_filename = place['image_filename']
+    
+    # Handle optional image update
+    if 'image' in request.files:
+        file = request.files['image']
+        if file.filename != '':
+            try:
+                # Delete old file
+                old_path = os.path.join(TACTICAL_MAPS_UPLOAD_FOLDER, image_filename)
+                if os.path.exists(old_path):
+                    os.remove(old_path)
+                    
+                # Save new file
+                new_filename = secure_filename(f"mission_place_{place['mission_id']}_{int(datetime.now().timestamp())}_{file.filename}")
+                file.save(os.path.join(TACTICAL_MAPS_UPLOAD_FOLDER, new_filename))
+                image_filename = new_filename
+            except Exception as e:
+                return {'success': False, 'error': str(e)}, 500
+
+    description = request.form.get('description')
+
+    try:
+        if description is not None:
+             db.execute('''
+                UPDATE mission_places 
+                SET name = ?, rows = ?, cols = ?, image_filename = ?, description = ?
+                WHERE id = ?
+            ''', (name, rows, cols, image_filename, description, place_id))
+        else:
+             db.execute('''
+                UPDATE mission_places 
+                SET name = ?, rows = ?, cols = ?, image_filename = ?
+                WHERE id = ?
+            ''', (name, rows, cols, image_filename, place_id))
+        db.commit()
+        return {'success': True}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}, 500
+
+@app.route('/api/missions/characters/<int:npc_id>/load_combat', methods=['POST'])
+def load_npc_to_combat(npc_id):
+    global COMBAT_STATE
+    db = get_db()
+    c = db.execute('SELECT * FROM npcs WHERE id = ?', (npc_id,))
+    npc = c.fetchone()
+    if not npc:
+         return {'success': False, 'error': 'NPC not found'}, 404
+    
+    if 'tokens' not in COMBAT_STATE:
+        COMBAT_STATE['tokens'] = []
+        
+    token = {
+        'instanceId': int(datetime.now().timestamp() * 1000),
+        'name': npc['name'],
+        'x': 50, 'y': 50,
+        'size': '1x1',
+        'isPG': False,
+        'isAlly': False,
+        'image_filename': npc.get('image_filename'),
+        'currentWounds': npc['w'],
+        'stats': {
+            'ws': npc['ws'], 'bs': npc['bs'], 's': npc['s'], 't': npc['t'],
+            'ag': npc['ag'], 'int': npc['int'], 'wp': npc['wp'], 'fel': npc['fel'],
+            'a': npc['a'], 'w': npc['w'], 'm': npc['m']
+        },
+        'traits': npc.get('traits', ''),
+        'talents': npc.get('talents', ''),
+        'skills': npc.get('skills', ''),
+        'armor_value': {'head': npc.get('armor_head', 0), 'body': npc.get('armor_body', 0), 'arms': npc.get('armor_arms', 0), 'legs': npc.get('armor_legs', 0)}
+    }
+    
+    COMBAT_STATE['tokens'].append(token)
+    return {'success': True}
+
+@app.route('/api/missions/places/<int:place_id>/load_combat', methods=['POST'])
+def load_place_to_combat(place_id):
+    global COMBAT_STATE
+    db = get_db()
+    cursor = db.execute('SELECT * FROM mission_places WHERE id = ?', (place_id,))
+    place = cursor.fetchone()
+    
+    if place and place['image_filename']:
+        COMBAT_STATE['map_filename'] = place['image_filename']
+        COMBAT_STATE['rows'] = place['rows']
+        COMBAT_STATE['cols'] = place['cols']
+        # Reset tokens and arrows when loading a new map? Maybe safer to keep them or clear them.
+        # Usually loading a new map implies a new encounter.
+        COMBAT_STATE['tokens'] = []
+        COMBAT_STATE['arrows'] = []
+        return {'success': True}
+    return {'success': False, 'error': 'Place or image not found'}, 404
+
+@app.route('/api/missions/lists/<list_type>/<int:item_id>/delete', methods=['POST'])
+def delete_mission_list_item(list_type, item_id):
+    valid_types = {
+        'places': 'mission_places',
+        'characters': 'mission_characters',
+        'items': 'mission_items' # Key kept as requested by prev fix logic, table is mission_items
+    }
+    
+    if list_type == 'mission_items': # Frontend might send this if we updated js, or 'items'
+         pass
+    if list_type == 'items': # Map 'items' to 'mission_items' table key
+         list_type_key = 'items'
+         table = 'mission_items'
+    elif list_type in valid_types:
+         list_type_key = list_type
+         table = valid_types[list_type]
+    else:
+         return {'success': False, 'error': 'Invalid list type'}, 400
+
+    db = get_db()
+    
+    # If it's a place, delete the image
+    if list_type_key == 'places':
+        cursor = db.execute('SELECT image_filename FROM mission_places WHERE id = ?', (item_id,))
+        row = cursor.fetchone()
+        if row and row['image_filename']:
+            path = os.path.join(TACTICAL_MAPS_UPLOAD_FOLDER, row['image_filename'])
+            if os.path.exists(path):
+                try:
+                    os.remove(path)
+                except:
+                    pass
+
+    db.execute(f'DELETE FROM {table} WHERE id = ?', (item_id,))
+    db.commit()
+    
+    return {'success': True}
+    
+@app.route('/api/missions/<int:id>/delete', methods=['POST'])
+def delete_mission(id):
+    db = get_db()
+    db.execute('DELETE FROM missions WHERE id = ?', (id,))
     db.commit()
     return {'success': True}
 

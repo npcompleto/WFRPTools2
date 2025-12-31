@@ -1,0 +1,933 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ mission.title }} - Missione{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<style>
+    .mission-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .editable-title {
+        background: transparent;
+        border: none;
+        color: #d4af37;
+        font-family: 'Cinzel', serif;
+        font-size: 2em;
+        width: 100%;
+        margin-right: 20px;
+    }
+
+    .editable-title:focus {
+        outline: none;
+        border-bottom: 1px solid #d4af37;
+    }
+
+    .status-select {
+        background: #333;
+        color: white;
+        padding: 5px 10px;
+        border: 1px solid #555;
+        border-radius: 4px;
+        min-width: 120px;
+    }
+
+    .content-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 30px;
+    }
+
+    @media (max-width: 768px) {
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .plot-section {
+        background: rgba(30, 30, 30, 0.6);
+        padding: 20px;
+        border-radius: 8px;
+    }
+
+    #editor-container {
+        height: 500px;
+        background: #222;
+        color: #eee;
+        border: 1px solid #444;
+    }
+
+    .ql-toolbar {
+        background: #333;
+        border-color: #444 !important;
+    }
+
+    .ql-container {
+        border-color: #444 !important;
+    }
+
+    .lists-section {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .list-card {
+        background: rgba(30, 30, 30, 0.8);
+        border: 1px solid #444;
+        border-radius: 8px;
+        padding: 15px;
+    }
+
+    .list-card h3 {
+        margin-top: 5px;
+        border-bottom: 1px solid #555;
+        padding-bottom: 5px;
+        margin-bottom: 15px;
+        color: #d4af37;
+    }
+
+    .list-items {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .list-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        margin-bottom: 5px;
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+
+    .list-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .delete-btn {
+        background: none;
+        border: none;
+        color: #ff6b6b;
+        cursor: pointer;
+        opacity: 0.7;
+        font-size: 1.2em;
+        line-height: 1;
+        padding: 0 5px;
+    }
+
+    .delete-btn:hover {
+        opacity: 1;
+    }
+
+    .add-form {
+        display: flex;
+        margin-top: 10px;
+        gap: 5px;
+    }
+
+    .add-input {
+        flex: 1;
+        background: #222;
+        border: 1px solid #444;
+        color: white;
+        padding: 8px;
+        border-radius: 4px;
+    }
+
+    .add-btn {
+        background: #2ecc71;
+        border: none;
+        color: white;
+        padding: 0 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .add-btn:hover {
+        background: #27ae60;
+    }
+
+    .delete-mission-btn {
+        background: #c0392b;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 50px;
+        float: right;
+    }
+
+    .delete-mission-btn:hover {
+        background: #e74c3c;
+    }
+
+    /* Places Grid */
+    .places-grid {
+        display: grid;
+        gap: 10px;
+    }
+
+    .place-card {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px solid #555;
+    }
+
+    .place-card strong {
+        display: block;
+        margin-bottom: 5px;
+        color: #eee;
+    }
+
+    .place-actions {
+        display: flex;
+        gap: 5px;
+        margin-top: 8px;
+    }
+
+    .place-actions button {
+        flex: 1;
+        font-size: 0.8em;
+        padding: 4px;
+        background: #444;
+        border: 1px solid #666;
+        color: white;
+        border-radius: 3px;
+        cursor: pointer;
+    }
+
+    .place-actions button:hover {
+        background: #555;
+    }
+
+    .place-actions button.combat-btn {
+        background: #2c3e50;
+        border-color: #34495e;
+        color: #a9d6e5;
+    }
+
+    .place-actions button.combat-btn:hover {
+        background: #34495e;
+    }
+
+    .place-actions button.delete-btn-card {
+        background: #522;
+        border-color: #733;
+        color: #eaa;
+        flex: 0.3;
+    }
+
+    /* Modal */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.8);
+    }
+
+    .modal-content {
+        background-color: #222;
+        margin: 10% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 600px;
+        border-radius: 8px;
+        color: white;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #444;
+        padding-bottom: 10px;
+    }
+
+    .close {
+        color: #aaa;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .close:hover {
+        color: white;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        color: #ccc;
+    }
+
+    .form-group input,
+    .form-group textarea {
+        width: 100%;
+        padding: 8px;
+        background: #333;
+        border: 1px solid #555;
+        color: white;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mission-header">
+    <input type="text" id="missionTitle" class="editable-title" value="{{ mission.title }}"
+        placeholder="Titolo Missione">
+    <select id="missionStatus" class="status-select">
+        <option value="Attiva" {% if mission.status=='Attiva' %}selected{% endif %}>Attiva</option>
+        <option value="Completata" {% if mission.status=='Completata' %}selected{% endif %}>Completata</option>
+        <option value="Archiviata" {% if mission.status=='Archiviata' %}selected{% endif %}>Archiviata</option>
+    </select>
+</div>
+
+<div class="content-grid">
+    <div class="plot-section">
+        <h3>Trama</h3>
+        <div id="editor-container">
+            {{ mission.plot | safe }}
+        </div>
+        <div style="margin-top: 10px; text-align: right; color: #aaa; font-size: 0.8em;" id="saveStatus">Salvato</div>
+    </div>
+
+    <div class="lists-section">
+        <!-- Luoghi -->
+        <div class="list-card">
+            <h3>Luoghi</h3>
+            <div class="places-grid" id="places-grid">
+                {% for place in lists.places %}
+                <div class="place-card" id="place-card-{{ place.id }}">
+                    <div class="place-content">
+                        <strong>{{ place.name }}</strong>
+                        <div style="font-size:0.8em; color:#999; display:flex; gap:10px;">
+                            <span>{{ place.rows }}x{{ place.cols }}</span>
+                            {% if place.image_filename %}<span>🎨 Immagine</span>{% endif %}
+                        </div>
+                    </div>
+                    <div class="place-actions">
+                        <button class="combat-btn" onclick="loadPlaceToCombat('{{ place.id }}')">Mappa</button>
+                        <button onclick="openPlaceDetailModal('{{ place.id }}')">Dettagli</button>
+                        <button onclick="openEditPlaceModal('{{ place.id }}')">Modifica</button>
+                        <button class="delete-btn-card"
+                            onclick="deleteItem('places', '{{ place.id }}', this, true)">×</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <button onclick="openAddPlaceModal()" class="add-btn" style="width:100%; margin-top:10px;">+ Aggiungi
+                Luogo</button>
+        </div>
+
+        <!-- Personaggi -->
+        <div class="list-card">
+            <h3>Personaggi</h3>
+            <ul class="list-items" id="characters-list">
+                {% for item in lists.characters %}
+                <li class="list-item" data-id="{{ item.id }}">
+                    <span>{{ item.name }}</span>
+                    <div style="display:flex; gap:5px;">
+                        <button class="combat-btn" onclick="loadNpcToCombat('{{ item.id }}')"
+                            style="font-size:0.8em; padding:2px 8px;">⚔️</button>
+                        <button class="combat-btn" onclick="openNpcModal('{{ item.id }}')"
+                            style="font-size:0.8em; padding:2px 8px;">✎</button>
+                        <button class="delete-btn" onclick="deleteItem('characters', '{{ item.id }}', this)">×</button>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            <div class="add-form">
+                <input type="text" class="add-input" id="new-character" placeholder="Nuovo personaggio...">
+                <button class="add-btn" onclick="addItem('characters')">+</button>
+            </div>
+        </div>
+
+        <!-- Oggetti -->
+        <div class="list-card">
+            <h3>Oggetti</h3>
+            <ul class="list-items" id="items-list">
+                {% for item in lists.mission_items %}
+                <li class="list-item" data-id="{{ item.id }}">
+                    <span>{{ item.name }}</span>
+                    <button class="delete-btn" onclick="deleteItem('items', '{{ item.id }}', this)">×</button>
+                </li>
+                {% endfor %}
+            </ul>
+            <div class="add-form">
+                <input type="text" class="add-input" id="new-item" placeholder="Nuovo oggetto...">
+                <button class="add-btn" onclick="addItem('items')">+</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<button class="delete-mission-btn" onclick="deleteMission()">Elimina Missione</button>
+
+<!-- Add Place Modal -->
+<div id="addPlaceModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Aggiungi Luogo</h2>
+            <span class="close" onclick="closeModal('addPlaceModal')">&times;</span>
+        </div>
+        <form id="addPlaceForm">
+            <div class="form-group">
+                <label>Nome Luogo</label>
+                <input type="text" name="name" required>
+            </div>
+            <div class="form-group">
+                <label>Immagine Mappa</label>
+                <input type="file" name="image" accept="image/*" required>
+            </div>
+            <div class="form-group" style="display:flex; gap:10px;">
+                <div style="flex:1">
+                    <label>Righe</label>
+                    <input type="number" name="rows" value="10">
+                </div>
+                <div style="flex:1">
+                    <label>Colonne</label>
+                    <input type="number" name="cols" value="10">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Descrizione (opzionale)</label>
+                <textarea name="description" rows="3"></textarea>
+            </div>
+            <button type="submit" class="add-btn">Salva Luogo</button>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Place Modal -->
+<div id="editPlaceModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Modifica Luogo</h2>
+            <span class="close" onclick="closeModal('editPlaceModal')">&times;</span>
+        </div>
+        <form id="editPlaceForm">
+            <input type="hidden" name="place_id" id="edit_place_id">
+            <div class="form-group">
+                <label>Nome Luogo</label>
+                <input type="text" name="name" id="edit_name" required>
+            </div>
+
+            <div class="form-group" style="display:flex; gap:10px;">
+                <div style="flex:1">
+                    <label>Righe</label>
+                    <input type="number" name="rows" id="edit_rows" required>
+                </div>
+                <div style="flex:1">
+                    <label>Colonne</label>
+                    <input type="number" name="cols" id="edit_cols" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Descrizione</label>
+                <div id="edit-place-editor" style="height:200px; background:#222; color:#eee;"></div>
+            </div>
+
+            <div class="form-group">
+                <label>Nuova Immagine Mappa (Lascia vuoto per mantenere attuale)</label>
+                <input type="file" name="image" accept="image/*">
+                <p style="font-size:0.8em; color:#aaa; margin-top:5px;">File attuale: <span
+                        id="current_image_filename"></span></p>
+            </div>
+
+            <button type="submit" class="add-btn">Aggiorna Luogo</button>
+        </form>
+    </div>
+</div>
+
+<!-- Place Detail Modal -->
+<div id="placeDetailModal" class="modal">
+    <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-header">
+            <h2 id="detailTitle">Dettagli Luogo</h2>
+            <span class="close" onclick="closeModal('placeDetailModal')">&times;</span>
+        </div>
+        <div class="form-group">
+            <div id="place-detail-editor" style="height:300px; background:#222; color:#eee;"></div>
+            <button onclick="savePlaceDescription()" class="add-btn" style="margin-top:10px;">Salva Descrizione</button>
+        </div>
+        <input type="hidden" id="currentPlaceId">
+    </div>
+</div>
+
+<!-- Edit NPC Modal -->
+<div id="npcModal" class="modal">
+    <div class="modal-content" style="max-width: 800px;">
+        <span class="close" onclick="closeNpcModal()">&times;</span>
+        <h2 id="modalTitle">Modifica PNG Missione</h2>
+
+        <form id="npcForm" onsubmit="saveNPC(event)">
+            <input type="hidden" id="npcId">
+
+            <div class="form-group">
+                <label>Nome</label>
+                <input type="text" id="npc_name" required style="width: 100%; padding: 8px;">
+            </div>
+
+            <div class="form-group">
+                <label>Dimensione (es. 1x1)</label>
+                <input type="text" id="npcSize" placeholder="1x1" value="1x1" style="width: 100%; padding: 8px;">
+            </div>
+
+            <!-- Basic stats -->
+            <h3>Caratteristiche Principali</h3>
+            <div class="form-group"
+                style="display:grid; grid-template-columns: repeat(10, 1fr); gap:5px; text-align:center;">
+                <div><label>AC</label><input type="number" id="ws" style="width:100%"></div>
+                <div><label>AB</label><input type="number" id="bs" style="width:100%"></div>
+                <div><label>F</label><input type="number" id="s" style="width:100%"></div>
+                <div><label>R</label><input type="number" id="t" style="width:100%"></div>
+                <div><label>Ag</label><input type="number" id="ag" style="width:100%"></div>
+                <div><label>Int</label><input type="number" id="int" style="width:100%"></div>
+                <div><label>Vol</label><input type="number" id="wp" style="width:100%"></div>
+                <div><label>Sim</label><input type="number" id="fel" style="width:100%"></div>
+            </div>
+
+            <h3>Caratteristiche Secondarie</h3>
+            <div class="form-group"
+                style="display:grid; grid-template-columns: repeat(6, 1fr); gap:5px; text-align:center;">
+                <div><label>A</label><input type="number" id="a" style="width:100%"></div>
+                <div><label>Fe</label><input type="number" id="w" style="width:100%"></div>
+                <div><label>M</label><input type="number" id="m" style="width:100%"></div>
+                <div><label>Mag</label><input type="number" id="mag" style="width:100%"></div>
+                <div><label>Fol</label><input type="number" id="ip" style="width:100%"></div>
+                <div><label>PF</label><input type="number" id="fp" style="width:100%"></div>
+            </div>
+
+            <h3>Punti Armatura</h3>
+            <div class="form-group"
+                style="display:grid; grid-template-columns: repeat(4, 1fr); gap:5px; text-align:center;">
+                <div><label>Testa</label><input type="number" id="armor_head" style="width:100%"></div>
+                <div><label>Braccia</label><input type="number" id="armor_arms" style="width:100%"></div>
+                <div><label>Corpo</label><input type="number" id="armor_body" style="width:100%"></div>
+                <div><label>Gambe</label><input type="number" id="armor_legs" style="width:100%"></div>
+            </div>
+
+            <div class="form-group">
+                <label>Segni Particolari</label>
+                <input type="text" id="traits" style="width: 100%; padding: 8px;">
+            </div>
+
+            <div class="form-group">
+                <label>Descrizione</label>
+                <textarea id="description" rows="3" style="width: 100%; padding: 8px;"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Talenti</label>
+                <input type="text" id="talents" placeholder="Separati da virgola" style="width: 100%; padding: 8px;">
+            </div>
+            <div class="form-group">
+                <label>Abilità</label>
+                <input type="text" id="skills" placeholder="Separati da virgola" style="width: 100%; padding: 8px;">
+            </div>
+            <div class="form-group">
+                <label>Regole Speciali</label>
+                <textarea id="special_rules" rows="2" style="width: 100%; padding: 8px;"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Armatura (Descrizione)</label>
+                <textarea id="armor" rows="2" style="width: 100%; padding: 8px;"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Armi</label>
+                <textarea id="weapons" rows="2" style="width: 100%; padding: 8px;"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Equipaggiamento</label>
+                <textarea id="equipment" rows="2" style="width: 100%; padding: 8px;"></textarea>
+            </div>
+
+            <div style="text-align:right; margin-top:20px;">
+                <button type="button" class="btn" onclick="closeNpcModal()" style="background:#555">Annulla</button>
+                <button type="submit" class="btn btn-primary">Salva Modifiche</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+<script>
+    const missionId = '{{ mission.id }}';
+
+    // Main Plot Editor
+    var quill = new Quill('#editor-container', {
+        theme: 'snow',
+        modules: {
+            toolbar: [
+                ['bold', 'italic', 'underline', 'strike'],
+                [{ 'header': [1, 2, 3, false] }],
+                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                [{ 'color': [] }, { 'background': [] }],
+                ['link', 'clean']
+            ]
+        }
+    });
+
+    // Place Detail Editor
+    var detailQuill = new Quill('#place-detail-editor', {
+        theme: 'snow',
+        modules: {
+            toolbar: [
+                ['bold', 'italic', 'underline'],
+                [{ 'header': [2, 3, false] }],
+                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                [{ 'color': [] }],
+                ['link']
+            ]
+        }
+    });
+
+    // --- Mission Attributes Saving ---
+    let saveTimeout;
+    function saveMission(field, value) {
+        document.getElementById('saveStatus').innerText = 'Salvataggio...';
+        fetch(`/api/missions/${missionId}/update`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ field: field, value: value })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('saveStatus').innerText = 'Salvato';
+                } else {
+                    document.getElementById('saveStatus').innerText = 'Errore salvataggio';
+                }
+            });
+    }
+
+    quill.on('text-change', function () {
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(() => {
+            saveMission('plot', quill.root.innerHTML);
+        }, 1000);
+    });
+
+    document.getElementById('missionTitle').addEventListener('input', function (e) {
+        clearTimeout(saveTimeout);
+        const val = e.target.value;
+        saveTimeout = setTimeout(() => { saveMission('title', val); }, 1000);
+    });
+
+    document.getElementById('missionStatus').addEventListener('change', function (e) {
+        saveMission('status', e.target.value);
+    });
+
+    // --- List Management ---
+    function addItem(type) {
+        if (type === 'places') {
+            // Should not be called for places in this version, handled by modal
+            return;
+        }
+
+        const inputId = { 'characters': 'new-character', 'items': 'new-item' }[type];
+        const input = document.getElementById(inputId);
+        const name = input.value.trim();
+        if (!name) return;
+
+        const button = document.querySelector(`#${inputId} + button`);
+        button.disabled = true;
+
+        fetch(`/api/missions/${missionId}/lists/${type}/add`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const ul = document.getElementById(`${type}-list`);
+                    const li = document.createElement('li');
+                    li.className = 'list-item';
+                    li.innerHTML = `<span>${data.name}</span><button class="delete-btn" onclick="deleteItem('${type}', ${data.id}, this)">×</button>`;
+                    ul.appendChild(li);
+                    input.value = '';
+                }
+                button.disabled = false;
+            });
+    }
+
+    function deleteItem(type, itemId, btnElement, isCard = false) {
+        if (!confirm('Rimuovere questo elemento?')) return;
+
+        btnElement.disabled = true;
+
+        fetch(`/api/missions/lists/${type}/${itemId}/delete`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    if (isCard) {
+                        document.getElementById(`place-card-${itemId}`).remove();
+                    } else {
+                        btnElement.closest('li').remove();
+                    }
+                } else {
+                    alert('Errore eliminazione');
+                    btnElement.disabled = false;
+                }
+            });
+    }
+
+    function deleteMission() {
+        if (!confirm('Sei sicuro di voler eliminare questa missione definitivamente?')) return;
+        fetch(`/api/missions/${missionId}/delete`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => window.location.href = "{{ url_for('missions_list') }}");
+    }
+
+    // --- Modal & Places Logic ---
+    function openAddPlaceModal() {
+        document.getElementById('addPlaceModal').style.display = 'block';
+    }
+    function closeModal(id) {
+        document.getElementById(id).style.display = 'none';
+    }
+    window.onclick = function (event) {
+        if (event.target.className === 'modal') {
+            event.target.style.display = "none";
+        }
+    }
+
+    document.getElementById('addPlaceForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+
+        fetch(`/api/missions/${missionId}/places/upload`, {
+            method: 'POST',
+            body: formData
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload(); // Simple reload to show new place
+                } else {
+                    alert('Errore caricamento: ' + data.error);
+                }
+            });
+    });
+
+    // Place Details & Load
+    // Use tojson to safely serialize the list of places from Python to JavaScript
+    const rawPlaces = {{ lists.places | tojson | safe }};
+    const placesData = {};
+    rawPlaces.forEach(place => {
+        placesData[place.id] = place;
+    });
+
+    function openPlaceDetailModal(id) {
+        const place = placesData[id];
+        if (!place) return;
+
+        document.getElementById('detailTitle').innerText = place.name;
+        document.getElementById('currentPlaceId').value = id;
+
+        // Load description into Quill
+        detailQuill.root.innerHTML = place.description;
+
+        document.getElementById('placeDetailModal').style.display = 'block';
+    }
+
+    function savePlaceDescription() {
+        const id = document.getElementById('currentPlaceId').value;
+        const desc = detailQuill.root.innerHTML;
+
+        fetch(`/api/missions/places/${id}/update_description`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description: desc })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Descrizione salvata');
+                    placesData[id].description = desc; // Update local cache
+                    closeModal('placeDetailModal');
+                }
+            });
+    }
+
+    // Edit Place Editor
+    var editQuill = new Quill('#edit-place-editor', {
+        theme: 'snow',
+        modules: {
+            toolbar: [
+                ['bold', 'italic', 'underline'],
+                [{ 'header': [2, 3, false] }],
+                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                [{ 'color': [] }],
+                ['link']
+            ]
+        }
+    });
+
+    function openEditPlaceModal(id) {
+        const place = placesData[id];
+        if (!place) return;
+
+        document.getElementById('edit_place_id').value = id;
+        document.getElementById('edit_name').value = place.name;
+        document.getElementById('edit_rows').value = place.rows;
+        document.getElementById('edit_cols').value = place.cols;
+        document.getElementById('current_image_filename').innerText = place.image_filename;
+
+        // Load description
+        editQuill.root.innerHTML = place.description || '';
+
+        document.getElementById('editPlaceModal').style.display = 'block';
+    }
+
+    document.getElementById('editPlaceForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const id = document.getElementById('edit_place_id').value;
+        const formData = new FormData(this);
+        formData.append('description', editQuill.root.innerHTML);
+
+        fetch(`/api/missions/places/${id}/update`, {
+            method: 'POST',
+            body: formData
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Errore aggiornamento: ' + data.error);
+                }
+            });
+    });
+
+    function loadPlaceToCombat(id) {
+        fetch(`/api/missions/places/${id}/load_combat`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Mappa caricata in combattimento!');
+                } else {
+                    alert('Errore caricamento mappa');
+                }
+            });
+    }
+
+    function loadNpcToCombat(id) {
+        fetch(`/api/missions/characters/${id}/load_combat`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert('NPC aggiunto al combattimento!');
+                } else {
+                    alert('Errore aggiunta NPC: ' + (data.error || 'Errore sconosciuto'));
+                }
+            });
+    }
+
+    // NPC Data & Editor
+    const rawCharacters = {{ lists.characters | tojson | safe }};
+    const charactersData = {};
+    rawCharacters.forEach(c => charactersData[c.id] = c);
+
+    function openNpcModal(id) {
+        const npc = charactersData[id];
+        if (!npc) return;
+
+        document.getElementById('npcId').value = npc.id;
+        document.getElementById('npc_name').value = npc.name;
+        document.getElementById('npcSize').value = npc.size || '1x1';
+
+        // Map numeric fields
+        ['ws', 'bs', 's', 't', 'ag', 'int', 'wp', 'fel', 'a', 'w', 'm', 'mag', 'ip', 'fp',
+            'armor_head', 'armor_arms', 'armor_body', 'armor_legs'].forEach(f => {
+                document.getElementById(f).value = npc[f] || 0;
+            });
+
+        // Map string fields
+        ['traits', 'description', 'talents', 'skills', 'special_rules', 'armor', 'weapons', 'equipment'].forEach(f => {
+            document.getElementById(f).value = npc[f] || '';
+        });
+
+        document.getElementById('npcModal').style.display = 'block';
+    }
+
+    function closeNpcModal() {
+        document.getElementById('npcModal').style.display = 'none';
+    }
+
+    function saveNPC(e) {
+        e.preventDefault();
+        const id = document.getElementById('npcId').value;
+        const data = {
+            name: document.getElementById('npc_name').value,
+            size: document.getElementById('npcSize').value
+        };
+
+        // Add all numeric fields
+        ['ws', 'bs', 's', 't', 'ag', 'int', 'wp', 'fel', 'a', 'w', 'm', 'mag', 'ip', 'fp',
+            'armor_head', 'armor_arms', 'armor_body', 'armor_legs'].forEach(f => {
+                data[f] = parseInt(document.getElementById(f).value) || 0;
+            });
+
+        // Add string fields
+        ['traits', 'description', 'talents', 'skills', 'special_rules', 'armor', 'weapons', 'equipment'].forEach(f => {
+            data[f] = document.getElementById(f).value;
+        });
+
+        // Use standard NPC update endpoint
+        fetch(`/api/npcs/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+            .then(res => res.json())
+            .then(d => {
+                if (d.success) {
+                    alert('Salvataggio riuscito!');
+                    location.reload();
+                } else {
+                    alert('Errore: ' + (d.error || 'Errore sconosciuto'));
+                }
+            });
+    }
+
+    // Enter key shortcuts
+    ['new-character', 'new-item'].forEach(id => {
+        document.getElementById(id).addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                const type = { 'new-character': 'characters', 'new-item': 'items' }[id];
+                addItem(type);
+            }
+        });
+    });
+
+</script>
+{% endblock %}

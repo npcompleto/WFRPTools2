@@ -324,7 +324,7 @@ function renderMapTokens() {
 
     combatants.forEach(c => {
         const token = document.createElement('div');
-        token.className = `map-token ${c.isPG ? 'is-pg' : 'is-npc'}`;
+        token.className = `map-token ${c.isPG ? 'is-pg' : 'is-npc'} ${c.isAlly ? 'ally' : ''}`;
         if (activeCombatantId && c.instanceId === activeCombatantId) {
             token.classList.add('active');
         }
@@ -332,6 +332,8 @@ function renderMapTokens() {
             token.classList.add('dead');
             token.style.opacity = '0.7';
             token.style.borderColor = '#000';
+        } else if (c.currentWounds <= 3) {
+            token.classList.add('severely-wounded');
         }
 
         if (c.image_filename) {
@@ -1655,6 +1657,7 @@ function addToCombat(npcId) {
         instanceId: Date.now() + Math.random(),
         currentWounds: npc.w || 0,
         isModified: false,
+        isAlly: false,
         initiative: initiative,
         initiativeRoll: d10,
         x: 50,
@@ -1680,6 +1683,7 @@ function addModifiedToCombat(modifiedNpcId) {
         instanceId: Date.now() + Math.random(),
         currentWounds: npc.w || 0,
         isModified: true,
+        isAlly: false,
         initiative: initiative,
         initiativeRoll: d10,
         x: 50,
@@ -1718,7 +1722,7 @@ function renderCombatants() {
     combatants.forEach(c => {
         const item = document.createElement('div');
         const isActive = activeCombatantId && c.instanceId === activeCombatantId;
-        item.className = `initiative-item ${c.isPG ? 'is-pg' : 'is-npc'} ${isActive ? 'active' : ''}`;
+        item.className = `initiative-item ${c.isPG ? 'is-pg' : 'is-npc'} ${c.isAlly ? 'ally' : ''} ${isActive ? 'active' : ''}`;
         item.onclick = () => setActiveCombatant(c.instanceId);
         item.innerHTML = `
             <span class="init-name">${c.name}</span>
@@ -1733,7 +1737,7 @@ function renderCombatants() {
         const container = isPG ? pgContainer : npcContainer;
 
         const card = document.createElement('div');
-        card.className = 'npc-card combatant';
+        card.className = `npc-card combatant ${combatant.isAlly ? 'ally' : ''}`;
         if (isPG) card.style.borderColor = '#007bff';
 
         // Calculate color for wounds
@@ -1808,9 +1812,11 @@ function renderCombatants() {
                  <div><strong>Armi:</strong> ${combatant.weapons || '-'}</div>
                  <div style="margin-top: 5px;"><strong>Abilità:</strong> ${combatant.skills ? combatant.skills.split(',').map(s => typeof getSkillBadgeHTML === 'function' ? getSkillBadgeHTML(s.trim()) : `<span class="tag">${s.trim()}</span>`).join(' ') : '-'}</div>
                  <div style="margin-top: 5px;"><strong>Talenti:</strong> ${combatant.talents ? combatant.talents.split(',').map(t => typeof getTalentBadgeHTML === 'function' ? getTalentBadgeHTML(t.trim()) : `<span class="tag">${t.trim()}</span>`).join(' ') : '-'}</div>
+                 ${combatant.special_rules ? `<div style="margin-top: 5px;"><strong>Regole Speciali:</strong> ${parseSpecialRules(combatant.special_rules)}</div>` : ''}
             </div>
 
             <div class="npc-actions">
+                <button class="btn btn-secondary" style="${combatant.isAlly ? 'background-color: #28a745; color: white;' : ''}" onclick="toggleCombatantAlly(${combatant.instanceId})" title="Segna come Alleato">🤝</button>
                 <button class="btn btn-edit" onclick="editCombatant(${combatant.instanceId})">Modifica</button>
                 <button class="btn btn-danger" onclick="removeFromCombat(${combatant.instanceId})">Rimuovi</button>
                 ${combatant.isDead ?
@@ -1907,11 +1913,64 @@ function clearCombat() {
     }
 }
 
+function parseSpecialRules(text) {
+    if (!text) return '';
+    // Split by empty lines (double newline) or just newline if that's what user has.
+    // User said "separate da una riga vuota". Standard is \n\n.
+    // Let's try splitting by \n\n first.
+    let rules = text.split(/\n\s*\n/);
+    if (rules.length === 1 && rules[0].includes('\n')) {
+        // Fallback: if only one chunk but has single newlines, maybe they meant single lines?
+        // But usually "Names: Desc" with empty lines implies blocks.
+        // Let's stick to default split by any newline sequence that looks like a separator
+        // If data is just single lines, this regex won't split.
+        // Let's relax it to split on newlines if they look like independent headers?
+        // No, user specifically said empty line.
+    }
+
+    return rules.map(rule => {
+        rule = rule.trim();
+        if (!rule) return '';
+
+        // Find first colon
+        const colonIndex = rule.indexOf(':');
+        let name = rule;
+        let desc = '';
+
+        if (colonIndex !== -1) {
+            name = rule.substring(0, colonIndex).trim();
+            desc = rule.substring(colonIndex + 1).trim();
+        }
+
+        // Create tag HTML
+        // Use existing .tag class but maybe custom color?
+        // Add tooltip for description
+        if (desc) {
+            return `<span class="tag" style="background-color: #8B4513; border-color: #A0522D;">
+                        ${name}
+                        <span class="tooltip-content">${desc}</span>
+                     </span>`;
+        } else {
+            return `<span class="tag" style="background-color: #8B4513; border-color: #A0522D;">${name}</span>`;
+        }
+    }).join(' ');
+}
+
 function updateCombatantWounds(instanceId, value) {
     const combatant = combatants.find(c => c.instanceId === instanceId);
     if (combatant) {
         combatant.currentWounds = parseInt(value);
         renderCombatants(); // Re-render to update colors
+        broadcastState();
+    }
+}
+
+function toggleCombatantAlly(instanceId) {
+    const combatant = combatants.find(c => c.instanceId === instanceId);
+    if (combatant) {
+        combatant.isAlly = !combatant.isAlly;
+        renderCombatants();
+        renderMapTokens();
         broadcastState();
     }
 }
