@@ -347,21 +347,23 @@
             <h3>Personaggi</h3>
             <ul class="list-items" id="characters-list">
                 {% for item in lists.characters %}
-                <li class="list-item" data-id="{{ item.id }}">
+                <li class="list-item" data-id="{{ item.unique_id }}">
                     <span>{{ item.name }}</span>
                     <div style="display:flex; gap:5px;">
-                        <button class="combat-btn" onclick="loadNpcToCombat('{{ item.id }}')"
+                        <button class="combat-btn" onclick="loadNpcToCombat('{{ item.unique_id }}')"
                             style="font-size:0.8em; padding:2px 8px;">⚔️</button>
-                        <button class="combat-btn" onclick="openNpcModal('{{ item.id }}')"
+                        <button class="combat-btn" onclick="openNpcModal('{{ item.unique_id }}')"
                             style="font-size:0.8em; padding:2px 8px;">✎</button>
-                        <button class="delete-btn" onclick="deleteItem('characters', '{{ item.id }}', this)">×</button>
+                        <button class="delete-btn" onclick="removeCharacter('{{ item.unique_id }}')">×</button>
                     </div>
                 </li>
                 {% endfor %}
             </ul>
             <div class="add-form">
-                <input type="text" class="add-input" id="new-character" placeholder="Nuovo personaggio...">
-                <button class="add-btn" onclick="addItem('characters')">+</button>
+                <input type="text" class="add-input" id="new-character" list="mission-npcs-datalist"
+                    placeholder="Cerca PNG Missione o Nuovo..." autocomplete="off">
+                <datalist id="mission-npcs-datalist"></datalist>
+                <button class="add-btn" onclick="addMissionCharacter()">+</button>
             </div>
         </div>
 
@@ -855,13 +857,32 @@
     // NPC Data & Editor
     const rawCharacters = {{ lists.characters | tojson | safe }};
     const charactersData = {};
-    rawCharacters.forEach(c => charactersData[c.id] = c);
+    // Use unique_id as key
+    rawCharacters.forEach(c => charactersData[c.unique_id] = c);
 
-    function openNpcModal(id) {
-        const npc = charactersData[id];
+    // Override openNpcModal to fetch data from our local cache
+    const sharedOpenNpcModal = openNpcModal; // reference to global function from combat.js wrapper? No, it's NOT imported from combat.js here. It's inline or from npc.js? 
+    // Wait, Step 330 removed npc.js import! So `openNpcModal` is likely GONE or I need to restore it. 
+    // IF npc.js is gone, `openNpcModal` is NOT defined anywhere unless I define it inline.
+    // The previous state had it inline (Step 330 shows re-adding inline logic).
+    // So I am updating the INLINE logic.
+
+    function openNpcModal(uniqueId) {
+        const npc = charactersData[uniqueId];
         if (!npc) return;
 
         document.getElementById('npcId').value = npc.id;
+
+        // Handle Type logic
+        let typeInput = document.getElementById('npcType');
+        if (!typeInput) {
+            typeInput = document.createElement('input');
+            typeInput.type = 'hidden';
+            typeInput.id = 'npcType';
+            document.getElementById('npcForm').appendChild(typeInput);
+        }
+        typeInput.value = npc.type || 'standard';
+
         document.getElementById('npc_name').value = npc.name;
         document.getElementById('npcSize').value = npc.size || '1x1';
 
@@ -886,6 +907,8 @@
     function saveNPC(e) {
         e.preventDefault();
         const id = document.getElementById('npcId').value;
+        const type = document.getElementById('npcType') ? document.getElementById('npcType').value : 'standard';
+
         const data = {
             name: document.getElementById('npc_name').value,
             size: document.getElementById('npcSize').value
@@ -902,8 +925,13 @@
             data[f] = document.getElementById(f).value;
         });
 
-        // Use standard NPC update endpoint
-        fetch(`/api/npcs/${id}`, {
+        // Determine Endpoint
+        let url = `/api/npcs/${id}`;
+        if (type === 'modified') {
+            url = `/api/modified_npcs/${id}`;
+        }
+
+        fetch(url, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -919,12 +947,124 @@
             });
     }
 
+    function loadNpcToCombat(uniqueId) {
+        const npc = charactersData[uniqueId];
+        if (!npc) return;
+
+        let url = `/api/missions/characters/${npc.id}/load_combat`;
+        if (npc.type === 'modified') {
+            url = `/api/missions/modified_characters/${npc.id}/load_combat`;
+        }
+
+        fetch(url, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert('NPC caricato in combattimento!');
+                } else {
+                    alert('Errore caricamento NPC: ' + (data.error || 'Err'));
+                }
+            });
+    }
+
+    // Override deleteItem for characters to handle uniqueId? 
+    // Actually easiest is to replace the onclick in HTML to use a custom function.
+    // But I already updated HTML to use `deleteItem('characters', unique_id)`.
+    // I should intercept `deleteItem` or replace it logic if type is characters.
+    // Since deleteItem is generic, I will patch it or I should have updated the HTML to call a specific function.
+    // I'll update the HTML onclick for delete to `removeCharacter(...)` in a separate step or assume deleteItem can be patched?
+    // `deleteItem` isn't shown in the file view here (it's likely above or in main.js).
+    // I'll define removeCharacter and I should have updated the HTML to call it.
+    // Wait, in previous step I left it as `deleteItem`.
+    // I should update it to `removeCharacter`.
+
+
+    function removeCharacter(uniqueId) {
+        if (!confirm('Rimuovere il personaggio dalla missione?')) return;
+
+        const npc = charactersData[uniqueId];
+        if (!npc) return;
+
+        let url;
+        if (npc.type === 'standard') {
+            url = `/api/missions/lists/characters/${npc.id}/delete`;
+        } else if (npc.type === 'modified') {
+            url = `/api/missions/${missionId}/unassign_npc/${npc.id}`;
+        }
+
+        fetch(url, { method: 'POST' })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) location.reload();
+                else alert(d.error || 'Errore');
+            });
+    }
+
+    // Load Mission NPCs for autocomplete
+    let missionNpcs = [];
+    fetch('/api/modified_npcs')
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.modified_npcs) {
+                missionNpcs = data.modified_npcs;
+                const datalist = document.getElementById('mission-npcs-datalist');
+                missionNpcs.forEach(npc => {
+                    const option = document.createElement('option');
+                    option.value = npc.name;
+                    option.dataset.id = npc.id; // Store ID in dataset, though datalist doesn't strictly support it like select
+                    // To handle duplicate names, we might append ID e.g. "Name (ID: 123)" but user wants autocomplete
+                    // We'll rely on name matching or handle logic below
+                    datalist.appendChild(option);
+                });
+            }
+        });
+
+    function addMissionCharacter() {
+        const input = document.getElementById('new-character');
+        const name = input.value.trim();
+        if (!name) return;
+
+        // Check if name matches a Mission NPC
+        // If multiple matches, simpler to assume precise match or just pick first? 
+        // Or if the datalist selected item.
+        // Datalist input.value is just the string.
+
+        const matchedNpc = missionNpcs.find(n => n.name.toLowerCase() === name.toLowerCase());
+
+        if (matchedNpc) {
+            // Assign existing
+            fetch(`/api/missions/${missionId}/assign_npc_by_id`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ modified_npc_id: matchedNpc.id })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else if (data.error === 'Already assigned') {
+                        // Try to add as new standard NPC if name matches but user meant a new one?
+                        // But usually "Already assigned" means "It's there".
+                        alert('Questo PNG è già assegnato a questa missione.');
+                    } else {
+                        alert('Errore assegnazione: ' + data.error);
+                    }
+                });
+        } else {
+            // Create new Standard NPC (Legacy)
+            addItem('characters');
+        }
+    }
+
     // Enter key shortcuts
     ['new-character', 'new-item'].forEach(id => {
         document.getElementById(id).addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
-                const type = { 'new-character': 'characters', 'new-item': 'items' }[id];
-                addItem(type);
+                if (id === 'new-character') {
+                    addMissionCharacter();
+                } else {
+                    addItem('items');
+                }
             }
         });
     });

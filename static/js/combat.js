@@ -1423,6 +1423,7 @@ function renderModifiedNPCs() {
                 </div>
                 <div class="npc-actions">
                     <button class="btn btn-add" onclick="addModifiedToCombat(${npc.id})">Aggiungi al Combattimento</button>
+                    <button class="btn btn-primary" onclick="openAssignmentModal(${npc.id})" style="background-color: #2c3e50;">Assegna a Missioni</button>
                     <button class="btn btn-edit" onclick="editModifiedNPC(${npc.id})">Modifica</button>
                     <button class="btn btn-danger" onclick="deleteModifiedNPC(${npc.id})">Elimina</button>
                 </div>
@@ -2765,4 +2766,92 @@ function clearState() {
     broadcastState();
 
     console.log('Combat state cleared.');
+}
+
+// --- Assignment Modal Functions ---
+async function openAssignmentModal(id) {
+    document.getElementById('assignmentNpcId').value = id;
+    const container = document.getElementById('missionCheckboxes');
+    container.innerHTML = '<div style="color: #ccc; padding: 10px;">Caricamento...</div>';
+    document.getElementById('assignmentModal').style.display = 'block';
+
+    try {
+        // Fetch all missions
+        const missionsRes = await fetch('/api/missions');
+        const missionsData = await missionsRes.json();
+
+        // Fetch current assignments
+        const assignmentsRes = await fetch(`/api/modified_npcs/${id}/assignments`);
+        const assignmentsData = await assignmentsRes.json();
+
+        if (missionsData.success && assignmentsData.success) {
+            const assignedIds = new Set(assignmentsData.mission_ids);
+            container.innerHTML = '';
+
+            if (missionsData.missions.length === 0) {
+                container.innerHTML = '<div style="color: #bbb; padding: 10px;">Nessuna missione disponibile.</div>';
+                return;
+            }
+
+            missionsData.missions.forEach(m => {
+                const div = document.createElement('div');
+                div.style.display = 'flex';
+                div.style.alignItems = 'center';
+                div.style.gap = '10px';
+                div.style.padding = '5px';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = m.id;
+                checkbox.checked = assignedIds.has(m.id);
+                checkbox.id = `mission_chk_${m.id}`;
+
+                const label = document.createElement('label');
+                label.htmlFor = `mission_chk_${m.id}`;
+                label.innerText = m.title;
+                label.style.cursor = 'pointer';
+                label.style.color = '#eee';
+
+                div.appendChild(checkbox);
+                div.appendChild(label);
+                container.appendChild(div);
+            });
+        } else {
+            container.innerHTML = 'Errore nel caricamento dati.';
+        }
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = 'Errore di connessione.';
+    }
+}
+
+function closeAssignmentModal() {
+    document.getElementById('assignmentModal').style.display = 'none';
+}
+
+async function saveAssignments() {
+    const id = document.getElementById('assignmentNpcId').value;
+    const checkboxes = document.querySelectorAll('#missionCheckboxes input[type="checkbox"]');
+    const selected = [];
+    checkboxes.forEach(cb => {
+        if (cb.checked) selected.push(parseInt(cb.value));
+    });
+
+    try {
+        const response = await fetch(`/api/modified_npcs/${id}/assignments`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mission_ids: selected })
+        });
+        const data = await response.json();
+        if (data.success) {
+            closeAssignmentModal();
+            alert('Assegnazioni salvate!');
+        } else {
+            alert('Errore nel salvataggio.');
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Errore di connessione.');
+    }
 }

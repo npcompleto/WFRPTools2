@@ -122,6 +122,13 @@ def create_table():
         )
     ''')
     c.execute('''
+        CREATE TABLE IF NOT EXISTS mission_npc_assignments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            mission_id INTEGER,
+            modified_npc_id INTEGER
+        )
+    ''')
+    c.execute('''
         CREATE TABLE IF NOT EXISTS careers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -1431,6 +1438,106 @@ def delete_modified_npc(id):
     db.commit()
     return {'success': True}
 
+@app.route('/api/modified_npcs/<int:id>/assignments', methods=['GET', 'POST'])
+def handle_modified_npc_assignments(id):
+    db = get_db()
+    
+    if request.method == 'GET':
+        cursor = db.execute('SELECT mission_id FROM mission_npc_assignments WHERE modified_npc_id = ?', (id,))
+        mission_ids = [row[0] for row in cursor.fetchall()]
+        return {'success': True, 'mission_ids': mission_ids}
+    
+    elif request.method == 'POST':
+        data = request.json
+        mission_ids = data.get('mission_ids', [])
+        
+        # Replace assignments
+        db.execute('DELETE FROM mission_npc_assignments WHERE modified_npc_id = ?', (id,))
+        for mission_id in mission_ids:
+            db.execute('INSERT INTO mission_npc_assignments (mission_id, modified_npc_id) VALUES (?, ?)',
+                       (mission_id, id))
+        db.commit()
+        return {'success': True}
+
+@app.route('/api/missions', methods=['GET'])
+def get_missions_api():
+    db = get_db()
+    cursor = db.execute('SELECT id, title FROM missions ORDER BY id DESC')
+    missions = [dict(row) for row in cursor.fetchall()]
+    return {'success': True, 'missions': missions}
+
+@app.route('/api/missions/<int:mission_id>/unassign_npc/<int:modified_npc_id>', methods=['POST'])
+def unassign_modified_npc(mission_id, modified_npc_id):
+    db = get_db()
+    db.execute('DELETE FROM mission_npc_assignments WHERE mission_id = ? AND modified_npc_id = ?', 
+               (mission_id, modified_npc_id))
+    db.commit()
+    return {'success': True}
+
+@app.route('/api/missions/modified_characters/<int:id>/load_combat', methods=['POST'])
+def load_modified_npc_to_combat(id):
+    # This copies the modified NPC data into the combat state
+    db = get_db()
+    c = db.execute('SELECT * FROM modified_npcs WHERE id = ?', (id,))
+    npc = c.fetchone()
+    
+    if not npc:
+        return {'success': False, 'error': 'NPC not found'}
+        
+    npc_dict = dict(npc)
+    
+    # Load current combat state
+    state_file = os.path.join('data', 'combat_state.json')
+    combat_state = {'combatants': [], 'dead_combatants': [], 'initiative_order': []}
+    
+    if os.path.exists(state_file):
+        try:
+            with open(state_file, 'r') as f:
+                combat_state = json.load(f)
+        except:
+            pass
+            
+    # Add to combatants
+    instance_id = int(time.time() * 1000)
+    new_combatant = npc_dict.copy()
+    new_combatant['instanceId'] = instance_id
+    new_combatant['currentWounds'] = new_combatant['w']
+    new_combatant['x'] = 10 
+    new_combatant['y'] = 10
+    new_combatant['type'] = 'npc' # Treated as NPC
+    new_combatant['is_modified'] = True
+    
+    combat_state['combatants'].append(new_combatant)
+    
+    with open(state_file, 'w') as f:
+        json.dump(combat_state, f)
+        
+    return {'success': True}
+
+@app.route('/api/missions/<int:mission_id>/assign_npc_by_id', methods=['POST'])
+def assign_npc_to_mission(mission_id):
+    data = request.json
+    modified_npc_id = data.get('modified_npc_id')
+    db = get_db()
+    
+    # Check if already assigned
+    c = db.execute('SELECT id FROM mission_npc_assignments WHERE mission_id = ? AND modified_npc_id = ?', 
+               (mission_id, modified_npc_id))
+    if c.fetchone():
+        return {'success': False, 'error': 'Already assigned'}
+
+    db.execute('INSERT INTO mission_npc_assignments (mission_id, modified_npc_id) VALUES (?, ?)',
+               (mission_id, modified_npc_id))
+    db.commit()
+    
+    # Return matched NPC data for UI update
+    c = db.execute('SELECT * FROM modified_npcs WHERE id = ?', (modified_npc_id,))
+    npc = dict(c.fetchone())
+    npc['unique_id'] = f"modified_{npc['id']}"
+    npc['type'] = 'modified'
+    
+    return {'success': True, 'npc': npc}
+
 # --- Careers API Endpoints ---
 
 @app.route('/api/careers', methods=['GET'])
@@ -2045,12 +2152,20 @@ def mission_detail(id):
     # Places
     c = db.execute('SELECT * FROM mission_places WHERE mission_id = ? ORDER BY id', (id,))
     lists['places'] = [dict(row) for row in c.fetchall()]
+
+    # Assigned Mission (Modified) NPCs
+    c = db.execute('''
+        SELECT m.* FROM modified_npcs m
+        JOIN mission_npc_assignments a ON m.id = a.modified_npc_id
+        WHERE a.mission_id = ?
+        ORDER BY m.name
+    ''', (id,))
+    assigned_npcs = [dict(row) for row in c.fetchall()]
+    for npc in assigned_npcs:
+        npc['type'] = 'modified'
+        npc['unique_id'] = f"modified_{npc['id']}"
     
-    # Characters (from NPCs now)
-    # Ensure backward compatibility or migration if mission_characters still exists and has data but no mission_id in npcs?
-    # We assume migration has run.
-    c = db.execute('SELECT * FROM npcs WHERE mission_id = ? ORDER BY id', (id,))
-    lists['characters'] = [dict(row) for row in c.fetchall()]
+    lists['characters'] = assigned_npcs
     
     # Items
     c = db.execute('SELECT * FROM mission_items WHERE mission_id = ? ORDER BY id', (id,))
@@ -2296,6 +2411,7 @@ def load_place_to_combat(place_id):
 
 @app.route('/api/missions/lists/<list_type>/<int:item_id>/delete', methods=['POST'])
 def delete_mission_list_item(list_type, item_id):
+    print('%s %s' % (str(item_id), list_type))
     valid_types = {
         'places': 'mission_places',
         'characters': 'mission_characters',
@@ -2326,7 +2442,9 @@ def delete_mission_list_item(list_type, item_id):
                     os.remove(path)
                 except:
                     pass
-
+    cursor = db.execute('SELECT * FROM mission_characters')
+    rows = cursor.fetchall()
+    print(rows)
     db.execute(f'DELETE FROM {table} WHERE id = ?', (item_id,))
     db.commit()
     

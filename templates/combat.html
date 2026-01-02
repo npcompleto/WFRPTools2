@@ -135,8 +135,8 @@
     <!-- Modified NPCs Library Section -->
     <section>
         <div class="section-header">
-            <h2 class="section-title">PNG Modificati</h2>
-            <button class="btn btn-primary" onclick="createModifiedNPC()">+ Nuovo PNG Modificato</button>
+            <h2 class="section-title">PNG Missioni</h2>
+            <button class="btn btn-primary" onclick="createModifiedNPC()">+ Nuovo PNG Missione</button>
         </div>
         <div id="modifiedNpcList" class="npc-grid">
             <!-- Modified NPCs will be loaded here -->
@@ -438,6 +438,25 @@
 
 
 {% endblock %}
+
+<!-- Assignment Modal -->
+<div id="assignmentModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeAssignmentModal()">&times;</span>
+        <h2>Assegna a Missioni</h2>
+        <input type="hidden" id="assignmentNpcId">
+        <div id="missionCheckboxes"
+            style="display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; margin: 15px 0; padding: 10px; background: #333; border-radius: 4px;">
+            <!-- Checkboxes loaded via JS -->
+            Loading...
+        </div>
+        <div style="text-align: right;">
+            <button class="btn btn-secondary" onclick="closeAssignmentModal()">Annulla</button>
+            <button class="btn btn-primary" onclick="saveAssignments()">Salva Assegnazioni</button>
+        </div>
+    </div>
+</div>
+
 {% block scripts %}
 
 <script src="{{ url_for('static', filename='js/combat.js') }}"></script>
