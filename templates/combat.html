@@ -129,19 +129,6 @@
 
     </section>
 
-
-
-
-    <!-- Modified NPCs Library Section -->
-    <section>
-        <div class="section-header">
-            <h2 class="section-title">PNG Missioni</h2>
-            <button class="btn btn-primary" onclick="createModifiedNPC()">+ Nuovo PNG Missione</button>
-        </div>
-        <div id="modifiedNpcList" class="npc-grid">
-            <!-- Modified NPCs will be loaded here -->
-        </div>
-    </section>
     <!-- NPC Library Section (Tabular) -->
     <section>
         <div class="section-header">
@@ -209,7 +196,32 @@
         </div>
     </section>
 
+    <!-- Modified NPCs Library Section -->
+    <section>
+        <div class="section-header">
+            <h2 class="section-title">PNG Missioni</h2>
+            <button class="btn btn-primary" onclick="createModifiedNPC()">+ Nuovo PNG Missione</button>
+        </div>
+        <div style="overflow-x: auto;">
+            <table class="npc-table" style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background-color: #333; color: #fff; text-align: left;">
+                        <th style="padding: 10px;">Nome</th>
+                        <th style="padding: 10px;">Tratti</th>
+                        <th style="padding: 10px; width: 220px;" title="WS BS S T Ag Int WP Fel">Profilo</th>
+                        <th style="padding: 10px;">Sec</th>
+                        <th style="padding: 10px;">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody id="modifiedNpcTableBody">
+                    <!-- Modified NPCs will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+    </section>
 </div>
+
+
 
 <!-- Add/Edit Modal -->
 <div id="npcModal" class="modal">

@@ -1383,52 +1383,66 @@ async function loadModifiedNPCs() {
     }
 }
 
+
 function renderModifiedNPCs() {
-    const container = document.getElementById('modifiedNpcList');
-    if (!container) return;
-    container.innerHTML = '';
+    const tbody = document.getElementById('modifiedNpcTableBody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
 
     if (modifiedNpcs.length === 0) {
-        container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #666; padding: 2rem;">Nessun PNG modificato. Crea un nuovo PNG modificato partendo da un PNG base.</div>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #666; padding: 20px;">Nessun PNG modificato. Crea un nuovo PNG modificato partendo da un PNG base.</td></tr>';
         return;
     }
 
     modifiedNpcs.forEach(npc => {
-        const card = document.createElement('div');
-        card.className = 'npc-card';
-        card.style.borderColor = '#28a745';
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid #444';
 
-        card.innerHTML = `
-                <div class="npc-name">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        ${npc.image_filename ? `<img src="/static/uploads/badges/${npc.image_filename}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 50%; border: 1px solid #aaa;">` : ''}
-                        ${npc.name}
-                    </div>
-                    <span style="font-size:0.8rem; color:#aaa; font-weight:normal;">${npc.traits || ''}</span>
+        // Name & Image
+        const imgHtml = npc.image_filename
+            ? `<img src="/static/uploads/badges/${npc.image_filename}" style="width: 32px; height: 32px; object-fit: cover; border-radius: 50%; vertical-align: middle; margin-right: 8px;">`
+            : '';
+
+        // Profile Grid
+        const profile = `
+            <div style="font-size: 0.8em; display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; text-align: center;">
+                <div title="WS" style="color:#aaa; font-size:0.7em;">WS</div>
+                <div title="BS" style="color:#aaa; font-size:0.7em;">BS</div>
+                <div title="S" style="color:#aaa; font-size:0.7em;">S</div>
+                <div title="T" style="color:#aaa; font-size:0.7em;">T</div>
+                <div title="Ag" style="color:#aaa; font-size:0.7em;">Ag</div>
+                <div title="Int" style="color:#aaa; font-size:0.7em;">Int</div>
+                <div title="WP" style="color:#aaa; font-size:0.7em;">WP</div>
+                <div title="Fel" style="color:#aaa; font-size:0.7em;">Fel</div>
+                
+                <div>${npc.ws || '-'}</div>
+                <div>${npc.bs || '-'}</div>
+                <div>${npc.s || '-'}</div>
+                <div>${npc.t || '-'}</div>
+                <div>${npc.ag || '-'}</div>
+                <div>${npc.int || '-'}</div>
+                <div>${npc.wp || '-'}</div>
+                <div>${npc.fel || '-'}</div>
+            </div>`;
+
+        const sec = `<span style="display:block">A: ${npc.a || '-'}</span><span style="display:block">W: ${npc.w || '-'}</span><span style="display:block">M: ${npc.m || '-'}</span>`;
+
+        tr.innerHTML = `
+            <td style="padding: 8px;">${imgHtml}<strong>${npc.name}</strong></td>
+            <td style="padding: 8px; font-size: 0.85em; color: #aaa;">${npc.traits || ''}</td>
+            <td style="padding: 8px;">${profile}</td>
+            <td style="padding: 8px; font-size: 0.85em;">${sec}</td>
+            <td style="padding: 8px;">
+                <div style="display: flex; gap: 5px;">
+                    <button class="btn btn-add" onclick="addModifiedToCombat(${npc.id})" title="Aggiungi" style="padding: 4px 8px;">⚔️</button>
+                    <button class="btn btn-primary" onclick="openAssignmentModal(${npc.id})" title="Assegna" style="background-color: #2c3e50; padding: 4px 8px;">📋</button>
+                    <button class="btn btn-edit" onclick="editModifiedNPC(${npc.id})" title="Modifica" style="padding: 4px 8px;">✎</button>
+                    <button class="btn btn-danger" onclick="deleteModifiedNPC(${npc.id})" title="Elimina" style="padding: 4px 8px;">×</button>
                 </div>
-                <div class="npc-stats">
-                    <div class="stat-box"><div class="stat-label">AC</div><div class="stat-value">${npc.ws || '-'}</div></div>
-                    <div class="stat-box"><div class="stat-label">AB</div><div class="stat-value">${npc.bs || '-'}</div></div>
-                    <div class="stat-box"><div class="stat-label">F</div><div class="stat-value">${npc.s || '-'}</div></div>
-                    <div class="stat-box"><div class="stat-label">R</div><div class="stat-value">${npc.t || '-'}</div></div>
-                    <div class="stat-box"><div class="stat-label">Ag</div><div class="stat-value">${npc.ag || '-'}</div></div>
-                    <div class="stat-box"><div class="stat-label">Int</div><div class="stat-value">${npc.int || '-'}</div></div>
-                    <div class="stat-box"><div class="stat-label">Vol</div><div class="stat-value">${npc.wp || '-'}</div></div>
-                    <div class="stat-box"><div class="stat-label">Sim</div><div class="stat-value">${npc.fel || '-'}</div></div>
-                </div>
-                <div class="secondary-stats">
-                    <span><strong>A:</strong> ${npc.a || '-'}</span>
-                    <span><strong>Fe:</strong> ${npc.w || '-'}</span>
-                    <span><strong>M:</strong> ${npc.m || '-'}</span>
-                </div>
-                <div class="npc-actions">
-                    <button class="btn btn-add" onclick="addModifiedToCombat(${npc.id})">Aggiungi al Combattimento</button>
-                    <button class="btn btn-primary" onclick="openAssignmentModal(${npc.id})" style="background-color: #2c3e50;">Assegna a Missioni</button>
-                    <button class="btn btn-edit" onclick="editModifiedNPC(${npc.id})">Modifica</button>
-                    <button class="btn btn-danger" onclick="deleteModifiedNPC(${npc.id})">Elimina</button>
-                </div>
-            `;
-        container.appendChild(card);
+            </td>
+        `;
+        tbody.appendChild(tr);
     });
     renderCombatGraph();
 }

@@ -350,6 +350,8 @@
                 <li class="list-item" data-id="{{ item.unique_id }}">
                     <span>{{ item.name }}</span>
                     <div style="display:flex; gap:5px;">
+                        <button class="combat-btn" onclick="showNpcDescription('{{ item.unique_id }}')"
+                            style="font-size:0.8em; padding:2px 8px;">👁️</button>
                         <button class="combat-btn" onclick="loadNpcToCombat('{{ item.unique_id }}')"
                             style="font-size:0.8em; padding:2px 8px;">⚔️</button>
                         <button class="combat-btn" onclick="openNpcModal('{{ item.unique_id }}')"
@@ -387,6 +389,18 @@
 </div>
 
 <button class="delete-mission-btn" onclick="deleteMission()">Elimina Missione</button>
+
+<!-- NPC Description Modal -->
+<div id="npcDescriptionModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <h2 id="npcDescTitle" style="margin:0;"></h2>
+            <span class="close" onclick="closeModal('npcDescriptionModal')">&times;</span>
+        </div>
+        <div id="npcDescContent" style="white-space: pre-wrap; margin-top:15px; max-height: 400px; overflow-y: auto;">
+        </div>
+    </div>
+</div>
 
 <!-- Add Place Modal -->
 <div id="addPlaceModal" class="modal">
@@ -998,6 +1012,14 @@
                 if (d.success) location.reload();
                 else alert(d.error || 'Errore');
             });
+    }
+
+    function showNpcDescription(uniqueId) {
+        const npc = charactersData[uniqueId];
+        if (!npc) return;
+        document.getElementById('npcDescTitle').innerText = npc.name;
+        document.getElementById('npcDescContent').innerText = npc.description || 'Nessuna descrizione.';
+        document.getElementById('npcDescriptionModal').style.display = 'block';
     }
 
     // Load Mission NPCs for autocomplete
