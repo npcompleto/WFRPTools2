@@ -16,7 +16,7 @@ if GEMINI_API_KEY:
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev_key_very_secret_wfrp') # Change this in production!
-APP_PASSWORD = os.environ.get('APP_PASSWORD', 'dariogm2025!!') # Default password
+APP_PASSWORD = os.environ.get('APP_PASSWORD', 'dariogm2025') # Default password
 
 DATABASE = 'wfrp.db'
 
