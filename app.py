@@ -2044,7 +2044,8 @@ COMBAT_STATE = {
     'rows': 10,
     'cols': 10,
     'tokens': [],
-    'arrows': []
+    'arrows': [],
+    'popup_image': None  # New field for modal logic
 }
 
 @app.route('/api/combat/state', methods=['GET'])
@@ -2055,7 +2056,29 @@ def get_combat_state():
 def update_combat_state():
     global COMBAT_STATE
     data = request.json
-    COMBAT_STATE = data.get('state', COMBAT_STATE)
+    
+    # Partial updates support
+    if 'popup_image' in data:
+        COMBAT_STATE['popup_image'] = data['popup_image']
+    
+    # Full state update
+    if 'state' in data:
+        COMBAT_STATE = data.get('state', COMBAT_STATE)
+        
+    return {'success': True}
+
+@app.route('/api/combat/popup', methods=['POST'])
+def set_combat_popup():
+    global COMBAT_STATE
+    data = request.json
+    image_filename = data.get('image_filename')
+    
+    if image_filename:
+        COMBAT_STATE['popup_image'] = image_filename
+    else:
+        # Clear popup logic
+        COMBAT_STATE['popup_image'] = None
+        
     return {'success': True}
 
 @app.route('/combat_view')
@@ -2157,7 +2180,27 @@ def mission_detail(id):
     
     # Places
     c = db.execute('SELECT * FROM mission_places WHERE mission_id = ? ORDER BY id', (id,))
-    lists['places'] = [dict(row) for row in c.fetchall()]
+    all_places = [dict(row) for row in c.fetchall()]
+    
+    # Organize into hierarchy
+    places_map = {p['id']: p for p in all_places}
+    root_places = []
+    
+    # Initialize children list for all places
+    for p in all_places:
+        p['children'] = []
+        
+    for p in all_places:
+        if p.get('parent_id'):
+            parent = places_map.get(p['parent_id'])
+            if parent:
+                parent['children'].append(p)
+            else:
+                root_places.append(p)
+        else:
+            root_places.append(p)
+            
+    lists['places'] = root_places
 
     # Assigned Mission (Modified) NPCs
     c = db.execute('''
@@ -2228,6 +2271,13 @@ def migrate_mission_places_expanded():
         c.execute('ALTER TABLE mission_places ADD COLUMN image_filename TEXT')
         c.execute('ALTER TABLE mission_places ADD COLUMN rows INTEGER DEFAULT 10')
         c.execute('ALTER TABLE mission_places ADD COLUMN cols INTEGER DEFAULT 10')
+    
+    # Add parent_id column if not exists
+    try:
+        c.execute('SELECT parent_id FROM mission_places LIMIT 1')
+    except sqlite3.OperationalError:
+        print("Migrating mission_places table: adding parent_id column")
+        c.execute('ALTER TABLE mission_places ADD COLUMN parent_id INTEGER REFERENCES mission_places(id) ON DELETE CASCADE')
     conn.commit()
     conn.close()
 
@@ -2271,27 +2321,37 @@ migrate_mission_places_expanded()
 
 @app.route('/api/missions/<int:id>/places/upload', methods=['POST'])
 def add_mission_place_with_image(id):
-    if 'image' not in request.files:
-         return {'success': False, 'error': 'No image file'}, 400
-    
-    file = request.files['image']
+    file = request.files.get('image')
     name = request.form.get('name')
     rows = request.form.get('rows', 10)
     cols = request.form.get('cols', 10)
     description = request.form.get('description', '')
+    parent_id = request.form.get('parent_id')
     
-    if not name or file.filename == '':
-        return {'success': False, 'error': 'Name and Image required'}, 400
+    if not name:
+        return {'success': False, 'error': 'Name is required'}, 400
+        
+    filename = None
+    if file and file.filename != '':
+        try:
+            filename = secure_filename(f"mission_place_{id}_{int(datetime.now().timestamp())}_{file.filename}")
+            file.save(os.path.join(TACTICAL_MAPS_UPLOAD_FOLDER, filename))
+        except Exception as e:
+            return {'success': False, 'error': str(e)}, 500
         
     try:
-        filename = secure_filename(f"mission_place_{id}_{int(datetime.now().timestamp())}_{file.filename}")
-        file.save(os.path.join(TACTICAL_MAPS_UPLOAD_FOLDER, filename))
-        
         db = get_db()
-        c = db.execute('''
-            INSERT INTO mission_places (mission_id, name, description, image_filename, rows, cols)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (id, name, description, filename, rows, cols))
+        
+        if parent_id and parent_id != 'null' and parent_id != 'undefined':
+             c = db.execute('''
+                INSERT INTO mission_places (mission_id, name, description, image_filename, rows, cols, parent_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (id, name, description, filename, rows, cols, parent_id))
+        else:
+             c = db.execute('''
+                INSERT INTO mission_places (mission_id, name, description, image_filename, rows, cols)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (id, name, description, filename, rows, cols))
         db.commit()
         
         return {'success': True, 'id': c.lastrowid, 'name': name, 'image_filename': filename}
@@ -2376,9 +2436,10 @@ def update_mission_place(place_id):
         if file.filename != '':
             try:
                 # Delete old file
-                old_path = os.path.join(TACTICAL_MAPS_UPLOAD_FOLDER, image_filename)
-                if os.path.exists(old_path):
-                    os.remove(old_path)
+                if image_filename:
+                    old_path = os.path.join(TACTICAL_MAPS_UPLOAD_FOLDER, image_filename)
+                    if os.path.exists(old_path):
+                        os.remove(old_path)
                     
                 # Save new file
                 new_filename = secure_filename(f"mission_place_{place['mission_id']}_{int(datetime.now().timestamp())}_{file.filename}")
@@ -2507,6 +2568,52 @@ def delete_mission(id):
     db.execute('DELETE FROM missions WHERE id = ?', (id,))
     db.commit()
     return {'success': True}
+
+@app.route('/api/missions/items/<int:item_id>/update', methods=['POST'])
+def update_mission_item(item_id):
+    db = get_db()
+    c = db.execute('SELECT * FROM mission_items WHERE id = ?', (item_id,))
+    item = c.fetchone()
+    
+    if not item:
+        return {'success': False, 'error': 'Item not found'}, 404
+        
+    name = request.form.get('name')
+    description = request.form.get('description')
+    
+    if not name:
+        return {'success': False, 'error': 'Name is required'}, 400
+        
+    image_filename = item['image_filename']
+    
+    # Handle optional image update
+    if 'image' in request.files:
+        file = request.files['image']
+        if file.filename != '':
+            try:
+                # Delete old file if exists
+                if image_filename:
+                    old_path = os.path.join(BADGES_UPLOAD_FOLDER, image_filename)
+                    if os.path.exists(old_path):
+                        os.remove(old_path)
+                    
+                # Save new file
+                new_filename = secure_filename(f"mission_item_{item['mission_id']}_{int(datetime.now().timestamp())}_{file.filename}")
+                file.save(os.path.join(BADGES_UPLOAD_FOLDER, new_filename))
+                image_filename = new_filename
+            except Exception as e:
+                return {'success': False, 'error': str(e)}, 500
+                
+    try:
+        db.execute('''
+            UPDATE mission_items 
+            SET name = ?, description = ?, image_filename = ?
+            WHERE id = ?
+        ''', (name, description, image_filename, item_id))
+        db.commit()
+        return {'success': True}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}, 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

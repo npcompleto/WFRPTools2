@@ -63,6 +63,22 @@ function updateView(state) {
     renderTokens(state.tokens, state.rows, state.cols, state.activeCombatantId);
     renderArrows(state.arrows, state.tokens, state.rows, state.cols);
 
+    // Popup Image Logic
+    const popupModal = document.getElementById('imagePopupModal');
+    const popupImg = document.getElementById('popupImageElement');
+
+    if (state.popup_image) {
+        // Only update src if changed
+        const newSrc = `/static/uploads/badges/${state.popup_image}`;
+        if (!popupImg.src.endsWith(newSrc)) {
+            popupImg.src = newSrc;
+        }
+        popupModal.style.display = 'flex';
+    } else {
+        popupModal.style.display = 'none';
+        popupImg.src = '';
+    }
+
     currentState = state;
 }
 

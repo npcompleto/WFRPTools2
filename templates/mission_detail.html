@@ -319,8 +319,9 @@
         <div class="list-card">
             <h3>Luoghi</h3>
             <div class="places-grid" id="places-grid">
-                {% for place in lists.places %}
-                <div class="place-card" id="place-card-{{ place.id }}">
+                {% macro render_place_card(place, is_child=False) %}
+                <div class="place-card" id="place-card-{{ place.id }}" {% if is_child
+                    %}style="border-left: 3px solid #d4af37;" {% endif %}>
                     <div class="place-content">
                         <strong>{{ place.name }}</strong>
                         <div style="font-size:0.8em; color:#999; display:flex; gap:10px;">
@@ -332,10 +333,31 @@
                         <button class="combat-btn" onclick="loadPlaceToCombat('{{ place.id }}')">Mappa</button>
                         <button onclick="openPlaceDetailModal('{{ place.id }}')">Dettagli</button>
                         <button onclick="openEditPlaceModal('{{ place.id }}')">Modifica</button>
+                        {% if not is_child %}
+                        <button onclick="openAddPlaceModal('{{ place.id }}')"
+                            style="background:#555; border-color:#777;">+ Sub</button>
+                        {% endif %}
                         <button class="delete-btn-card"
                             onclick="deleteItem('places', '{{ place.id }}', this, true)">×</button>
                     </div>
                 </div>
+                {% endmacro %}
+
+                {% for place in lists.places %}
+                {{ render_place_card(place) }}
+                {% if place.children %}
+                <details style="margin-top: 5px; margin-left: 20px; border-left: 1px solid #444; padding-left: 10px;">
+                    <summary
+                        style="cursor: pointer; color: #aaa; padding: 5px; background: rgba(0,0,0,0.2); border-radius: 4px; margin-bottom: 5px;">
+                        Sotto-luoghi ({{ place.children|length }})
+                    </summary>
+                    <div class="children-stack" style="display: grid; gap: 10px;">
+                        {% for child in place.children %}
+                        {{ render_place_card(child, is_child=True) }}
+                        {% endfor %}
+                    </div>
+                </details>
+                {% endif %}
                 {% endfor %}
             </div>
             <button onclick="openAddPlaceModal()" class="add-btn" style="width:100%; margin-top:10px;">+ Aggiungi
@@ -383,8 +405,18 @@
                         <span>{{ item.name }}</span>
                     </div>
                     <div>
+                        {% if item.image_filename %}
+                        <button class="combat-btn" onclick="showItemOnMap('{{ item.image_filename }}')"
+                            style="font-size:0.8em; padding:2px 8px; margin-right:5px; background: #2980b9;"
+                            title="Mostra a Giocatori">📺</button>
+                        <button class="combat-btn" onclick="hideItemFromMap()"
+                            style="font-size:0.8em; padding:2px 8px; margin-right:5px; background: #7f8c8d;"
+                            title="Nascondi">⏹️</button>
+                        {% endif %}
                         <button class="combat-btn" onclick="openItemDetailModal('{{ item.id }}')"
                             style="font-size:0.8em; padding:2px 8px; margin-right:5px;">👁️</button>
+                        <button class="combat-btn" onclick="openEditItemModal('{{ item.id }}')"
+                            style="font-size:0.8em; padding:2px 8px; margin-right:5px; background: #f39c12;">✎</button>
                         <button class="delete-btn" onclick="deleteItem('items', '{{ item.id }}', this)">×</button>
                     </div>
                 </li>
@@ -418,13 +450,14 @@
             <span class="close" onclick="closeModal('addPlaceModal')">&times;</span>
         </div>
         <form id="addPlaceForm">
+            <input type="hidden" name="parent_id" id="add_place_parent_id">
             <div class="form-group">
                 <label>Nome Luogo</label>
                 <input type="text" name="name" required>
             </div>
             <div class="form-group">
                 <label>Immagine Mappa</label>
-                <input type="file" name="image" accept="image/*" required>
+                <input type="file" name="image" accept="image/*">
             </div>
             <div class="form-group" style="display:flex; gap:10px;">
                 <div style="flex:1">
@@ -622,6 +655,36 @@
     </div>
 </div>
 
+</div>
+
+<!-- Edit Item Modal -->
+<div id="editItemModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Modifica Oggetto</h2>
+            <span class="close" onclick="closeModal('editItemModal')">&times;</span>
+        </div>
+        <form id="editItemForm">
+            <input type="hidden" name="item_id" id="edit_item_id">
+            <div class="form-group">
+                <label>Nome Oggetto</label>
+                <input type="text" name="name" id="edit_item_name" required>
+            </div>
+            <div class="form-group">
+                <label>Immagine (opzionale)</label>
+                <input type="file" name="image" accept="image/*">
+                <p style="font-size:0.8em; color:#aaa; margin-top:5px;">File attuale: <span
+                        id="edit_item_current_image"></span></p>
+            </div>
+            <div class="form-group">
+                <label>Descrizione</label>
+                <div id="edit-item-editor" style="height:200px; background:#222; color:#eee;"></div>
+            </div>
+            <button type="submit" class="add-btn">Aggiorna Oggetto</button>
+        </form>
+    </div>
+</div>
+
 <!-- Item Detail Modal -->
 <div id="itemDetailModal" class="modal">
     <div class="modal-content">
@@ -692,6 +755,18 @@
         theme: 'snow',
         readOnly: true,
         modules: { toolbar: false }
+    });
+
+    // Edit Item Editor
+    var itemEditQuill = new Quill('#edit-item-editor', {
+        theme: 'snow',
+        modules: {
+            toolbar: [
+                ['bold', 'italic', 'underline'],
+                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                ['link']
+            ]
+        }
     });
 
     // --- Mission Attributes Saving ---
@@ -779,6 +854,37 @@
         document.getElementById('itemDetailModal').style.display = 'block';
     }
 
+    function openEditItemModal(id) {
+        const item = itemsData[id];
+        if (!item) return;
+
+        document.getElementById('edit_item_id').value = id;
+        document.getElementById('edit_item_name').value = item.name;
+        document.getElementById('edit_item_current_image').innerText = item.image_filename || 'Nessuna immagine';
+        itemEditQuill.root.innerHTML = item.description || '';
+        document.getElementById('editItemModal').style.display = 'block';
+    }
+
+    document.getElementById('editItemForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const id = document.getElementById('edit_item_id').value;
+        const formData = new FormData(this);
+        formData.append('description', itemEditQuill.root.innerHTML);
+
+        fetch(`/api/missions/items/${id}/update`, {
+            method: 'POST',
+            body: formData
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Errore aggiornamento: ' + (data.error || 'Errore sconosciuto'));
+                }
+            });
+    });
+
     function addItem(type) {
         if (type === 'places') {
             // Should not be called for places in this version, handled by modal
@@ -841,8 +947,9 @@
     }
 
     // --- Modal & Places Logic ---
-    function openAddPlaceModal() {
+    function openAddPlaceModal(parentId = null) {
         document.getElementById('addPlaceModal').style.display = 'block';
+        document.getElementById('add_place_parent_id').value = parentId || '';
     }
     function closeModal(id) {
         document.getElementById(id).style.display = 'none';
@@ -875,9 +982,16 @@
     // Use tojson to safely serialize the list of places from Python to JavaScript
     const rawPlaces = {{ lists.places | tojson | safe }};
     const placesData = {};
-    rawPlaces.forEach(place => {
-        placesData[place.id] = place;
-    });
+
+    function flattenPlaces(list) {
+        list.forEach(place => {
+            placesData[place.id] = place;
+            if (place.children && place.children.length > 0) {
+                flattenPlaces(place.children);
+            }
+        });
+    }
+    flattenPlaces(rawPlaces);
 
     function openPlaceDetailModal(id) {
         const place = placesData[id];
@@ -978,11 +1092,31 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    alert('NPC aggiunto al combattimento!');
+                    alert('NPC caricato in combattimento!');
                 } else {
-                    alert('Errore aggiunta NPC: ' + (data.error || 'Errore sconosciuto'));
+                    alert('Errore caricamento NPC: ' + (data.error || 'Err'));
                 }
             });
+    }
+
+    function showItemOnMap(imageFilename) {
+        fetch('/api/combat/popup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image_filename: imageFilename })
+        }).then(r => r.json()).then(d => {
+            if (d.success) alert("Immagine mostrata ai giocatori!");
+        });
+    }
+
+    function hideItemFromMap() {
+        fetch('/api/combat/popup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image_filename: null })
+        }).then(r => r.json()).then(d => {
+            if (d.success) alert("Immagine nascosta!");
+        });
     }
 
     // NPC Data & Editor
@@ -1194,19 +1328,6 @@
             addItem('characters');
         }
     }
-
-    // Enter key shortcuts
-    ['new-character', 'new-item'].forEach(id => {
-        document.getElementById(id).addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                if (id === 'new-character') {
-                    addMissionCharacter();
-                } else {
-                    addItem('items');
-                }
-            }
-        });
-    });
 
 </script>
 {% endblock %}
