@@ -375,15 +375,23 @@
             <ul class="list-items" id="items-list">
                 {% for item in lists.mission_items %}
                 <li class="list-item" data-id="{{ item.id }}">
-                    <span>{{ item.name }}</span>
-                    <button class="delete-btn" onclick="deleteItem('items', '{{ item.id }}', this)">×</button>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        {% if item.image_filename %}
+                        <img src="{{ url_for('static', filename='uploads/badges/' + item.image_filename) }}"
+                            style="width:30px; height:30px; object-fit:cover; border-radius:4px; border:1px solid #555;">
+                        {% endif %}
+                        <span>{{ item.name }}</span>
+                    </div>
+                    <div>
+                        <button class="combat-btn" onclick="openItemDetailModal('{{ item.id }}')"
+                            style="font-size:0.8em; padding:2px 8px; margin-right:5px;">👁️</button>
+                        <button class="delete-btn" onclick="deleteItem('items', '{{ item.id }}', this)">×</button>
+                    </div>
                 </li>
                 {% endfor %}
             </ul>
-            <div class="add-form">
-                <input type="text" class="add-input" id="new-item" placeholder="Nuovo oggetto...">
-                <button class="add-btn" onclick="addItem('items')">+</button>
-            </div>
+            <button onclick="openAddItemModal()" class="add-btn" style="width:100%; margin-top:10px;">+ Aggiungi
+                Oggetto</button>
         </div>
     </div>
 </div>
@@ -581,13 +589,62 @@
                 <label>Equipaggiamento</label>
                 <textarea id="equipment" rows="2" style="width: 100%; padding: 8px;"></textarea>
             </div>
-
             <div style="text-align:right; margin-top:20px;">
                 <button type="button" class="btn" onclick="closeNpcModal()" style="background:#555">Annulla</button>
                 <button type="submit" class="btn btn-primary">Salva Modifiche</button>
             </div>
         </form>
     </div>
+</div>
+
+<!-- Add Item Modal -->
+<div id="addItemModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Aggiungi Oggetto</h2>
+            <span class="close" onclick="closeModal('addItemModal')">&times;</span>
+        </div>
+        <form id="addItemForm">
+            <div class="form-group">
+                <label>Nome Oggetto</label>
+                <input type="text" name="name" required>
+            </div>
+            <div class="form-group">
+                <label>Immagine (opzionale)</label>
+                <input type="file" name="image" accept="image/*">
+            </div>
+            <div class="form-group">
+                <label>Descrizione</label>
+                <div id="add-item-editor" style="height:200px; background:#222; color:#eee;"></div>
+            </div>
+            <button type="submit" class="add-btn">Salva Oggetto</button>
+        </form>
+    </div>
+</div>
+
+<!-- Item Detail Modal -->
+<div id="itemDetailModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="itemDetailTitle">Dettagli Oggetto</h2>
+            <span class="close" onclick="closeModal('itemDetailModal')">&times;</span>
+        </div>
+        <div style="text-align:center; margin-bottom:15px;" id="itemDetailImageContainer">
+            <img id="itemDetailImage" src=""
+                style="max-width:100%; max-height:300px; border-radius:8px; border:1px solid #444; display:none;">
+        </div>
+        <div class="form-group">
+            <div id="item-detail-editor" style="height:300px; background:#222; color:#eee;"></div>
+        </div>
+    </div>
+</div>
+
+<div style="text-align:right; margin-top:20px;">
+    <button type="button" class="btn" onclick="closeNpcModal()" style="background:#555">Annulla</button>
+    <button type="submit" class="btn btn-primary">Salva Modifiche</button>
+</div>
+</form>
+</div>
 </div>
 
 {% endblock %}
@@ -614,15 +671,27 @@
     // Place Detail Editor
     var detailQuill = new Quill('#place-detail-editor', {
         theme: 'snow',
+        readOnly: true,
+        modules: { toolbar: false }
+    });
+
+    // Add Item Editor
+    var itemAddQuill = new Quill('#add-item-editor', {
+        theme: 'snow',
         modules: {
             toolbar: [
                 ['bold', 'italic', 'underline'],
-                [{ 'header': [2, 3, false] }],
                 [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                [{ 'color': [] }],
                 ['link']
             ]
         }
+    });
+
+    // Item Detail Viewer/Editor (Read Only initially)
+    var itemDetailQuill = new Quill('#item-detail-editor', {
+        theme: 'snow',
+        readOnly: true,
+        modules: { toolbar: false }
     });
 
     // --- Mission Attributes Saving ---
@@ -662,6 +731,54 @@
     });
 
     // --- List Management ---
+
+    // Items Logic
+    function openAddItemModal() {
+        document.getElementById('addItemModal').style.display = 'block';
+    }
+
+    document.getElementById('addItemForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        // Append rich text description
+        formData.append('description', itemAddQuill.root.innerHTML);
+
+        fetch(`/api/missions/${missionId}/items/upload`, {
+            method: 'POST',
+            body: formData
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Errore: ' + data.error);
+                }
+            });
+    });
+
+    const rawItems = {{ lists.mission_items | tojson | safe }};
+    const itemsData = {};
+    rawItems.forEach(item => { itemsData[item.id] = item; });
+
+    function openItemDetailModal(id) {
+        const item = itemsData[id];
+        if (!item) return;
+
+        document.getElementById('itemDetailTitle').innerText = item.name;
+
+        const img = document.getElementById('itemDetailImage');
+        if (item.image_filename) {
+            img.src = "{{ url_for('static', filename='uploads/badges/') }}" + item.image_filename;
+            img.style.display = 'inline-block';
+        } else {
+            img.style.display = 'none';
+        }
+
+        itemDetailQuill.root.innerHTML = item.description || 'Nessuna descrizione.';
+        document.getElementById('itemDetailModal').style.display = 'block';
+    }
+
     function addItem(type) {
         if (type === 'places') {
             // Should not be called for places in this version, handled by modal

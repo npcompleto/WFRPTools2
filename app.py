@@ -8,6 +8,8 @@ import math
 import shutil
 import google.generativeai as genai
 from functools import wraps
+from werkzeug.utils import secure_filename
+from datetime import datetime
 
 # Configure Gemini
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
@@ -19,6 +21,10 @@ app.secret_key = os.environ.get('SECRET_KEY', 'dev_key_very_secret_wfrp') # Chan
 APP_PASSWORD = os.environ.get('APP_PASSWORD', 'dariogm2025') # Default password
 
 DATABASE = 'wfrp.db'
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
+BADGES_UPLOAD_FOLDER = os.path.join(UPLOAD_FOLDER, 'badges')
+if not os.path.exists(BADGES_UPLOAD_FOLDER):
+    os.makedirs(BADGES_UPLOAD_FOLDER)
 
 @app.before_request
 def require_login():
@@ -2289,6 +2295,51 @@ def add_mission_place_with_image(id):
         db.commit()
         
         return {'success': True, 'id': c.lastrowid, 'name': name, 'image_filename': filename}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}, 500
+
+def migrate_mission_items_images():
+    conn = sqlite3.connect(DATABASE)
+    c = conn.cursor()
+    try:
+        c.execute('SELECT image_filename FROM mission_items LIMIT 1')
+    except sqlite3.OperationalError:
+        print("Migrating mission_items table: adding image_filename")
+        c.execute('ALTER TABLE mission_items ADD COLUMN image_filename TEXT')
+    conn.commit()
+    conn.close()
+
+migrate_mission_items_images()
+
+@app.route('/api/missions/<int:id>/items/upload', methods=['POST'])
+def add_mission_item_with_image(id):
+    name = request.form.get('name')
+    description = request.form.get('description', '')
+    
+    if not name:
+        return {'success': False, 'error': 'Name is required'}, 400
+        
+    image_filename = None
+    if 'image' in request.files:
+        file = request.files['image']
+        if file.filename != '':
+            try:
+                filename = secure_filename(f"mission_item_{id}_{int(datetime.now().timestamp())}_{file.filename}")
+                # Save to badges folder which is suitable for items
+                image_filename = filename
+                file.save(os.path.join(BADGES_UPLOAD_FOLDER, filename))
+            except Exception as e:
+                return {'success': False, 'error': str(e)}, 500
+
+    try:
+        db = get_db()
+        c = db.execute('''
+            INSERT INTO mission_items (mission_id, name, description, image_filename)
+            VALUES (?, ?, ?, ?)
+        ''', (id, name, description, image_filename))
+        db.commit()
+        
+        return {'success': True, 'id': c.lastrowid, 'name': name, 'image_filename': image_filename}
     except Exception as e:
         return {'success': False, 'error': str(e)}, 500
 

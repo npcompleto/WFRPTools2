@@ -1563,6 +1563,10 @@ function openModalForModified(baseNpc) {
     renderSkillTags();
     renderTalentTags();
 
+
+
+    document.getElementById('mutationControls').style.display = 'block';
+
     modal.style.display = 'block';
 }
 
@@ -1611,6 +1615,10 @@ function editModifiedNPC(id) {
         selectedTalents = npc.talents ? npc.talents.split(',').map(t => t.trim()).filter(t => t) : [];
         renderSkillTags();
         renderTalentTags();
+
+
+
+        document.getElementById('mutationControls').style.display = 'block';
 
         modal.style.display = 'block';
     }
