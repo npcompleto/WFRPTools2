@@ -15,6 +15,7 @@
         <button class="tab-button" onclick="openTab('mutations')">Mutazioni del Caos</button>
         <button class="tab-button" onclick="openTab('careers')">Carriere</button>
         <button class="tab-button" onclick="openTab('inventory')">Inventario</button>
+        <button class="tab-button" onclick="openTab('sounds')">Suoni</button>
     </div>
 
 
@@ -69,7 +70,7 @@
         <table class="data-table">
             <thead>
                 <tr>
-                    <th class="style-b3a15a" >d100</th>
+                    <th class="style-b3a15a">d100</th>
                     <th>Mutazione</th>
                     <th>Effetto</th>
                     <th>Azioni</th>
@@ -111,15 +112,36 @@
                 <tr>
                     <th>Inventario</th>
                     <th>Descrizione</th>
-                    <th class="style-b3a15a" >Ingombro</th>
-                    <th class="style-d44c18" >Disponibilità</th>
-                    <th class="style-b3a15a" >Costo</th>
-                    <th class="style-d9900c" >Tipo</th>
-                    <th class="style-d44c18" >Azioni</th>
+                    <th class="style-b3a15a">Ingombro</th>
+                    <th class="style-d44c18">Disponibilità</th>
+                    <th class="style-b3a15a">Costo</th>
+                    <th class="style-d9900c">Tipo</th>
+                    <th class="style-d44c18">Azioni</th>
                 </tr>
             </thead>
             <tbody id="inventoryList">
                 <!-- Inventory items will be loaded here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- SOUNDS TAB -->
+    <div id="sounds" class="tab-content">
+        <div class="section-header">
+            <h2 class="section-title">Libreria Suoni</h2>
+            <button class="btn btn-primary" onclick="openSoundModal()">+ Nuovo Suono</button>
+        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Categoria</th>
+                    <th>File</th>
+                    <th>Azioni</th>
+                </tr>
+            </thead>
+            <tbody id="soundsList">
+                <!-- Sounds will be loaded here -->
             </tbody>
         </table>
     </div>
@@ -145,7 +167,7 @@
                 <textarea id="careerDescription" rows="2"></textarea>
             </div>
 
-            <div class="display-092071" >
+            <div class="display-092071">
                 <div class="stat-box"><label>AC</label><input type="number" id="c_ws" class="stat-input"></div>
                 <div class="stat-box"><label>AB</label><input type="number" id="c_bs" class="stat-input"></div>
                 <div class="stat-box"><label>F</label><input type="number" id="c_s" class="stat-input"></div>
@@ -155,7 +177,7 @@
                 <div class="stat-box"><label>Vol</label><input type="number" id="c_wp" class="stat-input"></div>
                 <div class="stat-box"><label>Sim</label><input type="number" id="c_fel" class="stat-input"></div>
             </div>
-            <div class="display-4209a0" >
+            <div class="display-4209a0">
                 <div class="stat-box"><label>A</label><input type="number" id="c_a" class="stat-input"></div>
                 <div class="stat-box"><label>Fe</label><input type="number" id="c_w" class="stat-input"></div>
                 <div class="stat-box"><label>M</label><input type="number" id="c_m" class="stat-input"></div>
@@ -167,7 +189,7 @@
             <div class="form-group">
                 <label>Abilità</label>
                 <div id="careerSkillsContainer" class="tag-container"></div>
-                <div class="position-46345c" >
+                <div class="position-46345c">
                     <input type="text" id="careerSkillInput" placeholder="Aggiungi abilità..." autocomplete="off">
                     <ul id="careerSkillSuggestions" class="suggestions-list"></ul>
                 </div>
@@ -176,7 +198,7 @@
             <div class="form-group">
                 <label>Talenti</label>
                 <div id="careerTalentsContainer" class="tag-container"></div>
-                <div class="position-46345c" >
+                <div class="position-46345c">
                     <input type="text" id="careerTalentInput" placeholder="Aggiungi talento..." autocomplete="off">
                     <ul id="careerTalentSuggestions" class="suggestions-list"></ul>
                 </div>
@@ -192,7 +214,7 @@
                 <textarea id="careerExits" rows="2"></textarea>
             </div>
 
-            <div class="textalign-0ac85b" >
+            <div class="textalign-0ac85b">
                 <button type="button" class="btn background-color-cb1af7" onclick="closeCareerModal()">Annulla</button>
                 <button type="submit" class="btn btn-primary">Salva</button>
             </div>
@@ -226,7 +248,7 @@
                 <label>Descrizione</label>
                 <textarea id="skillDescription" rows="3"></textarea>
             </div>
-            <div class="textalign-0ac85b" >
+            <div class="textalign-0ac85b">
                 <button type="button" class="btn background-color-cb1af7" onclick="closeSkillModal()">Annulla</button>
                 <button type="submit" class="btn btn-primary">Salva</button>
             </div>
@@ -249,7 +271,7 @@
                 <label>Descrizione</label>
                 <textarea id="talentDescription" rows="3"></textarea>
             </div>
-            <div class="textalign-0ac85b" >
+            <div class="textalign-0ac85b">
                 <button type="button" class="btn background-color-cb1af7" onclick="closeTalentModal()">Annulla</button>
                 <button type="submit" class="btn btn-primary">Salva</button>
             </div>
@@ -280,8 +302,9 @@
                 <label>Effetto</label>
                 <textarea id="mutEffect" rows="3" required></textarea>
             </div>
-            <div class="textalign-0ac85b" >
-                <button type="button" class="btn background-color-cb1af7" onclick="closeMutationModal()">Annulla</button>
+            <div class="textalign-0ac85b">
+                <button type="button" class="btn background-color-cb1af7"
+                    onclick="closeMutationModal()">Annulla</button>
                 <button type="submit" class="btn btn-primary">Salva</button>
             </div>
         </form>
@@ -322,14 +345,48 @@
             <div class="form-group">
                 <label>Tipi di Negozio</label>
                 <div id="inventoryShopTypesContainer" class="tag-container"></div>
-                <div class="position-46345c" >
-                    <input type="text" id="inventoryShopTypeInput" placeholder="Aggiungi tipo di negozio..." autocomplete="off">
+                <div class="position-46345c">
+                    <input type="text" id="inventoryShopTypeInput" placeholder="Aggiungi tipo di negozio..."
+                        autocomplete="off">
                     <ul id="inventoryShopTypeSuggestions" class="suggestions-list"></ul>
                 </div>
             </div>
-            <div class="textalign-0ac85b" >
-                <button type="button" class="btn background-color-cb1af7" onclick="closeInventoryModal()">Annulla</button>
+            <div class="textalign-0ac85b">
+                <button type="button" class="btn background-color-cb1af7"
+                    onclick="closeInventoryModal()">Annulla</button>
                 <button type="submit" class="btn btn-primary">Salva</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Sound Modal -->
+<div id="soundModal" class="modal">
+    <div class="modal-content">
+        <span class="close style-28b21c" onclick="closeSoundModal()">&times;</span>
+        <h2 id="soundModalTitle">Nuovo Suono</h2>
+        <form id="soundForm" onsubmit="saveSound(event)">
+            <div class="form-group">
+                <label>Nome Suono</label>
+                <input type="text" id="soundName" required>
+            </div>
+            <div class="form-group">
+                <label>Categoria</label>
+                <input type="text" id="soundCategory" list="soundCategories">
+                <datalist id="soundCategories">
+                    <option value="Effetti">
+                    <option value="Ambiente">
+                    <option value="Musica">
+                    <option value="Voci">
+                </datalist>
+            </div>
+            <div class="form-group">
+                <label>File Audio (.wav, .mp3, .mid)</label>
+                <input type="file" id="soundFile" accept=".wav,.mp3,.mid" required>
+            </div>
+            <div class="textalign-0ac85b">
+                <button type="button" class="btn background-color-cb1af7" onclick="closeSoundModal()">Annulla</button>
+                <button type="submit" class="btn btn-primary">Carica</button>
             </div>
         </form>
     </div>

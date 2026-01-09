@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadTalents();
     loadMutations();
     loadCareers();
+    loadSounds();
 });
 
 function openTab(tabName) {
@@ -759,5 +760,95 @@ function deleteInventoryItem(id) {
                     loadInventory();
                 }
             });
+    }
+}
+
+// --- SOUNDS ---
+let soundsData = [];
+
+async function loadSounds() {
+    try {
+        const response = await fetch('/api/sounds');
+        const data = await response.json();
+        if (data.success) {
+            soundsData = data.sounds;
+            renderSounds(soundsData);
+        }
+    } catch (e) {
+        console.error('Error loading sounds:', e);
+    }
+}
+
+function renderSounds(sounds) {
+    const tbody = document.getElementById('soundsList');
+    tbody.innerHTML = '';
+    sounds.forEach(sound => {
+        const tr = document.createElement('tr');
+        const fileUrl = `/static/uploads/sounds/${sound.filename}`;
+
+        tr.innerHTML = `
+                <td>${sound.name}</td>
+                <td><span class="tag" style="background:#555;">${sound.category || 'Generico'}</span></td>
+                <td>
+                    <audio controls style="height:30px; width:200px;">
+                        <source src="${fileUrl}">
+                        Il tuo browser non supporta l'audio.
+                    </audio>
+                </td>
+                <td>
+                    <button class="btn btn-danger" onclick="deleteSound(${sound.id})">Elimina</button>
+                </td>
+            `;
+        tbody.appendChild(tr);
+    });
+}
+
+function openSoundModal() {
+    document.getElementById('soundForm').reset();
+    document.getElementById('soundModal').style.display = 'block';
+}
+
+function closeSoundModal() {
+    document.getElementById('soundModal').style.display = 'none';
+}
+
+async function saveSound(event) {
+    event.preventDefault();
+    const formData = new FormData(document.getElementById('soundForm'));
+    const fileInput = document.getElementById('soundFile');
+
+    // Add file and other fields
+    formData.append('name', document.getElementById('soundName').value);
+    formData.append('category', document.getElementById('soundCategory').value);
+    if (fileInput.files.length > 0) {
+        formData.append('file', fileInput.files[0]);
+    }
+
+    try {
+        const response = await fetch('/api/sounds', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (data.success) {
+            closeSoundModal();
+            loadSounds();
+        } else {
+            alert('Errore caricamento: ' + data.error);
+        }
+    } catch (e) {
+        console.error('Error saving sound:', e);
+    }
+}
+
+async function deleteSound(id) {
+    if (!confirm('Sei sicuro di voler eliminare questo suono?')) return;
+    try {
+        const response = await fetch(`/api/sounds/${id}`, { method: 'DELETE' });
+        if ((await response.json()).success) {
+            loadSounds();
+        }
+    } catch (e) {
+        console.error('Error deleting sound:', e);
     }
 }

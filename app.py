@@ -437,7 +437,30 @@ def migrate_missions_tables():
     conn.close()
 
 # Run migration
+# Configure Upload Folder for Sounds
+SOUNDS_UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'sounds')
+if not os.path.exists(SOUNDS_UPLOAD_FOLDER):
+    os.makedirs(SOUNDS_UPLOAD_FOLDER)
+
+# Run migration
 migrate_missions_tables()
+
+def create_sounds_table():
+    conn = sqlite3.connect(DATABASE)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS sounds (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            category TEXT,
+            filename TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+create_sounds_table()
 
 from werkzeug.utils import secure_filename
 
@@ -593,10 +616,67 @@ def migrate_diary_csv_to_db():
 # Run migration on startup
 migrate_diary_csv_to_db()
 
+@app.route('/api/sounds', methods=['GET'])
+def get_sounds():
+    db = get_db()
+    c = db.execute('SELECT * FROM sounds ORDER BY category, name')
+    sounds = [dict(row) for row in c.fetchall()]
+    return {'success': True, 'sounds': sounds}
+
+@app.route('/api/sounds', methods=['POST'])
+def upload_sound():
+    if 'file' not in request.files:
+         return {'success': False, 'error': 'No file part'}, 400
+         
+    file = request.files['file']
+    name = request.form.get('name')
+    category = request.form.get('category', 'Generico')
+    
+    if not name or file.filename == '':
+         return {'success': False, 'error': 'Name and file required'}, 400
+         
+    allowed_extensions = {'.wav', '.mp3', '.mid'}
+    ext = os.path.splitext(file.filename)[1].lower()
+    
+    if ext not in allowed_extensions:
+         return {'success': False, 'error': 'Invalid file type. Allowed: wav, mp3, mid'}, 400
+         
+    try:
+        filename = secure_filename(f"sound_{int(datetime.now().timestamp())}_{file.filename}")
+        file.save(os.path.join(SOUNDS_UPLOAD_FOLDER, filename))
+        
+        db = get_db()
+        c = db.execute('INSERT INTO sounds (name, category, filename) VALUES (?, ?, ?)', (name, category, filename))
+        db.commit()
+        
+        return {'success': True, 'id': c.lastrowid, 'filename': filename}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}, 500
+
+@app.route('/api/sounds/<int:id>', methods=['DELETE'])
+def delete_sound(id):
+    db = get_db()
+    c = db.execute('SELECT filename FROM sounds WHERE id = ?', (id,))
+    row = c.fetchone()
+    
+    if row:
+        path = os.path.join(SOUNDS_UPLOAD_FOLDER, row['filename'])
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+            except:
+                pass
+        
+        db.execute('DELETE FROM sounds WHERE id = ?', (id,))
+        db.commit()
+        return {'success': True}
+    return {'success': False, 'error': 'Sound not found'}, 404
+
 def migrate_inventory_csv_to_db():
     """Migrates inventory data from negozio.csv to the inventory table if the table is empty."""
     conn = sqlite3.connect(DATABASE)
     c = conn.cursor()
+
     
     # Check if inventory table is empty
     c.execute('SELECT COUNT(*) FROM inventory')

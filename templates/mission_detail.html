@@ -324,9 +324,15 @@
                     %}style="border-left: 3px solid #d4af37;" {% endif %}>
                     <div class="place-content">
                         <strong>{{ place.name }}</strong>
+                        {% if place.image_filename %}
+                        <div style="margin: 5px 0;">
+                            <img src="{{ url_for('static', filename='uploads/tactical_maps/' + place.image_filename) }}"
+                                style="width: 100%; height: auto; border-radius: 4px; border: 1px solid #444; display: block; cursor: pointer;"
+                                onclick="openMapModal(this.src)">
+                        </div>
+                        {% endif %}
                         <div style="font-size:0.8em; color:#999; display:flex; gap:10px;">
                             <span>{{ place.rows }}x{{ place.cols }}</span>
-                            {% if place.image_filename %}<span>🎨 Immagine</span>{% endif %}
                         </div>
                     </div>
                     <div class="place-actions">
@@ -685,6 +691,16 @@
     </div>
 </div>
 
+</div>
+
+<!-- Map View Modal -->
+<div id="mapViewModal" class="modal" onclick="closeModal('mapViewModal')">
+    <div style="display:flex; justify-content:center; align-items:center; height:100%;">
+        <img id="mapViewImage" src=""
+            style="max-width:90%; max-height:90%; border: 2px solid #d4af37; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.8);">
+    </div>
+</div>
+
 <!-- Item Detail Modal -->
 <div id="itemDetailModal" class="modal">
     <div class="modal-content">
@@ -852,6 +868,11 @@
 
         itemDetailQuill.root.innerHTML = item.description || 'Nessuna descrizione.';
         document.getElementById('itemDetailModal').style.display = 'block';
+    }
+
+    function openMapModal(src) {
+        document.getElementById('mapViewImage').src = src;
+        document.getElementById('mapViewModal').style.display = 'block';
     }
 
     function openEditItemModal(id) {
