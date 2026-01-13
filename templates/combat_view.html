@@ -67,6 +67,11 @@
 
     <div id="waitMessage" style="color: #666; font-size: 1.5rem;">In attesa della mappa...</div>
 
+    <button id="enableAudioResults" onclick="initAudio()"
+        style="position:fixed; top:20px; right:20px; z-index:10000; padding:10px 20px; background:#d4af37; border:none; border-radius:4px; cursor:pointer;">
+        🔊 Abilita Audio
+    </button>
+
     <!-- Hidden inputs for grid update compatibility -->
     <input type="hidden" id="mapRows" value="10">
     <input type="hidden" id="mapCols" value="10">

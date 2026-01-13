@@ -78,3 +78,6 @@ ENV/
 static/maps/
 
 .vscode/
+
+# Sounds uploads
+static/uploads/sounds/

@@ -462,6 +462,23 @@ def create_sounds_table():
 
 create_sounds_table()
 
+def create_mission_sounds_table():
+    conn = sqlite3.connect(DATABASE)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS mission_sounds (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            mission_id INTEGER NOT NULL,
+            sound_id INTEGER NOT NULL,
+            FOREIGN KEY (mission_id) REFERENCES missions (id) ON DELETE CASCADE,
+            FOREIGN KEY (sound_id) REFERENCES sounds (id) ON DELETE CASCADE
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+create_mission_sounds_table()
+
 from werkzeug.utils import secure_filename
 
 @app.route('/api/events/upload_image', methods=['POST'])
@@ -2125,7 +2142,9 @@ COMBAT_STATE = {
     'cols': 10,
     'tokens': [],
     'arrows': [],
-    'popup_image': None  # New field for modal logic
+    'popup_image': None,  # New field for modal logic
+    'audio_tracks': [],
+    'global_volume': 0.5
 }
 
 @app.route('/api/combat/state', methods=['GET'])
@@ -2299,6 +2318,16 @@ def mission_detail(id):
     # Items
     c = db.execute('SELECT * FROM mission_items WHERE mission_id = ? ORDER BY id', (id,))
     lists['mission_items'] = [dict(row) for row in c.fetchall()]
+
+    # Sounds
+    c = db.execute('''
+        SELECT s.*, ms.id as link_id 
+        FROM sounds s
+        JOIN mission_sounds ms ON s.id = ms.sound_id
+        WHERE ms.mission_id = ?
+        ORDER BY s.category, s.name
+    ''', (id,))
+    lists['sounds'] = [dict(row) for row in c.fetchall()]
         
     return render_template('mission_detail.html', mission=mission, lists=lists)
 
@@ -2694,6 +2723,39 @@ def update_mission_item(item_id):
         return {'success': True}
     except Exception as e:
         return {'success': False, 'error': str(e)}, 500
+
+@app.route('/api/combat/audio', methods=['POST'])
+def update_combat_audio():
+    global COMBAT_STATE
+    data = request.json
+    # Expects {'tracks': [...], 'volume': 0.5}
+    COMBAT_STATE['audio_tracks'] = data.get('tracks', [])
+    if 'volume' in data:
+        COMBAT_STATE['global_volume'] = float(data['volume'])
+    return {'success': True}
+
+@app.route('/api/missions/<int:id>/sounds/add', methods=['POST'])
+def add_mission_sound(id):
+    sound_id = request.json.get('sound_id')
+    if not sound_id:
+        return {'success': False, 'error': 'Sound ID required'}, 400
+        
+    db = get_db()
+    # Check if already exists
+    c = db.execute('SELECT id FROM mission_sounds WHERE mission_id = ? AND sound_id = ?', (id, sound_id))
+    if c.fetchone():
+        return {'success': False, 'error': 'Sound already added to mission'}, 400
+        
+    db.execute('INSERT INTO mission_sounds (mission_id, sound_id) VALUES (?, ?)', (id, sound_id))
+    db.commit()
+    return {'success': True}
+
+@app.route('/api/missions/sounds/<int:link_id>/delete', methods=['POST'])
+def remove_mission_sound(link_id):
+    db = get_db()
+    db.execute('DELETE FROM mission_sounds WHERE id = ?', (link_id,))
+    db.commit()
+    return {'success': True}
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

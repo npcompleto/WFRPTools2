@@ -397,6 +397,29 @@
             </div>
         </div>
 
+        <!-- Suoni -->
+        <div class="list-card">
+            <h3>Suoni</h3>
+            <ul class="list-items" id="sounds-list">
+                {% for sound in lists.sounds %}
+                <li class="list-item" data-id="{{ sound.link_id }}">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span style="color:#aaa; font-size:0.8em;">[{{ sound.category }}]</span>
+                        <span>{{ sound.name }}</span>
+                    </div>
+                    <div>
+                        <button class="combat-btn sound-play-btn"
+                            onclick="toggleMissionSound('{{ sound.filename }}', this)"
+                            style="font-size:0.8em; padding:2px 8px; margin-right:5px;">▶</button>
+                        <button class="delete-btn" onclick="removeMissionSound('{{ sound.link_id }}', this)">×</button>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            <button onclick="openAddSoundModal()" class="add-btn" style="width:100%; margin-top:10px;">+ Aggiungi
+                Suono</button>
+        </div>
+
         <!-- Oggetti -->
         <div class="list-card">
             <h3>Oggetti</h3>
@@ -714,6 +737,25 @@
         </div>
         <div class="form-group">
             <div id="item-detail-editor" style="height:300px; background:#222; color:#eee;"></div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- Add Sound Modal -->
+<div id="addSoundModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Aggiungi Suono alla Missione</h2>
+            <span class="close" onclick="closeModal('addSoundModal')">&times;</span>
+        </div>
+        <div class="form-group">
+            <input type="text" id="soundSearch" placeholder="Cerca suono..." oninput="filterSounds()"
+                style="width:100%; padding:8px; margin-bottom:10px;">
+            <div id="availableSoundsList"
+                style="max-height:300px; overflow-y:auto; border:1px solid #444; padding:5px;">
+                <!-- Populated via JS -->
+            </div>
         </div>
     </div>
 </div>
@@ -1349,6 +1391,127 @@
             addItem('characters');
         }
     }
+
+    function removeMissionSound(linkId, btn) {
+        if (!confirm('Rimuovere questo suono dalla missione?')) return;
+
+        fetch(`/api/missions/sounds/${linkId}/delete`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    btn.closest('.list-item').remove();
+                } else {
+                    alert('Errore durante la rimozione');
+                }
+            });
+    }
+
+    let allAvailableSounds = [];
+
+    function openAddSoundModal() {
+        document.getElementById('addSoundModal').style.display = 'block';
+        fetch('/api/sounds')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    allAvailableSounds = data.sounds;
+                    renderAvailableSounds(allAvailableSounds);
+                }
+            });
+    }
+
+    function renderAvailableSounds(sounds) {
+        const container = document.getElementById('availableSoundsList');
+        container.innerHTML = '';
+
+        sounds.forEach(sound => {
+            const div = document.createElement('div');
+            div.style.padding = '8px';
+            div.style.borderBottom = '1px solid #333';
+            div.style.display = 'flex';
+            div.style.justifyContent = 'space-between';
+            div.style.alignItems = 'center';
+            div.style.cursor = 'pointer';
+            div.onmouseover = () => div.style.background = '#333';
+            div.onmouseout = () => div.style.background = 'transparent';
+
+            div.innerHTML = `
+                <div>
+                    <span style="color:#aaa; font-size:0.8em;">[${sound.category}]</span>
+                    <span>${sound.name}</span>
+                </div>
+                <button class="add-btn" style="padding:2px 8px; font-size:0.8em;" onclick="addSoundToMission(${sound.id})">+</button>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function filterSounds() {
+        const query = document.getElementById('soundSearch').value.toLowerCase();
+        const filtered = allAvailableSounds.filter(s => s.name.toLowerCase().includes(query) || s.category.toLowerCase().includes(query));
+        renderAvailableSounds(filtered);
+    }
+
+    function addSoundToMission(soundId) {
+        fetch(`/api/missions/${missionId}/sounds/add`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sound_id: soundId })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload(); // Simple reload to show new list
+                } else {
+                    alert(data.error || 'Errore durante l\'aggiunta');
+                }
+            });
+    }
+
+    function toggleMissionSound(filename, btn) {
+        // Use global activeSounds from sound_widget.js if available
+        if (typeof activeSounds !== 'undefined') {
+            if (activeSounds.has(filename)) {
+                activeSounds.delete(filename);
+                btn.innerText = '▶';
+                btn.style.color = '#eee';
+                btn.style.borderColor = '#555';
+            } else {
+                activeSounds.add(filename);
+                btn.innerText = '⏹';
+                btn.style.color = '#2ecc71';
+                btn.style.borderColor = '#2ecc71';
+            }
+            // Sync
+            if (typeof syncAudioState === 'function') {
+                syncAudioState();
+            }
+        } else {
+            console.error('Sound Widget not loaded');
+        }
+    }
+
+    // Check active sounds on load to update buttons
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            if (typeof activeSounds !== 'undefined') {
+                const buttons = document.querySelectorAll('.sound-play-btn');
+                buttons.forEach(btn => {
+                    // Extract filename from onclick attribute
+                    const onclickStr = btn.getAttribute('onclick');
+                    const match = onclickStr.match(/'([^']+)'/);
+                    if (match) {
+                        const filename = match[1];
+                        if (activeSounds.has(filename)) {
+                            btn.innerText = '⏹';
+                            btn.style.color = '#2ecc71';
+                            btn.style.borderColor = '#2ecc71';
+                        }
+                    }
+                });
+            }
+        }, 500); // Small delay to allow sound widget to init
+    });
 
 </script>
 {% endblock %}

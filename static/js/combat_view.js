@@ -79,7 +79,51 @@ function updateView(state) {
         popupImg.src = '';
     }
 
+    // Audio Sync
+    syncAudio(state.audio_tracks || [], state.global_volume !== undefined ? state.global_volume : 0.5);
+
     currentState = state;
+}
+
+let activeAudioPlayers = {}; // Map filename -> Audio object
+let audioEnabled = false;
+
+function initAudio() {
+    audioEnabled = true;
+    document.getElementById('enableAudioResults').style.display = 'none';
+    // Trigger a silent play to unlock audio context if needed, or just set flag
+    // For HTML5 Audio, simple interaction is usually enough for future plays
+    // Retry syncing immediately
+    if (currentState && currentState.audio_tracks) {
+        syncAudio(currentState.audio_tracks);
+    }
+}
+
+function syncAudio(serverTracks, globalVolume = 0.5) {
+    if (!audioEnabled) return;
+
+    // 1. Play new tracks
+    serverTracks.forEach(filename => {
+        if (!activeAudioPlayers[filename]) {
+            const audio = new Audio(`/static/uploads/sounds/${filename}`);
+            audio.loop = true;
+            audio.volume = globalVolume;
+            audio.play().catch(e => console.error("Autoplay blocked:", e));
+            activeAudioPlayers[filename] = audio;
+        } else {
+            // Update volume for existing tracks
+            activeAudioPlayers[filename].volume = globalVolume;
+        }
+    });
+
+    // 2. Stop removed tracks
+    for (const [filename, audio] of Object.entries(activeAudioPlayers)) {
+        if (!serverTracks.includes(filename)) {
+            audio.pause();
+            audio.currentTime = 0;
+            delete activeAudioPlayers[filename];
+        }
+    }
 }
 
 function renderTokens(tokens, rows, cols, activeId) {
