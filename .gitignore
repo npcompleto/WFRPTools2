@@ -75,7 +75,7 @@ ENV/
 .temp/
 
 # Maps
-static/maps/
+static/maps/*/original.img
 
 .vscode/
 
