@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+
+{% block title %}Creazione Personaggio - RPG Tools{% endblock %}
+
+{% block extra_css %}
+<style>
+    .wizard-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+    }
+
+    .wizard-step {
+        display: none;
+    }
+
+    .wizard-step.active {
+        display: block;
+    }
+
+    .step-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .step-indicator {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 2rem;
+        position: relative;
+    }
+
+    .step-indicator::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background-color: var(--border-color);
+        z-index: 0;
+    }
+
+    .step-dot {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background-color: var(--card-bg);
+        border: 2px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        z-index: 1;
+        position: relative;
+    }
+
+    .step-dot.active {
+        background-color: var(--accent-color);
+        border-color: var(--accent-color);
+        color: white;
+    }
+
+    .step-dot.completed {
+        background-color: var(--success-color);
+        border-color: var(--success-color);
+        color: white;
+    }
+
+    .race-options,
+    .career-options {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .option-card {
+        padding: 15px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.2s;
+    }
+
+    .option-card:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-color: var(--accent-color);
+    }
+
+    .option-card.selected {
+        background-color: rgba(212, 163, 115, 0.2);
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 1px var(--accent-color);
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .stat-box {
+        background-color: rgba(0, 0, 0, 0.2);
+        padding: 10px;
+        text-align: center;
+        border-radius: 4px;
+    }
+
+    .stat-label {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-bottom: 5px;
+    }
+
+    .stat-value {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: var(--accent-color);
+    }
+
+    .controls {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 20px;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 15px;
+        background-color: var(--input-bg);
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
+        border-radius: 4px;
+    }
+
+    .career-list {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wizard-container">
+    <div class="step-indicator">
+        <div class="step-dot active" data-step="1">1</div>
+        <div class="step-dot" data-step="2">2</div>
+        <div class="step-dot" data-step="3">3</div>
+        <div class="step-dot" data-step="4">4</div>
+    </div>
+
+    <!-- Step 1: Race Selection -->
+    <div class="wizard-step active" id="step1">
+        <h2 class="step-header">Scegli la Razza</h2>
+        <div class="race-options">
+            <div class="option-card" data-race="Umano">
+                <h3>Umano</h3>
+                <p>Versatile e adattabile.</p>
+            </div>
+            <div class="option-card" data-race="Elfo">
+                <h3>Elfo</h3>
+                <p>Agile e percettivo.</p>
+            </div>
+            <div class="option-card" data-race="Nano">
+                <h3>Nano</h3>
+                <p>Robusto e resistente.</p>
+            </div>
+            <div class="option-card" data-race="Mezzuomo">
+                <h3>Mezzuomo</h3>
+                <p>Piccolo e fortunato.</p>
+            </div>
+        </div>
+        <div class="controls" style="justify-content: flex-end;">
+            <button class="btn btn-primary" id="step1Next" disabled>Avanti</button>
+        </div>
+    </div>
+
+    <!-- Step 2: Stats Generation -->
+    <div class="wizard-step" id="step2">
+        <h2 class="step-header">Genera Caratteristiche</h2>
+        <p class="text-center" style="margin-bottom: 20px;">Le caratteristiche vengono generate in base alla razza
+            scelta (<span id="selectedRaceDisplay"></span>).</p>
+
+        <div class="stats-grid" id="mainStats">
+            <!-- Populated by JS -->
+        </div>
+
+        <div class="stats-grid" id="secondaryStats">
+            <!-- Populated by JS -->
+        </div>
+
+        <div class="text-center" style="margin: 20px 0;">
+            <button class="btn btn-accent" id="rollStatsBtn">Tira i Dadi</button>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-secondary" id="step2Prev">Indietro</button>
+            <button class="btn btn-primary" id="step2Next" disabled>Avanti</button>
+        </div>
+    </div>
+
+    <!-- Step 3: Career Selection -->
+    <div class="wizard-step" id="step3">
+        <h2 class="step-header">Scegli Carriera Iniziale</h2>
+
+        <input type="text" class="search-input" id="careerSearch" placeholder="Cerca carriera...">
+
+        <div class="career-list career-options" id="careerList">
+            <!-- Populated by JS -->
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-secondary" id="step3Prev">Indietro</button>
+            <button class="btn btn-primary" id="step3Next" disabled>Avanti</button>
+        </div>
+    </div>
+
+    <!-- Step 4: Summary -->
+    <div class="wizard-step" id="step4">
+        <h2 class="step-header">Riepilogo e Nome</h2>
+
+        <div class="form-group">
+            <label for="charName">Nome Personaggio</label>
+            <input type="text" id="charName" class="form-control" placeholder="Inserisci il nome...">
+        </div>
+
+        <div id="summaryContent" style="margin: 20px 0;">
+            <!-- Populated by JS -->
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-secondary" id="step4Prev">Indietro</button>
+            <button class="btn btn-success" id="createCharBtn" disabled>Crea Personaggio</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/character_creation.js') }}"></script>
+{% endblock %}

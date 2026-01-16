@@ -791,7 +791,63 @@ def load_shop_data():
     finally:
         conn.close()
 
+
+@app.route('/character_creation')
+def character_creation():
+    return render_template('character_creation.html')
+
+@app.route('/api/create_character', methods=['POST'])
+def create_character():
+    data = request.json
+    name = data.get('name')
+    stats = data.get('stats')
+    sec_stats = data.get('secondary_stats')
+    
+    if not name or not stats:
+        return {'success': False, 'error': 'Missing data'}, 400
+        
+    db = get_db()
+    # PGs table structure:
+    # id, name, description, ws, bs, s, t, ag, int, wp, fel, a, w, m, armor_*
+    
+    # We need to map stats to columns. Note: 'description' usually used for Race/Career info in simple apps or we add columns.
+    # The current `player_characters` table schema (from create_table):
+    # name, description, ws, bs, s, t, ag, int, wp, fel, a, w, m, armor_...
+    # It doesn't seem to have specific Race or Career columns in Schema! 
+    # I should probably put Race/Career in description or add columns.
+    # For now, I'll append them to Description.
+    
+    description = f"Razza: {data.get('race')}, Carriera Iniziale: {data.get('career_id')}" 
+    # Actually getting career name would be better but ID is what we have in payload easily unless we look it up.
+    # Let's fetch career name.
+    
+    career_name = "Sconosciuta"
+    if data.get('career_id'):
+        cur = db.execute('SELECT name FROM careers WHERE id = ?', (data.get('career_id'),))
+        row = cur.fetchone()
+        if row: career_name = row['name']
+        
+    description = f"Razza: {data.get('race')}\nCarriera: {career_name}"
+
+    try:
+        db.execute('''
+            INSERT INTO player_characters (
+                name, description, 
+                ws, bs, s, t, ag, int, wp, fel,
+                a, w, m
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            name, description,
+            stats['ws'], stats['bs'], stats['s'], stats['t'], stats['ag'], stats['int'], stats['wp'], stats['fel'],
+            sec_stats['a'], sec_stats['w'], sec_stats['m']
+        ))
+        db.commit()
+        return {'success': True}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}, 500
+
 def load_shop_types():
+
     """Reads the shop types from the inventory database."""
     conn = sqlite3.connect(DATABASE)
     c = conn.cursor()
