@@ -173,6 +173,25 @@ function renderTokens(tokens, rows, cols, activeId) {
 
         // No drag events in view mode
 
+        // Add number badge if present in name
+        const nameMatch = c.name.match(/ (\d+)$/);
+        if (nameMatch) {
+            const numBadge = document.createElement('div');
+            numBadge.innerText = nameMatch[1];
+            numBadge.style.position = 'absolute';
+            numBadge.style.bottom = '-2px';
+            numBadge.style.right = '-2px';
+            numBadge.style.background = '#d4af37';
+            numBadge.style.color = '#000';
+            numBadge.style.fontSize = '10px';
+            numBadge.style.fontWeight = 'bold';
+            numBadge.style.padding = '0 3px';
+            numBadge.style.borderRadius = '3px';
+            numBadge.style.border = '1px solid #000';
+            numBadge.style.zIndex = '10';
+            token.appendChild(numBadge);
+        }
+
         container.appendChild(token);
     });
 }

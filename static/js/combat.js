@@ -382,6 +382,25 @@ function renderMapTokens() {
         token.dataset.sizeW = sizeW; // Store for drag logic
         token.dataset.sizeH = sizeH;
 
+        // Add number badge if present in name
+        const nameMatch = c.name.match(/ (\d+)$/);
+        if (nameMatch) {
+            const numBadge = document.createElement('div');
+            numBadge.innerText = nameMatch[1];
+            numBadge.style.position = 'absolute';
+            numBadge.style.bottom = '-2px';
+            numBadge.style.right = '-2px';
+            numBadge.style.background = '#d4af37';
+            numBadge.style.color = '#000';
+            numBadge.style.fontSize = '10px';
+            numBadge.style.fontWeight = 'bold';
+            numBadge.style.padding = '0 3px';
+            numBadge.style.borderRadius = '3px';
+            numBadge.style.border = '1px solid #000';
+            numBadge.style.zIndex = '10';
+            token.appendChild(numBadge);
+        }
+
         // ... existing token creation ...
         token.onmousedown = dragMouseDown;
 
@@ -1667,6 +1686,35 @@ function setActiveCombatant(instanceId) {
     broadcastState();
 }
 
+function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function assignUniqueName(baseName) {
+    const regex = new RegExp(`^${escapeRegExp(baseName)}(?: (\\d+))?$`);
+    const matches = combatants.filter(c => regex.test(c.name));
+
+    if (matches.length === 0) return baseName;
+
+    const usedNumbers = new Set();
+    matches.forEach(c => {
+        const match = c.name.match(regex);
+        if (match) {
+            if (match[1]) {
+                usedNumbers.add(parseInt(match[1]));
+            } else {
+                c.name = `${baseName} 1`;
+                usedNumbers.add(1);
+            }
+        }
+    });
+
+    let nextNum = 1;
+    while (usedNumbers.has(nextNum)) nextNum++;
+
+    return `${baseName} ${nextNum}`;
+}
+
 function addToCombat(npcId) {
     const npc = npcs.find(n => n.id === npcId);
     if (!npc) return;
@@ -1675,8 +1723,10 @@ function addToCombat(npcId) {
     const d10 = Math.floor(Math.random() * 10) + 1;
     const initiative = ag + d10;
 
+    const uniqueName = assignUniqueName(npc.name);
     const combatant = {
         ...JSON.parse(JSON.stringify(npc)),
+        name: uniqueName,
         instanceId: Date.now() + Math.random(),
         currentWounds: npc.w || 0,
         isModified: false,
@@ -1701,8 +1751,10 @@ function addModifiedToCombat(modifiedNpcId) {
     const d10 = Math.floor(Math.random() * 10) + 1;
     const initiative = ag + d10;
 
+    const uniqueName = assignUniqueName(npc.name);
     const combatant = {
         ...JSON.parse(JSON.stringify(npc)),
+        name: uniqueName,
         instanceId: Date.now() + Math.random(),
         currentWounds: npc.w || 0,
         isModified: true,
@@ -2732,8 +2784,10 @@ function addPGToCombat(pgId) {
     const d10 = Math.floor(Math.random() * 10) + 1;
     const initiative = ag + d10;
 
+    const uniqueName = assignUniqueName(pg.name);
     const combatant = {
         ...JSON.parse(JSON.stringify(pg)),
+        name: uniqueName,
         instanceId: Date.now() + Math.random(),
         currentWounds: pg.w || 0,
         isPG: true,
@@ -2743,6 +2797,7 @@ function addPGToCombat(pgId) {
 
     combatants.push(combatant);
     sortCombatants();
+    broadcastState();
 }
 
 
