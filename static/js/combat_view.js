@@ -102,23 +102,39 @@ function initAudio() {
 function syncAudio(serverTracks, globalVolume = 0.5) {
     if (!audioEnabled) return;
 
-    // 1. Play new tracks
-    serverTracks.forEach(filename => {
+    // Normalize tracks to objects (handle legacy strings if any)
+    const normalizedTracks = serverTracks.map(t => {
+        if (typeof t === 'string') return { filename: t, loop: true };
+        return t;
+    });
+
+    const currentFilenames = normalizedTracks.map(t => t.filename);
+
+    // 1. Play or Update tracks
+    normalizedTracks.forEach(track => {
+        const filename = track.filename;
+        const shouldLoop = track.loop;
+
         if (!activeAudioPlayers[filename]) {
             const audio = new Audio(`/static/uploads/sounds/${filename}`);
-            audio.loop = true;
+            audio.loop = shouldLoop;
             audio.volume = globalVolume;
             audio.play().catch(e => console.error("Autoplay blocked:", e));
             activeAudioPlayers[filename] = audio;
         } else {
-            // Update volume for existing tracks
-            activeAudioPlayers[filename].volume = globalVolume;
+            const audio = activeAudioPlayers[filename];
+            // Update Volume
+            audio.volume = globalVolume;
+            // Update Loop State
+            if (audio.loop !== shouldLoop) {
+                audio.loop = shouldLoop;
+            }
         }
     });
 
     // 2. Stop removed tracks
     for (const [filename, audio] of Object.entries(activeAudioPlayers)) {
-        if (!serverTracks.includes(filename)) {
+        if (!currentFilenames.includes(filename)) {
             audio.pause();
             audio.currentTime = 0;
             delete activeAudioPlayers[filename];

@@ -78,7 +78,8 @@ const soundWidgetTemplate = `
 document.body.insertAdjacentHTML('beforeend', soundWidgetTemplate);
 
 // Logic
-let activeSounds = new Set();
+// Logic
+let activeSounds = new Map(); // filename -> { loop: boolean }
 let allSoundsData = [];
 let globalVolume = 0.5;
 
@@ -169,14 +170,53 @@ function renderSoundWidgetList(sounds) {
             const row = document.createElement('div');
             row.style.display = 'flex';
             row.style.alignItems = 'center';
-            row.style.justifyContent = 'space-between';
+            row.style.gap = '8px';
             row.style.padding = '4px';
             row.style.background = 'rgba(255,255,255,0.05)';
             row.style.borderRadius = '4px';
+            row.style.marginBottom = '2px';
 
             const nameSpan = document.createElement('span');
             nameSpan.innerText = sound.name;
             nameSpan.style.fontSize = '0.9em';
+            nameSpan.style.flex = '1';
+            nameSpan.style.overflow = 'hidden';
+            nameSpan.style.textOverflow = 'ellipsis';
+            nameSpan.style.whiteSpace = 'nowrap';
+            nameSpan.title = sound.name;
+
+            // Loop Checkbox
+            const loopLabel = document.createElement('label');
+            loopLabel.style.display = 'flex';
+            loopLabel.style.alignItems = 'center';
+            loopLabel.style.cursor = 'pointer';
+            loopLabel.title = "Ripeti";
+
+            const loopCb = document.createElement('input');
+            loopCb.type = 'checkbox';
+            loopCb.style.cursor = 'pointer';
+
+            // Initial state
+            const activeState = activeSounds.get(sound.filename);
+            loopCb.checked = activeState ? activeState.loop : true;
+
+            const loopIcon = document.createElement('span');
+            loopIcon.innerHTML = '🔁';
+            loopIcon.style.fontSize = '12px';
+            loopIcon.style.marginLeft = '2px';
+
+            loopLabel.appendChild(loopCb);
+            loopLabel.appendChild(loopIcon);
+
+            loopCb.onchange = () => {
+                if (activeSounds.has(sound.filename)) {
+                    // Update active sound state
+                    const state = activeSounds.get(sound.filename);
+                    state.loop = loopCb.checked;
+                    activeSounds.set(sound.filename, state);
+                    syncAudioState();
+                }
+            };
 
             const playBtn = document.createElement('button');
             playBtn.innerText = '▶';
@@ -185,14 +225,14 @@ function renderSoundWidgetList(sounds) {
             playBtn.style.color = '#eee';
             playBtn.style.cursor = 'pointer';
             playBtn.style.borderRadius = '50%';
-            playBtn.style.width = '24px';
-            playBtn.style.height = '24px';
+            playBtn.style.width = '26px';
+            playBtn.style.height = '26px';
             playBtn.style.fontSize = '12px';
             playBtn.style.display = 'flex';
             playBtn.style.alignItems = 'center';
             playBtn.style.justifyContent = 'center';
 
-            playBtn.onclick = () => toggleSound(sound.filename, playBtn);
+            playBtn.onclick = () => toggleSound(sound.filename, playBtn, loopCb);
 
             if (activeSounds.has(sound.filename)) {
                 playBtn.innerText = '⏹';
@@ -201,20 +241,21 @@ function renderSoundWidgetList(sounds) {
             }
 
             row.appendChild(nameSpan);
+            row.appendChild(loopLabel);
             row.appendChild(playBtn);
             list.appendChild(row);
         });
     }
 }
 
-function toggleSound(filename, btn) {
+function toggleSound(filename, btn, loopCb) {
     if (activeSounds.has(filename)) {
         activeSounds.delete(filename);
         btn.innerText = '▶';
         btn.style.borderColor = '#555';
         btn.style.color = '#eee';
     } else {
-        activeSounds.add(filename);
+        activeSounds.set(filename, { loop: loopCb.checked });
         btn.innerText = '⏹';
         btn.style.borderColor = '#2ecc71';
         btn.style.color = '#2ecc71';
@@ -226,19 +267,26 @@ document.getElementById('stop-all-sounds').addEventListener('click', () => {
     activeSounds.clear();
     const btns = document.querySelectorAll('#sound-list button');
     btns.forEach(btn => {
-        btn.innerText = '▶';
-        btn.style.borderColor = '#555';
-        btn.style.color = '#eee';
+        if (btn.innerText === '⏹') {
+            btn.innerText = '▶';
+            btn.style.borderColor = '#555';
+            btn.style.color = '#eee';
+        }
     });
     syncAudioState();
 });
 
 function syncAudioState() {
+    const tracks = Array.from(activeSounds.entries()).map(([filename, state]) => ({
+        filename: filename,
+        loop: state.loop
+    }));
+
     fetch('/api/combat/audio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            tracks: Array.from(activeSounds),
+            tracks: tracks,
             volume: globalVolume
         })
     });
