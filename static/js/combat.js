@@ -1794,7 +1794,7 @@ function renderCombatants() {
 
     // Render Initiative Sidebar (Sorted List)
     // Render Initiative Sidebar (Sorted List)
-    combatants.forEach(c => {
+    combatants.filter(c => !c.isDead).forEach(c => {
         const item = document.createElement('div');
         const isActive = activeCombatantId && c.instanceId === activeCombatantId;
         item.className = `initiative-item ${c.isPG ? 'is-pg' : 'is-npc'} ${c.isAlly ? 'ally' : ''} ${isActive ? 'active' : ''}`;
@@ -1807,7 +1807,7 @@ function renderCombatants() {
     });
 
     // Render Combatant Cards
-    combatants.forEach((combatant, index) => {
+    combatants.filter(c => !c.isDead).forEach((combatant, index) => {
         const isPG = combatant.isPG;
         const container = isPG ? pgContainer : npcContainer;
 
